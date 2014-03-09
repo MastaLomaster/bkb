@@ -2,7 +2,7 @@
 #include "KeybWnd.h"
 #include "BKBRepErr.h"
 
-extern bool flag_using_airmouse;
+extern int flag_using_airmouse;
 
 // Раскладка клавиатур задана в файле KeybLayouts.cpp
 extern BKB_key BKBKeybLayouts [3][3][BKB_KBD_NUM_CELLS];
@@ -224,7 +224,7 @@ bool BKBKeybWnd::ProgressBar(POINT *p, int fixation_count, int percentage)
 	}
 	else // Это продолжение фиксации. 
 	{
-		if((flag_using_airmouse)&&fixation_approved) // Фиксация была наша. В случае с аэромышью (особенно) недопустимо, чтобы курсор вышел за пределы клавиши, с которой началась фиксация
+		if((2==flag_using_airmouse)&&fixation_approved) // Фиксация была наша. В случае с аэромышью (особенно) недопустимо, чтобы курсор вышел за пределы клавиши, с которой началась фиксация
 		{
 			POINT p_tmp=*p;
 			int row_tmp=(int)((p_tmp.y-start_y)/cell_size);

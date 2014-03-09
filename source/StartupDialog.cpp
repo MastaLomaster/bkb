@@ -27,6 +27,11 @@ if (uMsg==WM_COMMAND)
 			KillTimer(hdwnd,2);
 			EndDialog(hdwnd,0);
 			return 1;
+
+		case IDOK2: 	//Хорошо! TheEyeTribe!
+			KillTimer(hdwnd,2);
+			EndDialog(hdwnd,1);
+			return 1;
 		} // switch WM_COMMAND
 
 	

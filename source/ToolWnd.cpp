@@ -21,7 +21,7 @@ int BKBToolWnd::current_tool=-1;
 bool BKBToolWnd::left_side=false;
 
 extern HBRUSH dkblue_brush, blue_brush;
-extern bool flag_using_airmouse;
+extern int flag_using_airmouse;
 
 // Оконная процедура 
 LRESULT CALLBACK BKBToolWndProc(HWND hwnd,
@@ -32,7 +32,7 @@ LRESULT CALLBACK BKBToolWndProc(HWND hwnd,
 	switch (message)
 	{
 	case WM_CREATE:
-		if(flag_using_airmouse) BKBAirMouse::Init(hwnd);
+		if(2==flag_using_airmouse) BKBAirMouse::Init(hwnd);
 		break;
 
 	case WM_PAINT:
@@ -44,7 +44,7 @@ LRESULT CALLBACK BKBToolWndProc(HWND hwnd,
 		break;
 
 	case WM_DESTROY:	// Завершение программы
-		if(flag_using_airmouse) BKBAirMouse::Halt(hwnd);
+		if(2==flag_using_airmouse) BKBAirMouse::Halt(hwnd);
 		else	BKBTobiiREX::Halt();
 		PostQuitMessage(0);
 		break;

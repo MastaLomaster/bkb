@@ -7,6 +7,7 @@
 #include "KeybWnd.h"
 #include "AirMouse.h"
 #include "BKBgdi.h"
+#include "TET.h"
 
 // Прототип WndProc решил в .h не включать
 LRESULT CALLBACK WndProc(HWND,UINT,WPARAM,LPARAM);
@@ -17,7 +18,7 @@ int StartupDialog();
 char*		BKBAppName="Клавиатура и мышь для управления глазами : сборка B";
 HINSTANCE	BKBInst;
 HWND		BKBhwnd;
-bool flag_using_airmouse;
+int flag_using_airmouse;
 
 // Имя класса окна
 static const char BKBWindowCName[]="BKB0B"; 
@@ -35,8 +36,25 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 	// Что будем использовать?
 	flag_using_airmouse=StartupDialog();
 
-	if(flag_using_airmouse)
+	switch(flag_using_airmouse)
 	{
+	case 0: // Tobii
+		// Инициализируем работу с Tobii REX
+		// Если произошла ошибка, переходим на работу с [аэро]мышью
+		if(BKBTobiiREX::Init()) flag_using_airmouse=1; // пробуем с TheEyeTribe (запоминаем, что гасить в конце)
+		else break; // всё прошло успешно
+
+	case 1: // TheEyeTribe
+		if(BKBTET::Init()) flag_using_airmouse=2; // пробуем с TheEyeTribe (запоминаем, что гасить в конце)
+		else break; // всё прошло успешно
+		
+	case 2: // просто мышь... ничего здесь не делаем
+		// Запускаем эмуляцию работы устройства Tobii аэромышью
+		// Это сделаем в WM_CREATE ToolBar'a
+		break;
+	}
+
+	/*	{
 		// Запускаем эмуляцию работы устройства Tobii аэромышью
 		// Это сделаем в WM_CREATE ToolBar'a
 	}
@@ -46,7 +64,7 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 		// Если произошла ошибка, переходим на работу с [аэро]мышью
 		flag_using_airmouse=BKBTobiiREX::Init();
 	}
-
+*/
 	// Кисти-фонты
 	BKBgdiInit();
 
@@ -68,7 +86,17 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 	// Кисти-фонты
 	BKBgdiHalt();
 
-	if(!flag_using_airmouse) BKBTobiiREX::Halt();
+	switch(flag_using_airmouse)
+	{
+	case 0:
+		BKBTobiiREX::Halt();
+		break;
+
+	case 1:
+		BKBTET::Halt();
+		break;
+	}
+
 
 	return 0;
 }
