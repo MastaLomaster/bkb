@@ -7,6 +7,8 @@ HFONT hfont;
 
 int screenX, screenY;
 
+double screen_scale=1.0;
+
 void BKBgdiInit()
 {
 	//  Кисти создаём
@@ -25,6 +27,13 @@ void BKBgdiInit()
 	// Получим разрешение экрана
 	screenX=GetSystemMetrics(SM_CXSCREEN);
 	screenY=GetSystemMetrics(SM_CYSCREEN);
+
+	// Козлиная система разрешений экрана в windows8.1...
+	DEVMODE dm;
+	ZeroMemory (&dm, sizeof (dm));
+	EnumDisplaySettings (NULL, ENUM_CURRENT_SETTINGS, &dm);
+
+	screen_scale=((double)screenX)/dm.dmPelsWidth;
 }
 
 void BKBgdiHalt()

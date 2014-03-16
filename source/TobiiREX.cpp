@@ -163,6 +163,7 @@ void on_gaze_data(const tobiigaze_gaze_data* gazedata, void *user_data)
 		if((BKB_MODE_SCROLL!=Fixation::CurrentMode())&&(BKB_MODE_KEYBOARD!=Fixation::CurrentMode()))
 				BKBTranspWnd::Move(screen_cursor_point.x,screen_cursor_point.y); // Курсором при скролле не елозить
 		
+		if(BKB_MODE_KEYBOARD==Fixation::CurrentMode()) BKBKeybWnd::WhiteSpot(&screen_cursor_point);
 
 		//===============================================================================================
 		// Искать фиксацию, только если уже оправились от предыдущей фиксации, иначе уменьшаем skip_count

@@ -6,6 +6,7 @@
 #include <stdio.h>
 char debug_buffer[4096];
 
+extern double screen_scale;
 
 #define MAGNIFY_WINDOW_SIZE 400 // по хорошему должнo делитьс€ на 2*MAGNIFY_FACTOR
 #define MAGNIFY_FACTOR 4 // ¬о сколько раз увеличиваем
@@ -126,6 +127,8 @@ bool BKBMagnifyWnd::FixPoint(POINT *pnt)
 	}
 	else // окно невидимо, нужно его открыть
 	{
+		//screen_scale=1.0/1.25;
+
 		// точка в середине окна
 		midpoint_x=pnt->x; midpoint_y=pnt->y;
 
@@ -164,12 +167,20 @@ bool BKBMagnifyWnd::FixPoint(POINT *pnt)
 		//FillRect(MagBmpDC,&rrr,(HBRUSH)GetStockObject(WHITE_BRUSH));
 
 		//  опируем часть экрана в битмап (с увеличением)
-		StretchBlt(MagBmpDC,0,0,MAGNIFY_WINDOW_SIZE,MAGNIFY_WINDOW_SIZE,ScreenDC,
+	/*	StretchBlt(MagBmpDC,0,0,MAGNIFY_WINDOW_SIZE,MAGNIFY_WINDOW_SIZE,ScreenDC,
 			midpoint_x-MAGNIFY_WINDOW_SIZE/MAGNIFY_FACTOR/2,
 			midpoint_y-MAGNIFY_WINDOW_SIZE/MAGNIFY_FACTOR/2,
 			MAGNIFY_WINDOW_SIZE/MAGNIFY_FACTOR,MAGNIFY_WINDOW_SIZE/MAGNIFY_FACTOR,
+			SRCCOPY); */
+
+		StretchBlt(MagBmpDC,0,0,MAGNIFY_WINDOW_SIZE,MAGNIFY_WINDOW_SIZE,ScreenDC,
+			(midpoint_x-MAGNIFY_WINDOW_SIZE/MAGNIFY_FACTOR/2)/screen_scale,
+			(midpoint_y-MAGNIFY_WINDOW_SIZE/MAGNIFY_FACTOR/2)/screen_scale,
+			(MAGNIFY_WINDOW_SIZE/MAGNIFY_FACTOR)/screen_scale,
+			(MAGNIFY_WINDOW_SIZE/MAGNIFY_FACTOR)/screen_scale,
 			SRCCOPY);
 
+		//screen_scale
 
 		// делаем окно видимым
 		mgf_visible=true;

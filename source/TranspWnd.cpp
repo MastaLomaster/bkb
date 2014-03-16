@@ -85,7 +85,9 @@ void BKBTranspWnd::Init()
 	NULL, //TEXT(KBWindowName),
     //WS_VISIBLE|WS_POPUP,
 	WS_POPUP,
-	100,100,100,100, 
+	//100,100, // Вот где крылась мерзкая ошибка, когда окно с курсором рисовалось в стороне !!!
+	0,0,
+	100,100, 
     0, 0, BKBInst, 0L );
 
 	if(NULL==Trhwnd)

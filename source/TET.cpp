@@ -12,6 +12,8 @@ bool BKBTET::initialized(false);
 
 extern int screenX, screenY;
 
+extern double screen_scale;
+
 // The only two messages that we send to the server
 char *JSON_heart_beat="{\"category\":\"heartbeat\"}";
 char *JSON_set_push="{\"category\":\"tracker\",\"request\":\"set\",\"values\":{\"push\":true,\"version\":1}}";
@@ -108,8 +110,8 @@ unsigned __stdcall ReaderThread(void *p)
 				p.x=(LONG)(x_avg+0.5f); p.y=(LONG)(y_avg+0.5f);;
 
 				gd.tracking_status = TOBIIGAZE_TRACKING_STATUS_BOTH_EYES_TRACKED;
-				gd.left.gaze_point_on_display_normalized.x=p.x/(double)screenX;
-				gd.left.gaze_point_on_display_normalized.y=p.y/(double)screenY;
+				gd.left.gaze_point_on_display_normalized.x=p.x/(double)screenX*screen_scale;
+				gd.left.gaze_point_on_display_normalized.y=p.y/(double)screenY*screen_scale;
 	
 				gd.right.gaze_point_on_display_normalized.x=gd.left.gaze_point_on_display_normalized.x;
 				gd.right.gaze_point_on_display_normalized.y=gd.left.gaze_point_on_display_normalized.y;
@@ -160,6 +162,7 @@ int TETconnect()
 	TETserver.sin_addr.S_un.S_un_b.s_b2=0;
 	TETserver.sin_addr.S_un.S_un_b.s_b3=0;
 	TETserver.sin_addr.S_un.S_un_b.s_b4=1;
+	
 	TETserver.sin_port = htons(6555);
 
 	// Connect the local server
