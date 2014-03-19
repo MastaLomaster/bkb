@@ -65,6 +65,7 @@ static int skip_count=0; // сколько точек осталось пропустить после фиксации, чт
 bool BKBTobiiREX::initialized(false);
 
 //extern HWND	BKBhwnd;
+extern int flag_using_airmouse;
 
 //=====================================================================================
 // Функция, возвращающая знак целого числа
@@ -112,7 +113,8 @@ void on_gaze_data(const tobiigaze_gaze_data* gazedata, void *user_data)
 		
 		//=================================================================================
 		// Теперь о перемещениях курсора
-		if((disp1>DISPERSION_HIGH_LIMIT)&&(disp2>DISPERSION_HIGH_LIMIT))
+		// Сглаживаниеы не нужно для аэромыши
+		if((disp1>DISPERSION_HIGH_LIMIT)&&(disp2>DISPERSION_HIGH_LIMIT)||(2==flag_using_airmouse))
 		{
 			// Курсор перемещаем быстро
 			//cursor_position=point;

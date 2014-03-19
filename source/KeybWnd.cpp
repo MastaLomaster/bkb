@@ -2,6 +2,8 @@
 #include "KeybWnd.h"
 #include "BKBRepErr.h"
 
+#define WM_USER_INVALRECT (WM_USER + 100)
+
 extern int flag_using_airmouse;
 
 // Раскладка клавиатур задана в файле KeybLayouts.cpp
@@ -24,8 +26,11 @@ bool BKBKeybWnd::shift_pressed=false, BKBKeybWnd::ctrl_pressed=false,
 HDC BKBKeybWnd::memdc1=0, BKBKeybWnd::memdc2=0, BKBKeybWnd::whitespot_dc=0;
 HBITMAP BKBKeybWnd::hbm1=0, BKBKeybWnd::hbm2=0, BKBKeybWnd::whitespot_bitmap=0;
 
-int BKBKeybWnd::redraw_state=0, BKBKeybWnd::width, BKBKeybWnd::height;
+volatile LONG BKBKeybWnd::redraw_state=0;
+int BKBKeybWnd::width, BKBKeybWnd::height;
 POINT BKBKeybWnd::whitespot_point={-100,-100};
+
+int BKBKeybWnd::row_pressed=-1, BKBKeybWnd::column_pressed=-1;
 
 extern HBRUSH dkblue_brush, blue_brush;
 extern HFONT hfont;
@@ -41,6 +46,21 @@ LRESULT CALLBACK BKBKeybWndProc(HWND hwnd,
 
 	switch (message)
 	{
+
+	case WM_USER_INVALRECT: // Это приходит из другого потока
+		InvalidateRect(hwnd,NULL,TRUE);
+		break;
+
+	case WM_TIMER: // Кнопку можно отпустить
+		BKBKeybWnd::OnTimer();
+		break;
+
+	case WM_SETCURSOR:
+		// Теперь прячем курсор над окном, его роль выполняет белое пятно
+		// И одновременно показываем 
+		SetCursor(NULL);
+		break;
+
 	case WM_CREATE:
 		// Создаём белое пятно
 		BKBKeybWnd::CreateWhiteSpot(hwnd);
@@ -66,6 +86,18 @@ LRESULT CALLBACK BKBKeybWndProc(HWND hwnd,
 }
 
 //================================================================
+// Прекращаем рисовать нажатую кнопку
+//================================================================
+void BKBKeybWnd::OnTimer()
+{
+	//OutputDebugString("timer\n");
+		KillTimer(Kbhwnd,4);
+		row_pressed=-1; column_pressed=-1;
+		redraw_state=0;
+		InvalidateRect(Kbhwnd,NULL,TRUE); // Это единственное место, где InvalidateRect может быть вызван, так как поток - свой.
+}
+
+//================================================================
 // Инициализация 
 //================================================================
 void BKBKeybWnd::Init()
@@ -78,7 +110,8 @@ void BKBKeybWnd::Init()
 		0,
 		BKBInst,
 		LoadIcon( NULL, IDI_APPLICATION),
-        LoadCursor(NULL, IDC_ARROW), 
+		NULL,
+        //LoadCursor(NULL, IDC_ARROW), 
 		// Фон красится теперь в memdc1
         //dkblue_brush,
 		0,
@@ -124,6 +157,22 @@ void BKBKeybWnd::Init()
 void BKBKeybWnd::OnPaint(HDC hdc)
 {
 	bool release_dc=false;
+	LONG local_redraw_state;
+
+	// Сейчас будем АТОМАРНО считывать и сбрасывать redraw_state;
+	local_redraw_state=InterlockedCompareExchange(&redraw_state,2,0);
+	if(0!=local_redraw_state) // Замены не произошло, пробуем проверить 1
+	{
+		local_redraw_state=InterlockedCompareExchange(&redraw_state,2,1);
+		// Если и тут ничего не вышло, ничего страшного
+		// Либо там была двойка, либо значение успело поменяться между двумя InterlockedCompareExchange
+		// Если успело поменяться, то придёт ещё один WM_PAINT, и мы его всё равно отловим
+		// Просто лишний раз выполним BitBlt в шаге 2. Никто не пострадает.
+		// Вообще-то 0 на 1 поменяться не может в принципе. Потому что тоже через Interlocked... единица выставляется
+		// Короче, всё работает.
+		if(1!=local_redraw_state) local_redraw_state=2;
+	}
+	
 
 	if(0==hdc)
 	{
@@ -138,12 +187,38 @@ void BKBKeybWnd::OnPaint(HDC hdc)
 	//SetBkMode(memdc1,TRANSPARENT);
 
 	RECT fill_r={0,0,width,height};
+	RECT rect_pressed={int(column_pressed*cell_size),int(row_pressed*cell_size),int((column_pressed+1)*cell_size),int((row_pressed+1)*cell_size)};
 
-	switch(redraw_state)
+	/*
+	switch(local_redraw_state)
 	{
 	case 0: // Перерисовываем всё с самой глубины
-		
+		OutputDebugString("redraw 0\n");
+		break;
+	case 1:
+		OutputDebugString("redraw 1\n");
+		break;
+	case 2:
+		OutputDebugString("redraw 2\n");
+		break;
+	default:
+		OutputDebugString("redraw XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n");
+		break;
+	}
+
+	*/
+	
+
+	switch(local_redraw_state)
+	{
+	case 0: // Перерисовываем всё с самой глубины
 		FillRect(memdc1,&fill_r,dkblue_brush);
+		// Подсвечиваем нажатую клавишу
+		if(column_pressed!=-1)
+		{
+			//RECT rect_pressed={int(column_pressed*cell_size),int(row_pressed*cell_size),int((column_pressed+1)*cell_size),int((row_pressed+1)*cell_size)};
+			FillRect(memdc1,&rect_pressed,blue_brush);
+		}
 
 		// Собственно, рисование
 		// 1. Сначала подсветим нажатые  спец. клавиши
@@ -251,8 +326,6 @@ void BKBKeybWnd::OnPaint(HDC hdc)
 		break;
 	}
 
-	redraw_state=2; // Пока кто-то явно не скажет, будем только последний битмап выстреливать
-
 	// Если брал DC - верни его
 	if(release_dc) ReleaseDC(Kbhwnd,hdc);
 
@@ -285,7 +358,10 @@ bool BKBKeybWnd::ProgressBar(POINT *p, int fixation_count, int _percentage)
 	}
 	else // Это продолжение фиксации. 
 	{
-		if((2==flag_using_airmouse)&&fixation_approved) // Фиксация была наша. В случае с аэромышью (особенно) недопустимо, чтобы курсор вышел за пределы клавиши, с которой началась фиксация
+		if(fixation_approved) 
+		//if((2==flag_using_airmouse)&&fixation_approved) // Фиксация была наша. В случае с аэромышью (особенно) недопустимо, 
+		// чтобы курсор вышел за пределы клавиши, с которой началась фиксация
+		// Для остальных режимов попробуем так же
 		{
 			POINT p_tmp=*p;
 			int row_tmp=(int)((p_tmp.y-start_y)/cell_size);
@@ -300,24 +376,19 @@ bool BKBKeybWnd::ProgressBar(POINT *p, int fixation_count, int _percentage)
 	if(fixation_approved)
 	{
 		// Теперь это всё в WM_PAINT
-		redraw_state=1;
-		InvalidateRect(Kbhwnd,NULL,TRUE);
-
-/*		HDC hdc=GetDC(Kbhwnd);
-		RECT rect;
+		// Атомарно меняем 2 на 1
+		LONG old_state=InterlockedCompareExchange(&redraw_state,1,2);
 		
-		rect.left=(LONG)(cell_size/20+column*cell_size);
-		
-		rect.right=(LONG)(rect.left+percentage*cell_size*90/100/100);
-		rect.top=(LONG)(cell_size/20+cell_size*row);
-		rect.bottom=(LONG)(rect.top+cell_size/20); 
+	/*	if(redraw_state>1) 
+		{
+			redraw_state=1; //Здесь был баг. Могло перебить перерисовку с нижнего слоя
+			//OutputDebugString("rstate->1 PB\n");
+		}	 */
 
-
-		FillRect(hdc,&rect,blue_brush);
-
-		ReleaseDC(Kbhwnd,hdc); */
-
-
+		// Из другого потока вроде нельзя вызывать InvalidateRect
+		// Делаем перерисовку, только если старое состояние было двойкой
+		if(2==old_state) PostMessage(Kbhwnd, WM_USER_INVALRECT, 0, 0);
+		//InvalidateRect(Kbhwnd,NULL,TRUE);
 	}
 
 	return true;
@@ -328,26 +399,19 @@ bool BKBKeybWnd::ProgressBar(POINT *p, int fixation_count, int _percentage)
 //===========================================================================
 void BKBKeybWnd::ProgressBarReset()
 {
-/*	if(fixation_approved) // Известно, где закрашивать
-	{
-		HDC hdc=GetDC(Kbhwnd);
-		RECT rect;
-		
-		rect.left=(LONG)(cell_size/20+column*cell_size);
-		
-		rect.right=(LONG)(rect.left+cell_size*90/100);
-		rect.top=(LONG)(cell_size/20+cell_size*row);
-		rect.bottom=(LONG)(rect.top+cell_size/20); 
-
-
-		FillRect(hdc,&rect,dkblue_brush);
-
-		ReleaseDC(Kbhwnd,hdc);
-	}
-*/
 	fixation_approved=false;
-	redraw_state=1;
-	InvalidateRect(Kbhwnd,NULL,TRUE);
+	// Атомарно меняем 2 на 1
+	LONG old_state=InterlockedCompareExchange(&redraw_state,1,2);
+
+	/* if(redraw_state>1) 
+	{
+		redraw_state=1; //Здесь был баг. Могло перебить перерисовку с нижнего слоя
+		OutputDebugString("rstate->1 PBreset\n");
+	} */
+	// Из другого потока нельзя вызывать InvalidateRect
+	// Делаем перерисовку, только если старое состояние было двойкой
+	if(2==old_state) PostMessage(Kbhwnd, WM_USER_INVALRECT, 0, 0);
+	//InvalidateRect(Kbhwnd,NULL,TRUE);
 }
 
 //===========================================================================
@@ -369,10 +433,7 @@ bool BKBKeybWnd::IsItYours(POINT *p)
 		if((Fn_pressed)&&(2==screen_num)&&(1==row)&&(0<column)&&(12>=column)) // Жмём одну из 12 функциональных клавиш
 		{
 			ScanCodeButton(VK_F1+column-1);
-				
 			Fn_pressed=false; // Сбрасываем нажатую клавишу Fn
-			redraw_state=0;
-			InvalidateRect(Kbhwnd,NULL,TRUE); // перерисовать клавиатуру с самого начала
 		}
 		else // Это НЕ функциональная клавиша
 		switch (key_pressed.bkb_keytype)
@@ -397,8 +458,6 @@ bool BKBKeybWnd::IsItYours(POINT *p)
 			if((shift_pressed)&&(!caps_lock_pressed))  // Сбрасываем shift, если он не ужерживается caps_lock'ом
 			{
 				shift_pressed=false;
-				redraw_state=0;
-				InvalidateRect(Kbhwnd,NULL,TRUE); // перерисовать клавиатуру с самого начала
 			}
 			break;
 
@@ -409,15 +468,11 @@ bool BKBKeybWnd::IsItYours(POINT *p)
 		case leftkbd: // другой экран клавиатуры (слева от текущего)
 			screen_num--;
 			if(screen_num<0) screen_num=2;
-			redraw_state=0;
-			InvalidateRect(Kbhwnd,NULL,TRUE); // перерисовать клавиатуру с самого начала
 			break;
 
 		case rightkbd: // другой экран клавиатуры (справа от текущего)
 			screen_num++;
 			if(screen_num>2) screen_num=0;
-			redraw_state=0;
-			InvalidateRect(Kbhwnd,NULL,TRUE); // перерисовать клавиатуру с самого начала
 			break;
 
 		case shift: // нажали кнопку Shift
@@ -434,31 +489,31 @@ bool BKBKeybWnd::IsItYours(POINT *p)
 				}
 			}
 			else shift_pressed=true; // просто взводим shift
-
-			redraw_state=0;
-			InvalidateRect(Kbhwnd,NULL,TRUE); // перерисовать клавиатуру с самого начала
 			break;
 
 		case control: // нажали кнопку Ctrl
 			if(ctrl_pressed) ctrl_pressed=false; else ctrl_pressed=true;
-			redraw_state=0;
-			InvalidateRect(Kbhwnd,NULL,TRUE); // перерисовать клавиатуру с самого начала
 			break;
 
 		case alt: // нажали кнопку Alt
 			if(alt_pressed) alt_pressed=false; else alt_pressed=true;
-			redraw_state=0;
-			InvalidateRect(Kbhwnd,NULL,TRUE); // перерисовать клавиатуру с самого начала
 			break;
 
 		case fn: // нажали кнопку Fn
 			if(Fn_pressed) Fn_pressed=false; else Fn_pressed=true;
-			redraw_state=0;
-			InvalidateRect(Kbhwnd,NULL,TRUE); // перерисовать клавиатуру с самого начала
 			break;
 		}
 		// Пока здесь, потом, возможно, вынесем в отдельную функцию
 
+		// запомним, что стереть после окончания таймера
+		row_pressed=row; column_pressed=column;
+		SetTimer(Kbhwnd,4,500,0); // полсекунды
+		// Теперь ВСЕГДА перерисовываем клавиатуру после ЛЮБОГО нажатия
+		redraw_state=0;
+		// Из другого потока нельзя вызывать InvalidateRect
+		PostMessage(Kbhwnd, WM_USER_INVALRECT, 0, 0);
+		//InvalidateRect(Kbhwnd,NULL,FALSE); // перерисовать клавиатуру с самого начала
+		//OutputDebugString("row_pressed\n");
 	} //fixation approved
 
 	// Возвращаем всегда, относится ли это нажатие к нам, даже если кнопку не нажали
@@ -477,8 +532,19 @@ void BKBKeybWnd::WhiteSpot(POINT *p)
 	whitespot_point=*p;
 	whitespot_point.y-=start_y; // Такой простой перевод экранных координат в оконные
 
-	redraw_state=1;
-	InvalidateRect(Kbhwnd,NULL,TRUE); // перерисовать клавиатуру
+	LONG old_state=InterlockedCompareExchange(&redraw_state,1,2);
+
+	// Из другого потока нельзя вызывать InvalidateRect
+	// Делаем перерисовку, только если старое состояние было двойкой
+	if(2==old_state) PostMessage(Kbhwnd, WM_USER_INVALRECT, 0, 0);
+/*	if(redraw_state>1) 
+	{
+		redraw_state=1; //Здесь был баг. Могло перебить перерисовку с нижнего слоя
+		OutputDebugString("rstate->1 WS\n");
+	} 
+		// Из другого потока нельзя вызывать InvalidateRect
+	PostMessage(Kbhwnd, WM_USER_INVALRECT, 0, 0);
+	//InvalidateRect(Kbhwnd,NULL,TRUE); // перерисовать клавиатуру */
 }
 
 
@@ -578,7 +644,7 @@ void BKBKeybWnd::ScanCodeButton(WORD scancode)
 		alt_pressed=false; // отпускаем Alt
 	}
 	
-	if(redraw_reqired) InvalidateRect(Kbhwnd,NULL,TRUE); // перерисовать клавиатуру
+	//if(redraw_reqired) InvalidateRect(Kbhwnd,NULL,TRUE); // перерисовать клавиатуру
 }
 
 //===================================================================

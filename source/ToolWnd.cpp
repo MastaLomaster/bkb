@@ -6,6 +6,8 @@
 #include "TobiiREX.h"
 #include "AirMouse.h"
 
+#define WM_USER_INVALRECT (WM_USER + 100)
+
 #define BKB_TOOLBOX_WIDTH 128
 #define BKB_NUM_TOOLS 8
 
@@ -31,6 +33,10 @@ LRESULT CALLBACK BKBToolWndProc(HWND hwnd,
 {
 	switch (message)
 	{
+	case WM_USER_INVALRECT: // Это приходит из другого потока
+		InvalidateRect(hwnd,NULL,TRUE);
+		break;
+
 	case WM_CREATE:
 		if(2==flag_using_airmouse) BKBAirMouse::Init(hwnd);
 		break;
@@ -206,8 +212,10 @@ bool BKBToolWnd::IsItYours(POINT *pnt, BKB_MODE *bm)
 		}
 
 		// Пусть окно перерисует стандартная оконная процедура
-		RECT rect={0,0,BKB_TOOLBOX_WIDTH,screen_y};
-		InvalidateRect(Tlhwnd,&rect,TRUE);
+		 PostMessage(Tlhwnd, WM_USER_INVALRECT, 0, 0);
+		
+		//RECT rect={0,0,BKB_TOOLBOX_WIDTH,screen_y};
+		//InvalidateRect(Tlhwnd,&rect,TRUE);
 		return true;
 	}
 	else return false;
@@ -221,6 +229,8 @@ void BKBToolWnd::Reset(BKB_MODE *bm)
 	current_tool=-1;
 	*bm=BKB_MODE_NONE;
 	// Пусть окно перерисует стандартная оконная процедура
-	RECT rect={0,0,BKB_TOOLBOX_WIDTH,screen_y};
-	InvalidateRect(Tlhwnd,&rect,TRUE);
+	 PostMessage(Tlhwnd, WM_USER_INVALRECT, 0, 0);
+	
+	 //RECT rect={0,0,BKB_TOOLBOX_WIDTH,screen_y};
+	//InvalidateRect(Tlhwnd,&rect,TRUE);
 }

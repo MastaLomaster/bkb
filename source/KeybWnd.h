@@ -31,6 +31,7 @@ public:
 	static void Activate();
 	static void DeActivate();
 	static void OnSize(HWND hwnd, int _width, int _height);
+	static void OnTimer();
 	static void CreateWhiteSpot(HWND hwnd);
 	static POINT whitespot_point;
 protected:
@@ -43,14 +44,15 @@ protected:
 
 	static POINT start_point;
 	static bool fixation_approved;
-	static int row, column;
+	static int row, column, row_pressed, column_pressed;
 
 	static bool shift_pressed, ctrl_pressed, alt_pressed, caps_lock_pressed, Fn_pressed;
 	static int screen_num;
 
 	static HDC memdc1, memdc2, whitespot_dc;
 	static HBITMAP hbm1, hbm2, whitespot_bitmap; 
-	static int redraw_state, width, height;
+	volatile static LONG redraw_state; 
+	static int width, height;
 	
 };
 

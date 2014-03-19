@@ -2,6 +2,8 @@
 #include "TranspWnd.h"
 #include "BKBRepErr.h"
 
+#define WM_USER_MOVEWINDOW (WM_USER + 101)
+
 static const char *wnd_class_name="BKBTransp";
 extern HINSTANCE BKBInst;
 
@@ -38,7 +40,10 @@ LRESULT CALLBACK BKBTranspWndProc(HWND hwnd,
 		
 		EndPaint(hwnd,&ps);
 		break;
-		
+	
+	 case WM_USER_MOVEWINDOW:
+		 MoveWindow(hwnd,wparam,lparam,100,100,FALSE);
+		 break;
 
 	default:
 		return DefWindowProc(hwnd,message,wparam,lparam);
@@ -101,7 +106,9 @@ void BKBTranspWnd::Init()
 
 void BKBTranspWnd::Move(int x, int y)
 {
-	MoveWindow(Trhwnd,x-50,y-50,100,100,FALSE);
+	// Это другой поток, а мы ждать не будем
+	PostMessage(Trhwnd, WM_USER_MOVEWINDOW, x-50, y-50);
+	//MoveWindow(Trhwnd,x-50,y-50,100,100,FALSE);
 }
 
 void BKBTranspWnd::Show()
