@@ -524,7 +524,7 @@ bool BKBKeybWnd::IsItYours(POINT *p)
 //===========================================================================
 // Подсветить пятном место взгляда
 //===========================================================================
-void BKBKeybWnd::WhiteSpot(POINT *p)
+bool BKBKeybWnd::WhiteSpot(POINT *p)
 {
 	// Не, всё не так. Надо проверить, может надо стереть пятно, которое было раньше
 	//if(p->y<start_y-50) return; // Белое пятно не заехало на клавиатуру
@@ -532,19 +532,16 @@ void BKBKeybWnd::WhiteSpot(POINT *p)
 	whitespot_point=*p;
 	whitespot_point.y-=start_y; // Такой простой перевод экранных координат в оконные
 
+	if(whitespot_point.y<0)
+		return false; // Стрелочка где-то вне клавиатуры
+
 	LONG old_state=InterlockedCompareExchange(&redraw_state,1,2);
 
 	// Из другого потока нельзя вызывать InvalidateRect
 	// Делаем перерисовку, только если старое состояние было двойкой
 	if(2==old_state) PostMessage(Kbhwnd, WM_USER_INVALRECT, 0, 0);
-/*	if(redraw_state>1) 
-	{
-		redraw_state=1; //Здесь был баг. Могло перебить перерисовку с нижнего слоя
-		OutputDebugString("rstate->1 WS\n");
-	} 
-		// Из другого потока нельзя вызывать InvalidateRect
-	PostMessage(Kbhwnd, WM_USER_INVALRECT, 0, 0);
-	//InvalidateRect(Kbhwnd,NULL,TRUE); // перерисовать клавиатуру */
+
+	return true; // Вместо стрелочки рисуем пятно
 }
 
 

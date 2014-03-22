@@ -6,6 +6,7 @@
 #include "Fixation.h"
 #include "TranspWnd.h"
 #include "KeybWnd.h"
+#include "ToolWnd.h"
 
 #define DISPERSION_LIMIT 100.0 // ƒл€ отслеживани€ фиксаций
 #define DISPERSION_HIGH_LIMIT 300.0 // ƒл€ отслеживани€ быстрых перемещений
@@ -91,6 +92,7 @@ void on_gaze_data(const tobiigaze_gaze_data* gazedata, void *user_data)
 	static int cursor_linear_move_counter=CURSOR_SMOOTHING; // —только отсчетов курсор будет двигатьс€ линейно 
 	static double cursor_speed_x=0.0, cursor_speed_y=0.0; 
 	static uint64_t last_timestamp=0;
+	static bool mouse_inside_keyboard=false, last_mouse_inside_keyboard=false; // ƒл€ скрыти€ второго курсора при перемещении в область клавиатуры
 	
 		// ƒл€ проверки рисуем точку на экране
 	// Ќо только если отследили оба глаза!!
@@ -161,11 +163,29 @@ void on_gaze_data(const tobiigaze_gaze_data* gazedata, void *user_data)
 			last_timestamp=gazedata->timestamp;
 		}
 		
-
+		//  урсор при скролле и клавиатуре двигаетс€ только в отдельных случа€х, обрабатываемых ниже
 		if((BKB_MODE_SCROLL!=Fixation::CurrentMode())&&(BKB_MODE_KEYBOARD!=Fixation::CurrentMode()))
-				BKBTranspWnd::Move(screen_cursor_point.x,screen_cursor_point.y); //  урсором при скролле не елозить
+				BKBTranspWnd::Move(screen_cursor_point.x,screen_cursor_point.y); 
 		
-		if(BKB_MODE_KEYBOARD==Fixation::CurrentMode()) BKBKeybWnd::WhiteSpot(&screen_cursor_point);
+		// –исуем окно со стрелкой или белое п€тно на клавиатуре?
+		if(BKB_MODE_KEYBOARD==Fixation::CurrentMode()) 
+		{
+			mouse_inside_keyboard=BKBKeybWnd::WhiteSpot(&screen_cursor_point);
+			if((true==mouse_inside_keyboard)&&(false==last_mouse_inside_keyboard)) // пришли в клавиатуру
+				BKBTranspWnd::Hide(); // ”брать стрелку
+			else if((false==mouse_inside_keyboard)&&(true==last_mouse_inside_keyboard)) // вышли из клавиатуры
+				BKBTranspWnd::Show(); // ѕоказать стрелку
+
+			last_mouse_inside_keyboard=mouse_inside_keyboard;
+			if(!mouse_inside_keyboard)
+				BKBTranspWnd::Move(screen_cursor_point.x,screen_cursor_point.y);
+		}
+
+		// ѕри скролле рисуем прозрачное окно только тогда, когда оно попадает на тулбар
+		if(BKB_MODE_SCROLL==Fixation::CurrentMode()) 
+		{
+			BKBToolWnd::ScrollCursor(&screen_cursor_point);
+		}
 
 		//===============================================================================================
 		// »скать фиксацию, только если уже оправились от предыдущей фиксации, иначе уменьшаем skip_count

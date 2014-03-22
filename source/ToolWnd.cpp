@@ -5,6 +5,7 @@
 #include "KeybWnd.h"
 #include "TobiiREX.h"
 #include "AirMouse.h"
+#include "TranspWnd.h"
 
 #define WM_USER_INVALRECT (WM_USER + 100)
 
@@ -230,7 +231,28 @@ void BKBToolWnd::Reset(BKB_MODE *bm)
 	*bm=BKB_MODE_NONE;
 	// Пусть окно перерисует стандартная оконная процедура
 	 PostMessage(Tlhwnd, WM_USER_INVALRECT, 0, 0);
+
+}
+
+//=======================================================================
+// В режиме скролла показывает курсор только когда он попадает на тулбар
+//=======================================================================
+void BKBToolWnd::ScrollCursor(POINT *p)
+{
+	static bool mouse_inside_toolbar=true, last_mouse_inside_toolbar=true; // Для скрытия второго курсора при перемещении за область тулбара
 	
-	 //RECT rect={0,0,BKB_TOOLBOX_WIDTH,screen_y};
-	//InvalidateRect(Tlhwnd,&rect,TRUE);
+	if((left_side&&(p->x<BKB_TOOLBOX_WIDTH)) || !left_side&&(p->x>screen_x-BKB_TOOLBOX_WIDTH))
+	{
+		// Попали в тулбокс, покажите курсор
+		mouse_inside_toolbar=true;
+		if(false==last_mouse_inside_toolbar) BKBTranspWnd::Show(); // Показать стрелку
+		BKBTranspWnd::Move(p->x,p->y);
+	}
+	else
+	{
+		// мимо тулбара
+		mouse_inside_toolbar=false;
+		if(true==last_mouse_inside_toolbar) BKBTranspWnd::Hide(); // Убрать стрелку
+	}
+	last_mouse_inside_toolbar=mouse_inside_toolbar;
 }

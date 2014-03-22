@@ -90,7 +90,7 @@ void BKBTranspWnd::Init()
 	NULL, //TEXT(KBWindowName),
     //WS_VISIBLE|WS_POPUP,
 	WS_POPUP,
-	//100,100, // Вот где крылась мерзкая ошибка, когда окно с курсором рисовалось в стороне !!!
+	//100,100, // Не здесь ли крылась мерзкая ошибка, когда окно с курсором рисовалось в стороне?? Нет, похоже это было из-за HighDPI
 	0,0,
 	100,100, 
     0, 0, BKBInst, 0L );
@@ -107,7 +107,8 @@ void BKBTranspWnd::Init()
 void BKBTranspWnd::Move(int x, int y)
 {
 	// Это другой поток, а мы ждать не будем
-	PostMessage(Trhwnd, WM_USER_MOVEWINDOW, x-50, y-50);
+	if(flag_show_transp_window)
+		PostMessage(Trhwnd, WM_USER_MOVEWINDOW, x-50, y-50);
 	//MoveWindow(Trhwnd,x-50,y-50,100,100,FALSE);
 }
 

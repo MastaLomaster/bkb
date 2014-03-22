@@ -25,7 +25,7 @@ public:
 	static bool FixPoint(POINT *pnt);
 	static void OnPaint(HDC hdc=0);
 	static bool IsItYours(POINT *p);
-	static void WhiteSpot(POINT *p);
+	static bool WhiteSpot(POINT *p);
 	static bool ProgressBar(POINT *p, int fixation_count, int _percentage); // Возвращает false, если соскочили с клавиши (для аэромыши)
 	static void ProgressBarReset();
 	static void Activate();
