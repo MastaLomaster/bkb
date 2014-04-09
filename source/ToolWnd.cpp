@@ -1,11 +1,12 @@
-#include <Windows.h>
-#include <stdint.h> // Это для uint64_t
+п»ї#include <Windows.h>
+#include <stdint.h> // Р­С‚Рѕ РґР»СЏ uint64_t
 #include "ToolWnd.h"
 #include "BKBRepErr.h"
 #include "KeybWnd.h"
 #include "TobiiREX.h"
 #include "AirMouse.h"
 #include "TranspWnd.h"
+#include "Internat.h"
 
 #define WM_USER_INVALRECT (WM_USER + 100)
 
@@ -13,8 +14,8 @@
 #define BKB_NUM_TOOLS 8
 
 extern HINSTANCE BKBInst;
-static const char *wnd_class_name="BKBTool";
-static const char *tool_names[BKB_NUM_TOOLS]={"ЛЕВЫЙ","ПРАВЫЙ","ДВОЙНОЙ","ДРЕГ","СКРОЛЛ","КЛАВИШИ","Туда-Сюда","РЕЗЕРВ"};
+static const TCHAR *wnd_class_name=L"BKBTool";
+static const TCHAR *tool_names[BKB_NUM_TOOLS];
 static BKB_MODE tool_bm[BKB_NUM_TOOLS]={BKB_MODE_LCLICK, BKB_MODE_RCLICK, BKB_MODE_DOUBLECLICK, BKB_MODE_DRAG, 
 	BKB_MODE_SCROLL, BKB_MODE_KEYBOARD, BKB_MODE_NONE, BKB_MODE_NONE};
 
@@ -26,7 +27,7 @@ bool BKBToolWnd::left_side=false;
 extern HBRUSH dkblue_brush, blue_brush;
 extern int flag_using_airmouse;
 
-// Оконная процедура 
+// РћРєРѕРЅРЅР°СЏ РїСЂРѕС†РµРґСѓСЂР° 
 LRESULT CALLBACK BKBToolWndProc(HWND hwnd,
 						UINT message,
 						WPARAM wparam,
@@ -34,11 +35,12 @@ LRESULT CALLBACK BKBToolWndProc(HWND hwnd,
 {
 	switch (message)
 	{
-	case WM_USER_INVALRECT: // Это приходит из другого потока
+	case WM_USER_INVALRECT: // Р­С‚Рѕ РїСЂРёС…РѕРґРёС‚ РёР· РґСЂСѓРіРѕРіРѕ РїРѕС‚РѕРєР°
 		InvalidateRect(hwnd,NULL,TRUE);
 		break;
 
 	case WM_CREATE:
+		SetLayeredWindowAttributes(hwnd,NULL,255*80/100,LWA_ALPHA);
 		if(2==flag_using_airmouse) BKBAirMouse::Init(hwnd);
 		break;
 
@@ -50,7 +52,7 @@ LRESULT CALLBACK BKBToolWndProc(HWND hwnd,
 		EndPaint(hwnd,&ps);
 		break;
 
-	case WM_DESTROY:	// Завершение программы
+	case WM_DESTROY:	// Р—Р°РІРµСЂС€РµРЅРёРµ РїСЂРѕРіСЂР°РјРјС‹
 		if(2==flag_using_airmouse) BKBAirMouse::Halt(hwnd);
 		else	BKBTobiiREX::Halt();
 		PostQuitMessage(0);
@@ -64,28 +66,38 @@ LRESULT CALLBACK BKBToolWndProc(HWND hwnd,
 		return DefWindowProc(hwnd,message,wparam,lparam);
 	}
 
-	return 0; // Обработали, свалились сюда по break
+	return 0; // РћР±СЂР°Р±РѕС‚Р°Р»Рё, СЃРІР°Р»РёР»РёСЃСЊ СЃСЋРґР° РїРѕ break
 }
 
 //================================================================
-// Инициализация 
+// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ 
 //================================================================
 void BKBToolWnd::Init()
 {
-	ATOM aresult; // Для всяких кодов возврата
+	ATOM aresult; // Р”Р»СЏ РІСЃСЏРєРёС… РєРѕРґРѕРІ РІРѕР·РІСЂР°С‚Р°
 	
-	// 1. Регистрация класса окна
+	// 0. Р—Р°РїРѕР»РЅСЏРµРј РЅР°Р·РІР°РЅРёСЏ РёРЅСЃС‚СЂСѓРјРµРЅС‚РѕРІ РёРЅРѕСЃС‚СЂР°РЅРЅС‹Рј СЏР·С‹РєРѕРј
+	tool_names[0]=Internat::Message(12,L"Р›Р•Р’Р«Р™");
+	tool_names[1]=Internat::Message(13,L"РџР РђР’Р«Р™");
+	tool_names[2]=Internat::Message(14,L"Р”Р’РћР™РќРћР™");
+	tool_names[3]=Internat::Message(15,L"Р”Р Р•Р“");
+	tool_names[4]=Internat::Message(16,L"РЎРљР РћР›Р›");
+	tool_names[5]=Internat::Message(17,L"РљР›РђР’РРЁР");
+	tool_names[6]=Internat::Message(18,L"РўСѓРґР°-РЎСЋРґР°");
+	tool_names[7]=Internat::Message(19,L"Р Р•Р—Р•Р Р’");
+
+	// 1. Р РµРіРёСЃС‚СЂР°С†РёСЏ РєР»Р°СЃСЃР° РѕРєРЅР°
 	WNDCLASS wcl={CS_HREDRAW | CS_VREDRAW, BKBToolWndProc, 0,
-		//sizeof(LONG_PTR), // Сюда пропишем ссылку на объект
+		//sizeof(LONG_PTR), // РЎСЋРґР° РїСЂРѕРїРёС€РµРј СЃСЃС‹Р»РєСѓ РЅР° РѕР±СЉРµРєС‚
 		0,
 		BKBInst,
 		LoadIcon( NULL, IDI_APPLICATION),
         LoadCursor(NULL, IDC_ARROW), 
-		//Надо бы красить фон
+		//РќР°РґРѕ Р±С‹ РєСЂР°СЃРёС‚СЊ С„РѕРЅ
         dkblue_brush,
 		//0,
 		NULL,
-		TEXT(wnd_class_name)
+		wnd_class_name
 	};
 
 	aresult=::RegisterClass(&wcl); 
@@ -93,7 +105,7 @@ void BKBToolWnd::Init()
 
 	if (aresult==0)
 	{
-		BKBReportError(__FILE__,"RegisterClass (",__LINE__);
+		BKBReportError(__WIDEFILE__,L"RegisterClass (",__LINE__);
 		return;
 	}
 
@@ -101,8 +113,8 @@ void BKBToolWnd::Init()
 	screen_y=GetSystemMetrics(SM_CYSCREEN);
 
 	Tlhwnd=CreateWindowEx(
-	WS_EX_TOPMOST|WS_EX_CLIENTEDGE,
-	TEXT(wnd_class_name),
+	WS_EX_LAYERED | WS_EX_TOPMOST| WS_EX_CLIENTEDGE,
+	wnd_class_name,
 	NULL, //TEXT(KBWindowName),
     //WS_VISIBLE|WS_POPUP,
 	WS_POPUP,
@@ -111,14 +123,14 @@ void BKBToolWnd::Init()
 
 	if(NULL==Tlhwnd)
 	{
-		BKBReportError(__FILE__,"CreateWindow",__LINE__);
+		BKBReportError(__WIDEFILE__,L"CreateWindow",__LINE__);
 	}
 
 	ShowWindow(Tlhwnd,SW_SHOWNORMAL);
 }
 
 //================================================================
-// Рисуем окно (Из WM_PAINT или сами)
+// Р РёСЃСѓРµРј РѕРєРЅРѕ (РР· WM_PAINT РёР»Рё СЃР°РјРё)
 //================================================================
 void BKBToolWnd::OnPaint(HDC hdc)
 {
@@ -130,15 +142,15 @@ void BKBToolWnd::OnPaint(HDC hdc)
 		hdc=GetDC(Tlhwnd);
 	}
 
-	// Собственно, рисование
-	// 1. Сначала подсветим рабочий инструмент
+	// РЎРѕР±СЃС‚РІРµРЅРЅРѕ, СЂРёСЃРѕРІР°РЅРёРµ
+	// 1. РЎРЅР°С‡Р°Р»Р° РїРѕРґСЃРІРµС‚РёРј СЂР°Р±РѕС‡РёР№ РёРЅСЃС‚СЂСѓРјРµРЅС‚
 	if(current_tool>=0)
 	{
 		RECT rect={0,current_tool*(screen_y/BKB_NUM_TOOLS),BKB_TOOLBOX_WIDTH,(current_tool+1)*(screen_y/BKB_NUM_TOOLS)};
 		FillRect(hdc,&rect,blue_brush);
 	}
 
-	// цвета подправим
+	// С†РІРµС‚Р° РїРѕРґРїСЂР°РІРёРј
 	SetTextColor(hdc,RGB(255,255,255));
 	SetBkColor(hdc,RGB(45,62,90));
 	SelectObject(hdc,GetStockObject(WHITE_PEN));
@@ -148,31 +160,32 @@ void BKBToolWnd::OnPaint(HDC hdc)
 	{
 		MoveToEx(hdc,0,i*screen_y/BKB_NUM_TOOLS,NULL);
 		LineTo(hdc,BKB_TOOLBOX_WIDTH-1,i*screen_y/BKB_NUM_TOOLS);
-		TextOut(hdc,25,60+i*screen_y/BKB_NUM_TOOLS,tool_names[i],(int)strlen(tool_names[i]));
+		TextOut(hdc,25,60+i*screen_y/BKB_NUM_TOOLS,tool_names[i],wcslen(tool_names[i]));
 	}
 
 
-	// Если брал DC - верни его
+	// Р•СЃР»Рё Р±СЂР°Р» DC - РІРµСЂРЅРё РµРіРѕ
 	if(release_dc) ReleaseDC(Tlhwnd,hdc);
 
 }
 
 //================================================================
-// Возможно переключение режима
+// Р’РѕР·РјРѕР¶РЅРѕ РїРµСЂРµРєР»СЋС‡РµРЅРёРµ СЂРµР¶РёРјР°
 //================================================================
 bool BKBToolWnd::IsItYours(POINT *pnt, BKB_MODE *bm)
 {
-	// Попала ли точка фиксации в границы окна?
-	// Ещё не включать режим резерв (потом)
+	// РџРѕРїР°Р»Р° Р»Рё С‚РѕС‡РєР° С„РёРєСЃР°С†РёРё РІ РіСЂР°РЅРёС†С‹ РѕРєРЅР°?
+	// Р•С‰С‘ РЅРµ РІРєР»СЋС‡Р°С‚СЊ СЂРµР¶РёРј СЂРµР·РµСЂРІ (РїРѕС‚РѕРј)
+//!!! РџРѕРїСЂР°РІРёС‚СЊ РґР»СЏ РјРЅРѕРіРѕРјРѕРЅРёС‚РѕСЂРЅРѕР№ РєРѕРЅС„РёРіСѓСЂР°С†РёРё!!!
 	if((left_side&&(pnt->x<BKB_TOOLBOX_WIDTH)) || !left_side&&(pnt->x>screen_x-BKB_TOOLBOX_WIDTH))
 	{
-		// попала, определяем номер инструмента
+		// РїРѕРїР°Р»Р°, РѕРїСЂРµРґРµР»СЏРµРј РЅРѕРјРµСЂ РёРЅСЃС‚СЂСѓРјРµРЅС‚Р°
 		int tool_candidate=pnt->y/(screen_y/BKB_NUM_TOOLS);
 		
-		// пока восьмой выбрать нельзя
+		// РїРѕРєР° РІРѕСЃСЊРјРѕР№ РІС‹Р±СЂР°С‚СЊ РЅРµР»СЊР·СЏ
 		if(tool_candidate>=7) return false;
 
-		// Перенести панель инструментов в другую половину экрана
+		// РџРµСЂРµРЅРµСЃС‚Рё РїР°РЅРµР»СЊ РёРЅСЃС‚СЂСѓРјРµРЅС‚РѕРІ РІ РґСЂСѓРіСѓСЋ РїРѕР»РѕРІРёРЅСѓ СЌРєСЂР°РЅР°
 		if(6==tool_candidate)
 		{
 			if(left_side)
@@ -186,33 +199,30 @@ bool BKBToolWnd::IsItYours(POINT *pnt, BKB_MODE *bm)
 				MoveWindow(Tlhwnd, 0,0,BKB_TOOLBOX_WIDTH,screen_y,TRUE);
 
 			}
-			return true; // В частности, не выводит увеличительное стекло
+			return true; // Р’ С‡Р°СЃС‚РЅРѕСЃС‚Рё, РЅРµ РІС‹РІРѕРґРёС‚ СѓРІРµР»РёС‡РёС‚РµР»СЊРЅРѕРµ СЃС‚РµРєР»Рѕ
 		}
 
-		// а ещё нельзя включать скролл, когда работает клавиатура (легко промахнуться и нажать его вместо клавиши)
-		if((BKB_MODE_KEYBOARD==*bm)&&(tool_candidate>=4)) return false; 
+		// Р° РµС‰С‘ РЅРµР»СЊР·СЏ РІРєР»СЋС‡Р°С‚СЊ СЃРєСЂРѕР»Р», РєРѕРіРґР° СЂР°Р±РѕС‚Р°РµС‚ РєР»Р°РІРёР°С‚СѓСЂР° (Р»РµРіРєРѕ РїСЂРѕРјР°С…РЅСѓС‚СЊСЃСЏ Рё РЅР°Р¶Р°С‚СЊ РµРіРѕ РІРјРµСЃС‚Рѕ РєР»Р°РІРёС€Рё)
+		// РћРўРњР•РќР•РќРћ
+		//if((BKB_MODE_KEYBOARD==*bm)&&(tool_candidate>=4)) return false; 
 
-		// если этот инструмент уже был выбран, деактивируем его
+		// РЎРїРµС†РёР°Р»СЊРЅС‹Рµ РґРµР№СЃС‚РІРёСЏ СЃ РєР»Р°РІРёР°С‚СѓСЂРѕР№
+		if(BKB_MODE_KEYBOARD==*bm)	BKBKeybWnd::DeActivate();	// РґРµР°РєС‚РёРІРёСЂРѕРІР°С‚СЊ РєР»Р°РІРёР°С‚СѓСЂСѓ
+		// РµСЃР»Рё СЌС‚РѕС‚ РёРЅСЃС‚СЂСѓРјРµРЅС‚ СѓР¶Рµ Р±С‹Р» РІС‹Р±СЂР°РЅ, РґРµР°РєС‚РёРІРёСЂСѓРµРј РµРіРѕ
 		if(tool_candidate==current_tool)
 		{
-			// Специальные действия с клавиатурой
-			if(BKB_MODE_KEYBOARD==*bm)	BKBKeybWnd::DeActivate();	// деактивировать клавиатуру
-			
 			current_tool=-1;
 			*bm=BKB_MODE_NONE;
 		}
-		else // замена одного инструмента на другой
+		else // Р·Р°РјРµРЅР° РѕРґРЅРѕРіРѕ РёРЅСЃС‚СЂСѓРјРµРЅС‚Р° РЅР° РґСЂСѓРіРѕР№
 		{
-			// Специальные действия с клавиатурой
-			if(BKB_MODE_KEYBOARD==*bm) BKBKeybWnd::DeActivate();	// деактивировать клавиатуру
-	
 			current_tool=tool_candidate;
 			*bm=tool_bm[tool_candidate];
-
-			if(BKB_MODE_KEYBOARD==*bm) BKBKeybWnd::Activate();	// активировать клавиатуру
+			// РЎРїРµС†РёР°Р»СЊРЅС‹Рµ РґРµР№СЃС‚РІРёСЏ СЃ РєР»Р°РІРёР°С‚СѓСЂРѕР№
+			if(BKB_MODE_KEYBOARD==*bm) BKBKeybWnd::Activate();	// Р°РєС‚РёРІРёСЂРѕРІР°С‚СЊ РєР»Р°РІРёР°С‚СѓСЂСѓ
 		}
 
-		// Пусть окно перерисует стандартная оконная процедура
+		// РџСѓСЃС‚СЊ РѕРєРЅРѕ РїРµСЂРµСЂРёСЃСѓРµС‚ СЃС‚Р°РЅРґР°СЂС‚РЅР°СЏ РѕРєРѕРЅРЅР°СЏ РїСЂРѕС†РµРґСѓСЂР°
 		 PostMessage(Tlhwnd, WM_USER_INVALRECT, 0, 0);
 		
 		//RECT rect={0,0,BKB_TOOLBOX_WIDTH,screen_y};
@@ -223,36 +233,36 @@ bool BKBToolWnd::IsItYours(POINT *pnt, BKB_MODE *bm)
 }
 
 //================================================================
-// Текущий режим отработал, сбрасывай всё
+// РўРµРєСѓС‰РёР№ СЂРµР¶РёРј РѕС‚СЂР°Р±РѕС‚Р°Р», СЃР±СЂР°СЃС‹РІР°Р№ РІСЃС‘
 //================================================================
 void BKBToolWnd::Reset(BKB_MODE *bm)
 {
 	current_tool=-1;
 	*bm=BKB_MODE_NONE;
-	// Пусть окно перерисует стандартная оконная процедура
+	// РџСѓСЃС‚СЊ РѕРєРЅРѕ РїРµСЂРµСЂРёСЃСѓРµС‚ СЃС‚Р°РЅРґР°СЂС‚РЅР°СЏ РѕРєРѕРЅРЅР°СЏ РїСЂРѕС†РµРґСѓСЂР°
 	 PostMessage(Tlhwnd, WM_USER_INVALRECT, 0, 0);
 
 }
 
 //=======================================================================
-// В режиме скролла показывает курсор только когда он попадает на тулбар
+// Р’ СЂРµР¶РёРјРµ СЃРєСЂРѕР»Р»Р° РїРѕРєР°Р·С‹РІР°РµС‚ РєСѓСЂСЃРѕСЂ С‚РѕР»СЊРєРѕ РєРѕРіРґР° РѕРЅ РїРѕРїР°РґР°РµС‚ РЅР° С‚СѓР»Р±Р°СЂ
 //=======================================================================
 void BKBToolWnd::ScrollCursor(POINT *p)
 {
-	static bool mouse_inside_toolbar=true, last_mouse_inside_toolbar=true; // Для скрытия второго курсора при перемещении за область тулбара
+	static bool mouse_inside_toolbar=true, last_mouse_inside_toolbar=true; // Р”Р»СЏ СЃРєСЂС‹С‚РёСЏ РІС‚РѕСЂРѕРіРѕ РєСѓСЂСЃРѕСЂР° РїСЂРё РїРµСЂРµРјРµС‰РµРЅРёРё Р·Р° РѕР±Р»Р°СЃС‚СЊ С‚СѓР»Р±Р°СЂР°
 	
 	if((left_side&&(p->x<BKB_TOOLBOX_WIDTH)) || !left_side&&(p->x>screen_x-BKB_TOOLBOX_WIDTH))
 	{
-		// Попали в тулбокс, покажите курсор
+		// РџРѕРїР°Р»Рё РІ С‚СѓР»Р±РѕРєСЃ, РїРѕРєР°Р¶РёС‚Рµ РєСѓСЂСЃРѕСЂ
 		mouse_inside_toolbar=true;
-		if(false==last_mouse_inside_toolbar) BKBTranspWnd::Show(); // Показать стрелку
+		if(false==last_mouse_inside_toolbar) BKBTranspWnd::Show(); // РџРѕРєР°Р·Р°С‚СЊ СЃС‚СЂРµР»РєСѓ
 		BKBTranspWnd::Move(p->x,p->y);
 	}
 	else
 	{
-		// мимо тулбара
+		// РјРёРјРѕ С‚СѓР»Р±Р°СЂР°
 		mouse_inside_toolbar=false;
-		if(true==last_mouse_inside_toolbar) BKBTranspWnd::Hide(); // Убрать стрелку
+		if(true==last_mouse_inside_toolbar) BKBTranspWnd::Hide(); // РЈР±СЂР°С‚СЊ СЃС‚СЂРµР»РєСѓ
 	}
 	last_mouse_inside_toolbar=mouse_inside_toolbar;
 }

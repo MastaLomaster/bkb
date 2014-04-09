@@ -1,4 +1,4 @@
-#include <Windows.h>
+п»ї#include <Windows.h>
 #include "MagnifyWnd.h"
 #include "BKBRepErr.h"
 #include "TranspWnd.h"
@@ -8,20 +8,20 @@ char debug_buffer[4096];
 
 extern double screen_scale;
 
-#define MAGNIFY_WINDOW_SIZE 400 // по хорошему должнo делиться на 2*MAGNIFY_FACTOR
-#define MAGNIFY_FACTOR 4 // Во сколько раз увеличиваем
+#define MAGNIFY_WINDOW_SIZE 400 // РїРѕ С…РѕСЂРѕС€РµРјСѓ РґРѕР»Р¶РЅo РґРµР»РёС‚СЊСЃСЏ РЅР° 2*MAGNIFY_FACTOR
+#define MAGNIFY_FACTOR 4 // Р’Рѕ СЃРєРѕР»СЊРєРѕ СЂР°Р· СѓРІРµР»РёС‡РёРІР°РµРј
 
 extern HINSTANCE BKBInst;
 
-static const char *wnd_class_name="BKBMagnify";
+static const TCHAR *wnd_class_name=L"BKBMagnify";
 
-bool  BKBMagnifyWnd::mgf_visible=false; // Признак того, что окно сейчас висит на экране
+bool  BKBMagnifyWnd::mgf_visible=false; // РџСЂРёР·РЅР°Рє С‚РѕРіРѕ, С‡С‚Рѕ РѕРєРЅРѕ СЃРµР№С‡Р°СЃ РІРёСЃРёС‚ РЅР° СЌРєСЂР°РЅРµ
 HWND  BKBMagnifyWnd::Mghwnd;
 int BKBMagnifyWnd::x_size, BKBMagnifyWnd::y_size;
 int BKBMagnifyWnd::screen_x, BKBMagnifyWnd::screen_y;
 int BKBMagnifyWnd::midpoint_x, BKBMagnifyWnd::midpoint_y;
 
-// Оконная процедура (вырожденная)
+// РћРєРѕРЅРЅР°СЏ РїСЂРѕС†РµРґСѓСЂР° (РІС‹СЂРѕР¶РґРµРЅРЅР°СЏ)
 LRESULT CALLBACK BKBMagnifyWndProc(HWND hwnd,
 						UINT message,
 						WPARAM wparam,
@@ -31,24 +31,24 @@ LRESULT CALLBACK BKBMagnifyWndProc(HWND hwnd,
 }
 
 //================================================================
-// Инициализация 
+// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ 
 //================================================================
 void BKBMagnifyWnd::Init()
 {
-	ATOM aresult; // Для всяких кодов возврата
+	ATOM aresult; // Р”Р»СЏ РІСЃСЏРєРёС… РєРѕРґРѕРІ РІРѕР·РІСЂР°С‚Р°
 	
-	// 1. Регистрация класса окна
+	// 1. Р РµРіРёСЃС‚СЂР°С†РёСЏ РєР»Р°СЃСЃР° РѕРєРЅР°
 	WNDCLASS wcl={CS_HREDRAW | CS_VREDRAW, BKBMagnifyWndProc, 0,
-		//sizeof(LONG_PTR), // Сюда пропишем ссылку на объект
+		//sizeof(LONG_PTR), // РЎСЋРґР° РїСЂРѕРїРёС€РµРј СЃСЃС‹Р»РєСѓ РЅР° РѕР±СЉРµРєС‚
 		0,
 		BKBInst,
 		LoadIcon( NULL, IDI_APPLICATION),
         LoadCursor(NULL, IDC_ARROW), 
-		//Уже не надо красить фон
+		//РЈР¶Рµ РЅРµ РЅР°РґРѕ РєСЂР°СЃРёС‚СЊ С„РѕРЅ
         //(HBRUSH)GetStockObject(DKGRAY_BRUSH),
 		0,
 		NULL,
-		TEXT(wnd_class_name)
+		wnd_class_name
 	};
 
 	aresult=::RegisterClass(&wcl); 
@@ -56,13 +56,13 @@ void BKBMagnifyWnd::Init()
 
 	if (aresult==0)
 	{
-		BKBReportError(__FILE__,"RegisterClass (",__LINE__);
+		BKBReportError(__WIDEFILE__,L"RegisterClass (",__LINE__);
 		return;
 	}
 
 	Mghwnd=CreateWindowEx(
 	WS_EX_TOPMOST|WS_EX_CLIENTEDGE,
-	TEXT(wnd_class_name),
+	wnd_class_name,
 	NULL, //TEXT(KBWindowName),
     //WS_VISIBLE|WS_POPUP,
 	WS_POPUP,
@@ -71,11 +71,11 @@ void BKBMagnifyWnd::Init()
 
 	if(NULL==Mghwnd)
 	{
-		BKBReportError(__FILE__,"CreateWindow",__LINE__);
+		BKBReportError(__WIDEFILE__,L"CreateWindow",__LINE__);
 	}
 
 
-	// Определяем размер пользовательской области окна
+	// РћРїСЂРµРґРµР»СЏРµРј СЂР°Р·РјРµСЂ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРѕР№ РѕР±Р»Р°СЃС‚Рё РѕРєРЅР°
 	RECT rect;
 	GetClientRect(Mghwnd,&rect);
 	x_size=rect.right;
@@ -88,61 +88,62 @@ void BKBMagnifyWnd::Init()
 }
 
 //=========================================================================================
-// Если окно невидимо, то показать его. Если видимо, то уточнить координаты точки.
-// Возвращает true, если мы попали в окно, и координаты точки уточнены засчёт увеличения
+// Р•СЃР»Рё РѕРєРЅРѕ РЅРµРІРёРґРёРјРѕ, С‚Рѕ РїРѕРєР°Р·Р°С‚СЊ РµРіРѕ. Р•СЃР»Рё РІРёРґРёРјРѕ, С‚Рѕ СѓС‚РѕС‡РЅРёС‚СЊ РєРѕРѕСЂРґРёРЅР°С‚С‹ С‚РѕС‡РєРё.
+// Р’РѕР·РІСЂР°С‰Р°РµС‚ true, РµСЃР»Рё РјС‹ РїРѕРїР°Р»Рё РІ РѕРєРЅРѕ, Рё РєРѕРѕСЂРґРёРЅР°С‚С‹ С‚РѕС‡РєРё СѓС‚РѕС‡РЅРµРЅС‹ Р·Р°СЃС‡С‘С‚ СѓРІРµР»РёС‡РµРЅРёСЏ
 //=========================================================================================
 bool BKBMagnifyWnd::FixPoint(POINT *pnt)
 {
-	if(mgf_visible) // Увеличительное окно открыто
+	if(mgf_visible) // РЈРІРµР»РёС‡РёС‚РµР»СЊРЅРѕРµ РѕРєРЅРѕ РѕС‚РєСЂС‹С‚Рѕ
 	{
-		// прячем окно в любом случае
+		// РїСЂСЏС‡РµРј РѕРєРЅРѕ РІ Р»СЋР±РѕРј СЃР»СѓС‡Р°Рµ
 		mgf_visible=false;
 		ShowWindow(Mghwnd,SW_HIDE);
 
-		// а попали ли мы в открытое окно?
+		// Р° РїРѕРїР°Р»Рё Р»Рё РјС‹ РІ РѕС‚РєСЂС‹С‚РѕРµ РѕРєРЅРѕ?
 		POINT local_point=*pnt;
-		// Для отладки
-		POINT p1,p2,p3;
+		// Р”Р»СЏ РѕС‚Р»Р°РґРєРё
+		POINT p1,p2;
+		//POINT p3;
 		p1=local_point;
-		ScreenToClient(Mghwnd,&local_point); // Координаты в клиентском окне
+		ScreenToClient(Mghwnd,&local_point); // РљРѕРѕСЂРґРёРЅР°С‚С‹ РІ РєР»РёРµРЅС‚СЃРєРѕРј РѕРєРЅРµ
 		p2=local_point;
 		if((local_point.x>=0)&&(local_point.x<x_size)&&
 			(local_point.y>=0)&&(local_point.y<y_size))
 		{
-			// Уточняем координаты для клика
-			// Насколько точка удалена от середины - делим на увеличение и добавляем к midpoint
+			// РЈС‚РѕС‡РЅСЏРµРј РєРѕРѕСЂРґРёРЅР°С‚С‹ РґР»СЏ РєР»РёРєР°
+			// РќР°СЃРєРѕР»СЊРєРѕ С‚РѕС‡РєР° СѓРґР°Р»РµРЅР° РѕС‚ СЃРµСЂРµРґРёРЅС‹ - РґРµР»РёРј РЅР° СѓРІРµР»РёС‡РµРЅРёРµ Рё РґРѕР±Р°РІР»СЏРµРј Рє midpoint
 			pnt->x=midpoint_x+(local_point.x-x_size/2)/MAGNIFY_FACTOR;
 			pnt->y=midpoint_y+(local_point.y-y_size/2)/MAGNIFY_FACTOR;
-			// Кликайте на здоровье
-			p3=*pnt;
-			sprintf(debug_buffer,"До увеличения (экранные): %d %d\nВ окне увеличения (локальные): %d %d\nУточненные: %d %d",p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
-			//MessageBox(Mghwnd,debug_buffer,"отладка",MB_OK);
+			// РљР»РёРєР°Р№С‚Рµ РЅР° Р·РґРѕСЂРѕРІСЊРµ
+			//p3=*pnt;
+			//sprintf(debug_buffer,"Р”Рѕ СѓРІРµР»РёС‡РµРЅРёСЏ (СЌРєСЂР°РЅРЅС‹Рµ): %d %d\nР’ РѕРєРЅРµ СѓРІРµР»РёС‡РµРЅРёСЏ (Р»РѕРєР°Р»СЊРЅС‹Рµ): %d %d\nРЈС‚РѕС‡РЅРµРЅРЅС‹Рµ: %d %d",p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
+			//MessageBox(Mghwnd,debug_buffer,"РѕС‚Р»Р°РґРєР°",MB_OK);
 			return true;
 		}
 		else
 		{
-			return false; // Кликать не надо
+			return false; // РљР»РёРєР°С‚СЊ РЅРµ РЅР°РґРѕ
 		}
 		
 	}
-	else // окно невидимо, нужно его открыть
+	else // РѕРєРЅРѕ РЅРµРІРёРґРёРјРѕ, РЅСѓР¶РЅРѕ РµРіРѕ РѕС‚РєСЂС‹С‚СЊ
 	{
 		//screen_scale=1.0/1.25;
 
-		// точка в середине окна
+		// С‚РѕС‡РєР° РІ СЃРµСЂРµРґРёРЅРµ РѕРєРЅР°
 		midpoint_x=pnt->x; midpoint_y=pnt->y;
 
-		// В точке, которая передана параметром, должна быть видна середина окна
-		// Если точка слишком близко к краю, корректируем её
-		// левый край
+		// Р’ С‚РѕС‡РєРµ, РєРѕС‚РѕСЂР°СЏ РїРµСЂРµРґР°РЅР° РїР°СЂР°РјРµС‚СЂРѕРј, РґРѕР»Р¶РЅР° Р±С‹С‚СЊ РІРёРґРЅР° СЃРµСЂРµРґРёРЅР° РѕРєРЅР°
+		// Р•СЃР»Рё С‚РѕС‡РєР° СЃР»РёС€РєРѕРј Р±Р»РёР·РєРѕ Рє РєСЂР°СЋ, РєРѕСЂСЂРµРєС‚РёСЂСѓРµРј РµС‘
+		// Р»РµРІС‹Р№ РєСЂР°Р№
 		if(midpoint_x<MAGNIFY_WINDOW_SIZE/MAGNIFY_FACTOR/2) midpoint_x=MAGNIFY_WINDOW_SIZE/MAGNIFY_FACTOR/2;
 		if(midpoint_y<MAGNIFY_WINDOW_SIZE/MAGNIFY_FACTOR/2) midpoint_y=MAGNIFY_WINDOW_SIZE/MAGNIFY_FACTOR/2;
-		// правый край
+		// РїСЂР°РІС‹Р№ РєСЂР°Р№
 		if(midpoint_x>screen_x-MAGNIFY_WINDOW_SIZE/MAGNIFY_FACTOR/2) midpoint_x=screen_x-MAGNIFY_WINDOW_SIZE/MAGNIFY_FACTOR/2;
 		if(midpoint_y>screen_y-MAGNIFY_WINDOW_SIZE/MAGNIFY_FACTOR/2) midpoint_y=screen_y-MAGNIFY_WINDOW_SIZE/MAGNIFY_FACTOR/2;
 
-		// Двигаем окно
-		// Окно не должно выезжать за экран
+		// Р”РІРёРіР°РµРј РѕРєРЅРѕ
+		// РћРєРЅРѕ РЅРµ РґРѕР»Р¶РЅРѕ РІС‹РµР·Р¶Р°С‚СЊ Р·Р° СЌРєСЂР°РЅ
 		int x_pos=midpoint_x-MAGNIFY_WINDOW_SIZE/2;
 		if(x_pos<0) x_pos=0;
 		if(x_pos>screen_x-MAGNIFY_WINDOW_SIZE) x_pos=screen_x-MAGNIFY_WINDOW_SIZE;
@@ -150,23 +151,23 @@ bool BKBMagnifyWnd::FixPoint(POINT *pnt)
 		if(y_pos<0) y_pos=0;
 		if(y_pos>screen_y-MAGNIFY_WINDOW_SIZE) y_pos=screen_y-MAGNIFY_WINDOW_SIZE;
 		
-		MoveWindow(Mghwnd,x_pos,y_pos,MAGNIFY_WINDOW_SIZE,MAGNIFY_WINDOW_SIZE, FALSE); // Последний параметр проверить
+		MoveWindow(Mghwnd,x_pos,y_pos,MAGNIFY_WINDOW_SIZE,MAGNIFY_WINDOW_SIZE, FALSE); // РџРѕСЃР»РµРґРЅРёР№ РїР°СЂР°РјРµС‚СЂ РїСЂРѕРІРµСЂРёС‚СЊ
 
-		// Делаем увеличенную копию фрагмента экрана
+		// Р”РµР»Р°РµРј СѓРІРµР»РёС‡РµРЅРЅСѓСЋ РєРѕРїРёСЋ С„СЂР°РіРјРµРЅС‚Р° СЌРєСЂР°РЅР°
 
-		// В этом месте нужно убрать окно с псевдокурсором
+		// Р’ СЌС‚РѕРј РјРµСЃС‚Рµ РЅСѓР¶РЅРѕ СѓР±СЂР°С‚СЊ РѕРєРЅРѕ СЃ РїСЃРµРІРґРѕРєСѓСЂСЃРѕСЂРѕРј
 		BKBTranspWnd::Hide();
 
-		HDC ScreenDC=GetDC(NULL); // Получаем DC экрана
-		HDC MagBmpDC=CreateCompatibleDC(ScreenDC); // Создаём совместимый DC
-		HBITMAP MagBmp=CreateCompatibleBitmap(ScreenDC,MAGNIFY_WINDOW_SIZE,MAGNIFY_WINDOW_SIZE); // Создаем в нём битмап нужного размера
-		HGDIOBJ OldBmp=SelectObject(MagBmpDC,MagBmp); // Выбираем битмап в DC (но сохраняем старый!!!)
+		HDC ScreenDC=GetDC(NULL); // РџРѕР»СѓС‡Р°РµРј DC СЌРєСЂР°РЅР°
+		HDC MagBmpDC=CreateCompatibleDC(ScreenDC); // РЎРѕР·РґР°С‘Рј СЃРѕРІРјРµСЃС‚РёРјС‹Р№ DC
+		HBITMAP MagBmp=CreateCompatibleBitmap(ScreenDC,MAGNIFY_WINDOW_SIZE,MAGNIFY_WINDOW_SIZE); // РЎРѕР·РґР°РµРј РІ РЅС‘Рј Р±РёС‚РјР°Рї РЅСѓР¶РЅРѕРіРѕ СЂР°Р·РјРµСЂР°
+		HGDIOBJ OldBmp=SelectObject(MagBmpDC,MagBmp); // Р’С‹Р±РёСЂР°РµРј Р±РёС‚РјР°Рї РІ DC (РЅРѕ СЃРѕС…СЂР°РЅСЏРµРј СЃС‚Р°СЂС‹Р№!!!)
 
-		// Для отладки рисовал белый квадратик
+		// Р”Р»СЏ РѕС‚Р»Р°РґРєРё СЂРёСЃРѕРІР°Р» Р±РµР»С‹Р№ РєРІР°РґСЂР°С‚РёРє
 		//RECT rrr={20,20,50,50};
 		//FillRect(MagBmpDC,&rrr,(HBRUSH)GetStockObject(WHITE_BRUSH));
 
-		// Копируем часть экрана в битмап (с увеличением)
+		// РљРѕРїРёСЂСѓРµРј С‡Р°СЃС‚СЊ СЌРєСЂР°РЅР° РІ Р±РёС‚РјР°Рї (СЃ СѓРІРµР»РёС‡РµРЅРёРµРј)
 	/*	StretchBlt(MagBmpDC,0,0,MAGNIFY_WINDOW_SIZE,MAGNIFY_WINDOW_SIZE,ScreenDC,
 			midpoint_x-MAGNIFY_WINDOW_SIZE/MAGNIFY_FACTOR/2,
 			midpoint_y-MAGNIFY_WINDOW_SIZE/MAGNIFY_FACTOR/2,
@@ -182,20 +183,20 @@ bool BKBMagnifyWnd::FixPoint(POINT *pnt)
 
 		//screen_scale
 
-		// делаем окно видимым
+		// РґРµР»Р°РµРј РѕРєРЅРѕ РІРёРґРёРјС‹Рј
 		mgf_visible=true;
 		ShowWindow(Mghwnd,SW_SHOWNORMAL);
 
-		// Возвращаем окно с псевдокурсором
+		// Р’РѕР·РІСЂР°С‰Р°РµРј РѕРєРЅРѕ СЃ РїСЃРµРІРґРѕРєСѓСЂСЃРѕСЂРѕРј
 		BKBTranspWnd::Show();
 
-		// Вернуть прозрачное окно наверх!!! (Теперь это делается после любого Fixation)
+		// Р’РµСЂРЅСѓС‚СЊ РїСЂРѕР·СЂР°С‡РЅРѕРµ РѕРєРЅРѕ РЅР°РІРµСЂС…!!! (РўРµРїРµСЂСЊ СЌС‚Рѕ РґРµР»Р°РµС‚СЃСЏ РїРѕСЃР»Рµ Р»СЋР±РѕРіРѕ Fixation)
 		//BKBTranspWnd::ToTop();
 		
 
-		// Выплёскиваем увеличенную часть экрана в окно
+		// Р’С‹РїР»С‘СЃРєРёРІР°РµРј СѓРІРµР»РёС‡РµРЅРЅСѓСЋ С‡Р°СЃС‚СЊ СЌРєСЂР°РЅР° РІ РѕРєРЅРѕ
 		HDC MgWindowDC=GetDC(Mghwnd);
-		// Не забываем про рамку окна! Хоть это и пара пикселов, но всё же...
+		// РќРµ Р·Р°Р±С‹РІР°РµРј РїСЂРѕ СЂР°РјРєСѓ РѕРєРЅР°! РҐРѕС‚СЊ СЌС‚Рѕ Рё РїР°СЂР° РїРёРєСЃРµР»РѕРІ, РЅРѕ РІСЃС‘ Р¶Рµ...
 		//BitBlt(MgWindowDC,0,0,MAGNIFY_WINDOW_SIZE,MAGNIFY_WINDOW_SIZE,MagBmpDC,0,0,SRCCOPY);
 		BitBlt(MgWindowDC,0,0,x_size,y_size,MagBmpDC,
 			(MAGNIFY_WINDOW_SIZE-x_size)/2,
@@ -203,11 +204,11 @@ bool BKBMagnifyWnd::FixPoint(POINT *pnt)
 			SRCCOPY);
 		ReleaseDC(Mghwnd,MgWindowDC);
 
-		SelectObject(MagBmpDC,OldBmp); // Освобождаем наш битмап из DC
-		DeleteObject(MagBmp); // Теперь наш битмап можно спокойно стереть
-		DeleteDC(MagBmpDC); // Туда же и совместимый DC
+		SelectObject(MagBmpDC,OldBmp); // РћСЃРІРѕР±РѕР¶РґР°РµРј РЅР°С€ Р±РёС‚РјР°Рї РёР· DC
+		DeleteObject(MagBmp); // РўРµРїРµСЂСЊ РЅР°С€ Р±РёС‚РјР°Рї РјРѕР¶РЅРѕ СЃРїРѕРєРѕР№РЅРѕ СЃС‚РµСЂРµС‚СЊ
+		DeleteDC(MagBmpDC); // РўСѓРґР° Р¶Рµ Рё СЃРѕРІРјРµСЃС‚РёРјС‹Р№ DC
 		ReleaseDC(NULL,ScreenDC);
 	}
 
-	return false; // Точке не передано уточненное значение
+	return false; // РўРѕС‡РєРµ РЅРµ РїРµСЂРµРґР°РЅРѕ СѓС‚РѕС‡РЅРµРЅРЅРѕРµ Р·РЅР°С‡РµРЅРёРµ
 }

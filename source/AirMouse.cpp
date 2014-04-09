@@ -1,19 +1,19 @@
-#include <Windows.h>
+п»ї#include <Windows.h>
 #include "AirMouse.h"
 #include "TranspWnd.h"
 
-// Заголовочные файлы из Tobii Gaze SDK
+// Р—Р°РіРѕР»РѕРІРѕС‡РЅС‹Рµ С„Р°Р№Р»С‹ РёР· Tobii Gaze SDK
 #include "tobiigaze_error_codes.h"
 #include "tobiigaze.h"
 #include "tobiigaze_config.h"
 
-// Прототип callback-функции из TobiiREX.cpp
+// РџСЂРѕС‚РѕС‚РёРї callback-С„СѓРЅРєС†РёРё РёР· TobiiREX.cpp
 void on_gaze_data(const tobiigaze_gaze_data* gazedata, void *user_data);
 
 extern int screenX, screenY;
 //============================================================================
-// Запускает таймер, по которому якобы приходят координаты курсора от Tobii
-// 10 раз в секунду
+// Р—Р°РїСѓСЃРєР°РµС‚ С‚Р°Р№РјРµСЂ, РїРѕ РєРѕС‚РѕСЂРѕРјСѓ СЏРєРѕР±С‹ РїСЂРёС…РѕРґСЏС‚ РєРѕРѕСЂРґРёРЅР°С‚С‹ РєСѓСЂСЃРѕСЂР° РѕС‚ Tobii
+// 10 СЂР°Р· РІ СЃРµРєСѓРЅРґСѓ
 //============================================================================
 int BKBAirMouse::Init(HWND hwnd)
 {
@@ -22,14 +22,14 @@ int BKBAirMouse::Init(HWND hwnd)
 
 	SetTimer(hwnd,1,25,NULL);
 
-	// Не показывать прозрачное окно, ибо курсор сам движется
+	// РќРµ РїРѕРєР°Р·С‹РІР°С‚СЊ РїСЂРѕР·СЂР°С‡РЅРѕРµ РѕРєРЅРѕ, РёР±Рѕ РєСѓСЂСЃРѕСЂ СЃР°Рј РґРІРёР¶РµС‚СЃСЏ
 	BKBTranspWnd::flag_show_transp_window=false;
 	return 0;
 }
 
 //============================================================================
-// Убивает таймер, по которому якобы приходят координаты курсора от Tobii
-// 10 раз в секунду
+// РЈР±РёРІР°РµС‚ С‚Р°Р№РјРµСЂ, РїРѕ РєРѕС‚РѕСЂРѕРјСѓ СЏРєРѕР±С‹ РїСЂРёС…РѕРґСЏС‚ РєРѕРѕСЂРґРёРЅР°С‚С‹ РєСѓСЂСЃРѕСЂР° РѕС‚ Tobii
+// 10 СЂР°Р· РІ СЃРµРєСѓРЅРґСѓ
 //============================================================================
 int BKBAirMouse::Halt(HWND hwnd)
 {
@@ -38,23 +38,28 @@ int BKBAirMouse::Halt(HWND hwnd)
 }
 
 //============================================================================
-// При срабатывании таймера имитирует сигнал от Tobii REX
+// РџСЂРё СЃСЂР°Р±Р°С‚С‹РІР°РЅРёРё С‚Р°Р№РјРµСЂР° РёРјРёС‚РёСЂСѓРµС‚ СЃРёРіРЅР°Р» РѕС‚ Tobii REX
 //============================================================================
 void BKBAirMouse::OnTimer()
 {
 	tobiigaze_gaze_data gd;
 
 	POINT p;
-	GetCursorPos(&p);
+	if(0==GetCursorPos(&p))
+	{
+		//OutputDebugString("Bad cursor position\n");
+	}
+	else
+	{
+		gd.tracking_status = TOBIIGAZE_TRACKING_STATUS_BOTH_EYES_TRACKED;
+		gd.left.gaze_point_on_display_normalized.x=p.x/(double)screenX;
+		gd.left.gaze_point_on_display_normalized.y=p.y/(double)screenY;
 
-	gd.tracking_status = TOBIIGAZE_TRACKING_STATUS_BOTH_EYES_TRACKED;
-	gd.left.gaze_point_on_display_normalized.x=p.x/(double)screenX;
-	gd.left.gaze_point_on_display_normalized.y=p.y/(double)screenY;
+		gd.right.gaze_point_on_display_normalized.x=gd.left.gaze_point_on_display_normalized.x;
+		gd.right.gaze_point_on_display_normalized.y=gd.left.gaze_point_on_display_normalized.y;
 
-	gd.right.gaze_point_on_display_normalized.x=gd.left.gaze_point_on_display_normalized.x;
-	gd.right.gaze_point_on_display_normalized.y=gd.left.gaze_point_on_display_normalized.y;
+		gd.timestamp=1000UL*timeGetTime(); // РСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ СЃРєСЂРѕР»Р»РѕРј
 
-	gd.timestamp=1000UL*timeGetTime(); // Используется скроллом
-
-	on_gaze_data(&gd, NULL);
+		on_gaze_data(&gd, NULL);
+	}
 }

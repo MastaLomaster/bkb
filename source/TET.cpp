@@ -1,11 +1,12 @@
-#include <Windows.h>
+п»ї#include <Windows.h>
 #include <stdio.h>
 #include <process.h>
 #include <winsock.h>
 #include "TET.h"
 #include "BKBRepErr.h"
+#include "Internat.h"
 
-// Прототип callback-функции из TobiiREX.cpp
+// РџСЂРѕС‚РѕС‚РёРї callback-С„СѓРЅРєС†РёРё РёР· TobiiREX.cpp
 void on_gaze_data(const tobiigaze_gaze_data* gazedata, void *user_data);
 
 bool BKBTET::initialized(false);
@@ -56,9 +57,8 @@ unsigned __stdcall HeartBeatThread(void *p)
 //=========================================================
 unsigned __stdcall ReaderThread(void *p)
 {
-	// big enough buffers...
+	// big enough buffer...
 	char buffer[4096];
-	char true_false_buffer[128];
 
 	int bytesReceived;
 	int num_scanned=0;
@@ -78,7 +78,7 @@ unsigned __stdcall ReaderThread(void *p)
 		
 		// First try. Template string contains "fix:false"
 		fix=0;
-		num_scanned=sscanf(buffer,JSON_frame_false,
+		num_scanned=sscanf_s(buffer,JSON_frame_false,
 			&x_avg,&y_avg,
 			&left_x_avg, &left_y_avg, &left_pcenter_x, &left_pcenter_y, &left_psize, &left_x_raw, &left_y_raw,
 			&x_raw, &y_raw, 
@@ -89,7 +89,7 @@ unsigned __stdcall ReaderThread(void *p)
 		if(20!=num_scanned)
 		{
 			fix=1;
-			num_scanned=sscanf(buffer,JSON_frame_true,
+			num_scanned=sscanf_s(buffer,JSON_frame_true,
 			&x_avg,&y_avg,
 			&left_x_avg, &left_y_avg, &left_pcenter_x, &left_pcenter_y, &left_psize, &left_x_raw, &left_y_raw,
 			&x_raw, &y_raw, 
@@ -104,7 +104,7 @@ unsigned __stdcall ReaderThread(void *p)
 			
 			if(7==state)
 			{
-				// Содрано из AirMouse.cpp
+				// РЎРѕРґСЂР°РЅРѕ РёР· AirMouse.cpp
 				tobiigaze_gaze_data gd;
 				POINT p;
 				p.x=(LONG)(x_avg+0.5f); p.y=(LONG)(y_avg+0.5f);;
@@ -116,7 +116,7 @@ unsigned __stdcall ReaderThread(void *p)
 				gd.right.gaze_point_on_display_normalized.x=gd.left.gaze_point_on_display_normalized.x;
 				gd.right.gaze_point_on_display_normalized.y=gd.left.gaze_point_on_display_normalized.y;
 
-				gd.timestamp=1000UL*timeGetTime(); // Используется скроллом
+				gd.timestamp=1000UL*timeGetTime(); // РСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ СЃРєСЂРѕР»Р»РѕРј
 
 				on_gaze_data(&gd, NULL);
 			}
@@ -134,7 +134,7 @@ int TETconnect()
 	WORD sockVersion;
 	WSADATA wsaData;
 	int nret;
-	char *err_string;
+	TCHAR *err_string;
 	
 	SOCKADDR_IN TETserver;
 
@@ -144,7 +144,7 @@ int TETconnect()
 	nret=WSAStartup(sockVersion, &wsaData);
 	if(nret)
 	{
-		err_string="Не удалось инициализировать Winsock\n";
+		err_string=Internat::Message(20,L"РќРµ СѓРґР°Р»РѕСЃСЊ РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°С‚СЊ Winsock\r\n");
 		goto ws_error;
 	}
 
@@ -152,7 +152,7 @@ int TETconnect()
 	TETSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);		
 	if (INVALID_SOCKET == TETSocket)
 	{
-		err_string="Не удалось создать socket\n";
+		err_string=Internat::Message(21,L"РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР·РґР°С‚СЊ socket\r\n");
 		goto ws_error;
 	}
 
@@ -169,8 +169,8 @@ int TETconnect()
 	nret = connect(TETSocket, (LPSOCKADDR)&TETserver, sizeof(struct sockaddr));
 	if (SOCKET_ERROR == nret)
 	{
-		err_string="Не удалось соединиться с сервером\r\nУбедитесь, что запущена программа 'EyeTribe Server'\r\n"\
-			"Переход в режим работы с [аэро]мышью.";
+		err_string=Internat::Message(22,L"РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕРµРґРёРЅРёС‚СЊСЃСЏ СЃ СЃРµСЂРІРµСЂРѕРј\r\nРЈР±РµРґРёС‚РµСЃСЊ, С‡С‚Рѕ Р·Р°РїСѓС‰РµРЅР° РїСЂРѕРіСЂР°РјРјР° 'EyeTribe Server'\r\n"\
+			L"РџРµСЂРµС…РѕРґ РІ СЂРµР¶РёРј СЂР°Р±РѕС‚С‹ СЃ [Р°СЌСЂРѕ]РјС‹С€СЊСЋ.");
 		goto ws_error;
 	}
 
@@ -187,11 +187,11 @@ ws_error:
 }
 
 //=====================================================================================
-// Начало работы с устройством
+// РќР°С‡Р°Р»Рѕ СЂР°Р±РѕС‚С‹ СЃ СѓСЃС‚СЂРѕР№СЃС‚РІРѕРј
 //=====================================================================================
 int BKBTET::Init()
 {
-	if(initialized) return 1; // уже инициализировали
+	if(initialized) return 1; // СѓР¶Рµ РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°Р»Рё
 	initialized=true;
 
 	screenX=GetSystemMetrics(SM_CXSCREEN);
@@ -222,11 +222,11 @@ cleanup:
 }
 
 //=====================================================================================
-// Завершение работы с устройством
+// Р—Р°РІРµСЂС€РµРЅРёРµ СЂР°Р±РѕС‚С‹ СЃ СѓСЃС‚СЂРѕР№СЃС‚РІРѕРј
 //=====================================================================================
 int BKBTET::Halt()
 {
-	if(!initialized) return 1; // уже завершили работу
+	if(!initialized) return 1; // СѓР¶Рµ Р·Р°РІРµСЂС€РёР»Рё СЂР°Р±РѕС‚Сѓ
 	initialized=false;
 
 	// Shut down winsock

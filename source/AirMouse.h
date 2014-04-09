@@ -1,12 +1,12 @@
-// Взаимодействие (гироскопической) мышью вместо Tobii REX
+п»ї// Р’Р·Р°РёРјРѕРґРµР№СЃС‚РІРёРµ (РіРёСЂРѕСЃРєРѕРїРёС‡РµСЃРєРѕР№) РјС‹С€СЊСЋ РІРјРµСЃС‚Рѕ Tobii REX
 #ifndef __BKB_AIRMOUSE
 #define __BKB_AIRMOUSE
 
 class BKBAirMouse
 {
 public:
-	static int Init(HWND hwnd); // Инициализация работы с устройством
-	static int Halt(HWND hwnd); // Завершение работы с устройством
+	static int Init(HWND hwnd); // РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ СЂР°Р±РѕС‚С‹ СЃ СѓСЃС‚СЂРѕР№СЃС‚РІРѕРј
+	static int Halt(HWND hwnd); // Р—Р°РІРµСЂС€РµРЅРёРµ СЂР°Р±РѕС‚С‹ СЃ СѓСЃС‚СЂРѕР№СЃС‚РІРѕРј
 	static void OnTimer();
 protected:
 	static bool initialized;

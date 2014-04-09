@@ -1,12 +1,12 @@
-// Взаимодействие с прибором Tobii REX
+п»ї// Р’Р·Р°РёРјРѕРґРµР№СЃС‚РІРёРµ СЃ РїСЂРёР±РѕСЂРѕРј Tobii REX
 #ifndef __BKB_TOBIIREX
 #define __BKB_TOBIIREX
 
 class BKBTobiiREX
 {
 public:
-	static int Init(); // Инициализация работы с устройством
-	static int Halt(); // Завершение работы с устройством
+	static int Init(); // РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ СЂР°Р±РѕС‚С‹ СЃ СѓСЃС‚СЂРѕР№СЃС‚РІРѕРј
+	static int Halt(); // Р—Р°РІРµСЂС€РµРЅРёРµ СЂР°Р±РѕС‚С‹ СЃ СѓСЃС‚СЂРѕР№СЃС‚РІРѕРј
 	//static int GetCoordinates();
 protected:
 	static bool initialized;

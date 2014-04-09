@@ -1,12 +1,12 @@
-#include <Windows.h>
+п»ї#include <Windows.h>
 #include <math.h>
 #include <stdio.h>
 #include "Smooth.h"
 
 #define BKB_NUM_SMOOTH_POINTS 12
-// Массив для сглаживания последних точек
+// РњР°СЃСЃРёРІ РґР»СЏ СЃРіР»Р°Р¶РёРІР°РЅРёСЏ РїРѕСЃР»РµРґРЅРёС… С‚РѕС‡РµРє
 static POINT spoints[2][BKB_NUM_SMOOTH_POINTS]={};
-// Массив последних СГЛАЖЕННЫХ точек
+// РњР°СЃСЃРёРІ РїРѕСЃР»РµРґРЅРёС… РЎР“Р›РђР–Р•РќРќР«РҐ С‚РѕС‡РµРє
 static POINT processed_points[2][BKB_NUM_SMOOTH_POINTS]={};
 static int current_point[2]={0,0};
 static double dispersion[2]={1000,1000};
@@ -14,16 +14,16 @@ static double dispersion[2]={1000,1000};
 extern int flag_using_airmouse;
 
 //==============================================================
-// Сглаживание данных от трекера
-// левый глаз - 0, правый - 1
+// РЎРіР»Р°Р¶РёРІР°РЅРёРµ РґР°РЅРЅС‹С… РѕС‚ С‚СЂРµРєРµСЂР°
+// Р»РµРІС‹Р№ РіР»Р°Р· - 0, РїСЂР°РІС‹Р№ - 1
 //==============================================================
 double BKBSmooth(POINT *point, bool eye)
 {
 	int i;
 	
 
-	// Сглаживаем BKB_NUM_SMOOTH_POINTS последних точек
-	// Это не нужно для аэромыши
+	// РЎРіР»Р°Р¶РёРІР°РµРј BKB_NUM_SMOOTH_POINTS РїРѕСЃР»РµРґРЅРёС… С‚РѕС‡РµРє
+	// Р­С‚Рѕ РЅРµ РЅСѓР¶РЅРѕ РґР»СЏ Р°СЌСЂРѕРјС‹С€Рё
 	if(2!=flag_using_airmouse)
 	{
 		spoints[eye][current_point[eye]]=*point;
@@ -40,7 +40,7 @@ double BKBSmooth(POINT *point, bool eye)
 
 	processed_points[eye][current_point[eye]]=*point;
 
-	// Передвигаемся на следующую позицию в кольцевом буфере
+	// РџРµСЂРµРґРІРёРіР°РµРјСЃСЏ РЅР° СЃР»РµРґСѓСЋС‰СѓСЋ РїРѕР·РёС†РёСЋ РІ РєРѕР»СЊС†РµРІРѕРј Р±СѓС„РµСЂРµ
 	current_point[eye]++;
 	if(current_point[eye]>=BKB_NUM_SMOOTH_POINTS) 
 	{
@@ -48,8 +48,8 @@ double BKBSmooth(POINT *point, bool eye)
 	}
 			
 	double mean_x=0.0, mean_y=0.0;
-	// Ищем дисперсию в последних BKB_NUM_SMOOTH_POINTS СГЛАЖЕННЫХ точках
-	// Сначала вычисляем среднее
+	// РС‰РµРј РґРёСЃРїРµСЂСЃРёСЋ РІ РїРѕСЃР»РµРґРЅРёС… BKB_NUM_SMOOTH_POINTS РЎР“Р›РђР–Р•РќРќР«РҐ С‚РѕС‡РєР°С…
+	// РЎРЅР°С‡Р°Р»Р° РІС‹С‡РёСЃР»СЏРµРј СЃСЂРµРґРЅРµРµ
 	for(i=0;i<BKB_NUM_SMOOTH_POINTS;i++)
 	{
 		mean_x+=processed_points[eye][i].x;
@@ -57,7 +57,7 @@ double BKBSmooth(POINT *point, bool eye)
 	}
 	mean_x/=BKB_NUM_SMOOTH_POINTS;
 	mean_y/=BKB_NUM_SMOOTH_POINTS;
-	// А теперь уже собственно дисперсию
+	// Рђ С‚РµРїРµСЂСЊ СѓР¶Рµ СЃРѕР±СЃС‚РІРµРЅРЅРѕ РґРёСЃРїРµСЂСЃРёСЋ
 	dispersion[eye]=0.0;
 	for(i=0;i<BKB_NUM_SMOOTH_POINTS;i++)
 	{
@@ -66,7 +66,7 @@ double BKBSmooth(POINT *point, bool eye)
 	}
 	dispersion[eye]=sqrt(dispersion[eye]);
 	
-			// Для отладки и понимания пределов дисперсии (пока берём границу дисперсии за 100)
+			// Р”Р»СЏ РѕС‚Р»Р°РґРєРё Рё РїРѕРЅРёРјР°РЅРёСЏ РїСЂРµРґРµР»РѕРІ РґРёСЃРїРµСЂСЃРёРё (РїРѕРєР° Р±РµСЂС‘Рј РіСЂР°РЅРёС†Сѓ РґРёСЃРїРµСЂСЃРёРё Р·Р° 100)
 			//char msgbuf[1024];
 			//sprintf(msgbuf,"%d %f\n",eye,dispersion[eye]);
 			//OutputDebugString(msgbuf); 

@@ -1,4 +1,4 @@
-#ifndef __BKB_TOOLWND
+﻿#ifndef __BKB_TOOLWND
 #define __BKB_TOOLWND
 
 #include "Fixation.h"

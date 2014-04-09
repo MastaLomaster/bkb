@@ -1,2 +1,2 @@
-void BKBgdiInit();
+﻿void BKBgdiInit();
 void BKBgdiHalt();

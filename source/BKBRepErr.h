@@ -1,14 +1,16 @@
-// Выдвет сообщение о (системных и несистемных) ошибках
+п»ї// Р’С‹РґРІРµС‚ СЃРѕРѕР±С‰РµРЅРёРµ Рѕ (СЃРёСЃС‚РµРјРЅС‹С… Рё РЅРµСЃРёСЃС‚РµРјРЅС‹С…) РѕС€РёР±РєР°С…
 #ifndef __BKB_REPERR
 #define __BKB_REPERR
 
-// Заголовочные файлы из Tobii Gaze SDK
+#include "WIDEFILE.h"
+
+// Р—Р°РіРѕР»РѕРІРѕС‡РЅС‹Рµ С„Р°Р№Р»С‹ РёР· Tobii Gaze SDK
 #include "tobiigaze_error_codes.h"
 #include "tobiigaze.h"
 
-void BKBReportError(char *SourceFile, char *FuncName, int LineNumber);
-void BKBReportError(char *Error); // Для НЕсистемных ошибок (перегружена)
-void BKBReportError(tobiigaze_error_code tbg_error_code, char *SourceFile, char *FuncName, int LineNumber); // Для ошибок Tobii Gaze SDK (перегружена)
+void BKBReportError(TCHAR *SourceFile, TCHAR *FuncName, int LineNumber);
+void BKBReportError(TCHAR *Error); // Р”Р»СЏ РќР•СЃРёСЃС‚РµРјРЅС‹С… РѕС€РёР±РѕРє (РїРµСЂРµРіСЂСѓР¶РµРЅР°)
+void BKBReportError(tobiigaze_error_code tbg_error_code, TCHAR *SourceFile, TCHAR *FuncName, int LineNumber); // Р”Р»СЏ РѕС€РёР±РѕРє Tobii Gaze SDK (РїРµСЂРµРіСЂСѓР¶РµРЅР°)
 
 
 #endif

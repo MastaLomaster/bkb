@@ -1,4 +1,4 @@
-#ifndef __BKB_MAGNIFYWND
+﻿#ifndef __BKB_MAGNIFYWND
 #define __BKB_MAGNIFYWND
 
 class BKBMagnifyWnd

@@ -1,27 +1,32 @@
-#include <Windows.h>
+п»ї#include <Windows.h>
 #include "KeybWnd.h"
 #include "BKBRepErr.h"
+#include "Click.h"
 
+//#define BELYAKOV
 #define WM_USER_INVALRECT (WM_USER + 100)
+#define WM_USER_KBD_TOPDOWN (WM_USER + 101)
 
 extern int flag_using_airmouse;
 
-// Раскладка клавиатур задана в файле KeybLayouts.cpp
-extern BKB_key BKBKeybLayouts [3][3][BKB_KBD_NUM_CELLS];
+// Р Р°СЃРєР»Р°РґРєР° РєР»Р°РІРёР°С‚СѓСЂ Р·Р°РґР°РЅР° РІ С„Р°Р№Р»Рµ KeybLayouts.cpp
 
 extern HINSTANCE BKBInst;
-static const char *wnd_class_name="BKBKeyb";
+static const TCHAR *wnd_class_name=L"BKBKeyb";
 
 HWND  BKBKeybWnd::Kbhwnd;
 int BKBKeybWnd::current_pane=0;
-float BKBKeybWnd::cell_size=0;
-int BKBKeybWnd::screen_x, BKBKeybWnd::screen_y, BKBKeybWnd::start_y;
+int BKBKeybWnd::screen_x, BKBKeybWnd::screen_y; 
 POINT BKBKeybWnd::start_point;
 bool BKBKeybWnd::fixation_approved=false;
-int BKBKeybWnd::row, BKBKeybWnd::column, BKBKeybWnd::screen_num=0, BKBKeybWnd::percentage;
+int BKBKeybWnd::row, BKBKeybWnd::column, BKBKeybWnd::percentage;
 bool BKBKeybWnd::shift_pressed=false, BKBKeybWnd::ctrl_pressed=false,
 	BKBKeybWnd::alt_pressed=false,BKBKeybWnd::caps_lock_pressed=false,
 	BKBKeybWnd::Fn_pressed=false;
+float BKBKeybWnd::cell_width, BKBKeybWnd::cell_height;
+bool BKBKeybWnd::bottom_side=true;
+int BKBKeybWnd::ctrl_row,BKBKeybWnd::ctrl_column,BKBKeybWnd::alt_row,BKBKeybWnd::alt_column,BKBKeybWnd::shift_row,BKBKeybWnd::shift_column,
+	BKBKeybWnd::fn_row,BKBKeybWnd::fn_column;
 
 HDC BKBKeybWnd::memdc1=0, BKBKeybWnd::memdc2=0, BKBKeybWnd::whitespot_dc=0;
 HBITMAP BKBKeybWnd::hbm1=0, BKBKeybWnd::hbm2=0, BKBKeybWnd::whitespot_bitmap=0;
@@ -36,7 +41,7 @@ extern HBRUSH dkblue_brush, blue_brush;
 extern HFONT hfont;
 
 
-// Оконная процедура 
+// РћРєРѕРЅРЅР°СЏ РїСЂРѕС†РµРґСѓСЂР° 
 LRESULT CALLBACK BKBKeybWndProc(HWND hwnd,
 						UINT message,
 						WPARAM wparam,
@@ -47,22 +52,25 @@ LRESULT CALLBACK BKBKeybWndProc(HWND hwnd,
 	switch (message)
 	{
 
-	case WM_USER_INVALRECT: // Это приходит из другого потока
+	case WM_USER_INVALRECT: // Р­С‚Рѕ РїСЂРёС…РѕРґРёС‚ РёР· РґСЂСѓРіРѕРіРѕ РїРѕС‚РѕРєР°
 		InvalidateRect(hwnd,NULL,TRUE);
 		break;
 
-	case WM_TIMER: // Кнопку можно отпустить
+	case WM_TIMER: // РљРЅРѕРїРєСѓ РјРѕР¶РЅРѕ РѕС‚РїСѓСЃС‚РёС‚СЊ
 		BKBKeybWnd::OnTimer();
 		break;
 
 	case WM_SETCURSOR:
-		// Теперь прячем курсор над окном, его роль выполняет белое пятно
-		// И одновременно показываем 
+		// РўРµРїРµСЂСЊ РїСЂСЏС‡РµРј РєСѓСЂСЃРѕСЂ РЅР°Рґ РѕРєРЅРѕРј, РµРіРѕ СЂРѕР»СЊ РІС‹РїРѕР»РЅСЏРµС‚ Р±РµР»РѕРµ РїСЏС‚РЅРѕ
+		// Р РѕРґРЅРѕРІСЂРµРјРµРЅРЅРѕ РїРѕРєР°Р·С‹РІР°РµРј 
+#ifdef BELYAKOV
+		if(2!=flag_using_airmouse)
+#endif
 		SetCursor(NULL);
 		break;
 
 	case WM_CREATE:
-		// Создаём белое пятно
+		// РЎРѕР·РґР°С‘Рј Р±РµР»РѕРµ РїСЏС‚РЅРѕ
 		BKBKeybWnd::CreateWhiteSpot(hwnd);
 		break;
 
@@ -73,20 +81,24 @@ LRESULT CALLBACK BKBKeybWndProc(HWND hwnd,
 		EndPaint(hwnd,&ps);
 		break;
 
+	case WM_USER_KBD_TOPDOWN:
+		BKBKeybWnd::OnTopDown();
+		break;
+
 	case WM_SIZE:
 		BKBKeybWnd::OnSize(hwnd, LOWORD(lparam), HIWORD(lparam));
 		break;
 
-		// !! Добавить сюда чистку всех memdc при выходе (WM_CLOSE) !!
+		// !! Р”РѕР±Р°РІРёС‚СЊ СЃСЋРґР° С‡РёСЃС‚РєСѓ РІСЃРµС… memdc РїСЂРё РІС‹С…РѕРґРµ (WM_CLOSE) !!
 	default:
 		return DefWindowProc(hwnd,message,wparam,lparam);
 	}
 
-	return 0; // Обработали, свалились сюда по break
+	return 0; // РћР±СЂР°Р±РѕС‚Р°Р»Рё, СЃРІР°Р»РёР»РёСЃСЊ СЃСЋРґР° РїРѕ break
 }
 
 //================================================================
-// Прекращаем рисовать нажатую кнопку
+// РџСЂРµРєСЂР°С‰Р°РµРј СЂРёСЃРѕРІР°С‚СЊ РЅР°Р¶Р°С‚СѓСЋ РєРЅРѕРїРєСѓ
 //================================================================
 void BKBKeybWnd::OnTimer()
 {
@@ -94,29 +106,29 @@ void BKBKeybWnd::OnTimer()
 		KillTimer(Kbhwnd,4);
 		row_pressed=-1; column_pressed=-1;
 		redraw_state=0;
-		InvalidateRect(Kbhwnd,NULL,TRUE); // Это единственное место, где InvalidateRect может быть вызван, так как поток - свой.
+		InvalidateRect(Kbhwnd,NULL,TRUE); // Р­С‚Рѕ РµРґРёРЅСЃС‚РІРµРЅРЅРѕРµ РјРµСЃС‚Рѕ, РіРґРµ InvalidateRect РјРѕР¶РµС‚ Р±С‹С‚СЊ РІС‹Р·РІР°РЅ, С‚Р°Рє РєР°Рє РїРѕС‚РѕРє - СЃРІРѕР№.
 }
 
 //================================================================
-// Инициализация 
+// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ 
 //================================================================
 void BKBKeybWnd::Init()
 {
-	ATOM aresult; // Для всяких кодов возврата
+	ATOM aresult; // Р”Р»СЏ РІСЃСЏРєРёС… РєРѕРґРѕРІ РІРѕР·РІСЂР°С‚Р°
 	
-	// 1. Регистрация класса окна
+	// 1. Р РµРіРёСЃС‚СЂР°С†РёСЏ РєР»Р°СЃСЃР° РѕРєРЅР°
 	WNDCLASS wcl={CS_HREDRAW | CS_VREDRAW, BKBKeybWndProc, 0,
-		//sizeof(LONG_PTR), // Сюда пропишем ссылку на объект
+		//sizeof(LONG_PTR), // РЎСЋРґР° РїСЂРѕРїРёС€РµРј СЃСЃС‹Р»РєСѓ РЅР° РѕР±СЉРµРєС‚
 		0,
 		BKBInst,
 		LoadIcon( NULL, IDI_APPLICATION),
 		NULL,
         //LoadCursor(NULL, IDC_ARROW), 
-		// Фон красится теперь в memdc1
+		// Р¤РѕРЅ РєСЂР°СЃРёС‚СЃСЏ С‚РµРїРµСЂСЊ РІ memdc1
         //dkblue_brush,
 		0,
 		NULL,
-		TEXT(wnd_class_name)
+		wnd_class_name
 	};
 
 	aresult=::RegisterClass(&wcl); 
@@ -124,52 +136,55 @@ void BKBKeybWnd::Init()
 
 	if (aresult==0)
 	{
-		BKBReportError(__FILE__,"RegisterClass (",__LINE__);
+		BKBReportError(__WIDEFILE__,L"RegisterClass (",__LINE__);
 		return;
 	}
 
 	screen_x=GetSystemMetrics(SM_CXSCREEN);
 	screen_y=GetSystemMetrics(SM_CYSCREEN);
-	cell_size=screen_x/(float)BKB_KBD_NUM_CELLS;
+	cell_width=screen_x/(float)columns;
 
-	start_y=screen_y-(int)(cell_size*3);
+	//start_y=screen_y-(int)(cell_size*3);
+	if(cell_width*rows<screen_y*0.45f) cell_height=cell_width; // РЈРґР°Р»РѕСЃСЊ СѓР»РѕР¶РёС‚СЊСЃСЏ РІ 0.45 РІС‹СЃРѕС‚С‹ СЌРєСЂР°РЅР° РїСЂРё РєРІР°РґСЂР°С‚РЅС‹С… РєРЅРѕРїРєР°С…
+	else cell_height=0.45f*screen_y/rows; // РџСЂРёРїР»СЋСЃРЅРµРј РєРЅРѕРїРєРё, С‡С‚РѕР±С‹ РЅРµ РїРµСЂРµРєСЂС‹С‚СЊ Р±РѕР»РµРµ 0.45 СЌРєСЂР°РЅР°
 
 	Kbhwnd=CreateWindowEx(
 	WS_EX_TOPMOST|WS_EX_CLIENTEDGE,
-	TEXT(wnd_class_name),
+	wnd_class_name,
 	NULL, //TEXT(KBWindowName),
     //WS_VISIBLE|WS_POPUP,
 	WS_POPUP,
-	0,start_y,screen_x,screen_x-start_y, 
+	0,screen_y-1-(INT)(cell_height*rows),screen_x,(INT)(cell_height*rows), 
     0, 0, BKBInst, 0L );
 
 	if(NULL==Kbhwnd)
 	{
-		BKBReportError(__FILE__,"CreateWindow",__LINE__);
+		BKBReportError(__WIDEFILE__,L"CreateWindow",__LINE__);
 	}
 
 	// ShowWindow(Kbhwnd,SW_SHOWNORMAL);
 }
 
 //================================================================
-// Рисуем окно (Из WM_PAINT или сами)
+// Р РёСЃСѓРµРј РѕРєРЅРѕ (РР· WM_PAINT РёР»Рё СЃР°РјРё)
 //================================================================
 void BKBKeybWnd::OnPaint(HDC hdc)
 {
 	bool release_dc=false;
 	LONG local_redraw_state;
+	BKB_key key;
 
-	// Сейчас будем АТОМАРНО считывать и сбрасывать redraw_state;
+	// РЎРµР№С‡Р°СЃ Р±СѓРґРµРј РђРўРћРњРђР РќРћ СЃС‡РёС‚С‹РІР°С‚СЊ Рё СЃР±СЂР°СЃС‹РІР°С‚СЊ redraw_state;
 	local_redraw_state=InterlockedCompareExchange(&redraw_state,2,0);
-	if(0!=local_redraw_state) // Замены не произошло, пробуем проверить 1
+	if(0!=local_redraw_state) // Р—Р°РјРµРЅС‹ РЅРµ РїСЂРѕРёР·РѕС€Р»Рѕ, РїСЂРѕР±СѓРµРј РїСЂРѕРІРµСЂРёС‚СЊ 1
 	{
 		local_redraw_state=InterlockedCompareExchange(&redraw_state,2,1);
-		// Если и тут ничего не вышло, ничего страшного
-		// Либо там была двойка, либо значение успело поменяться между двумя InterlockedCompareExchange
-		// Если успело поменяться, то придёт ещё один WM_PAINT, и мы его всё равно отловим
-		// Просто лишний раз выполним BitBlt в шаге 2. Никто не пострадает.
-		// Вообще-то 0 на 1 поменяться не может в принципе. Потому что тоже через Interlocked... единица выставляется
-		// Короче, всё работает.
+		// Р•СЃР»Рё Рё С‚СѓС‚ РЅРёС‡РµРіРѕ РЅРµ РІС‹С€Р»Рѕ, РЅРёС‡РµРіРѕ СЃС‚СЂР°С€РЅРѕРіРѕ
+		// Р›РёР±Рѕ С‚Р°Рј Р±С‹Р»Р° РґРІРѕР№РєР°, Р»РёР±Рѕ Р·РЅР°С‡РµРЅРёРµ СѓСЃРїРµР»Рѕ РїРѕРјРµРЅСЏС‚СЊСЃСЏ РјРµР¶РґСѓ РґРІСѓРјСЏ InterlockedCompareExchange
+		// Р•СЃР»Рё СѓСЃРїРµР»Рѕ РїРѕРјРµРЅСЏС‚СЊСЃСЏ, С‚Рѕ РїСЂРёРґС‘С‚ РµС‰С‘ РѕРґРёРЅ WM_PAINT, Рё РјС‹ РµРіРѕ РІСЃС‘ СЂР°РІРЅРѕ РѕС‚Р»РѕРІРёРј
+		// РџСЂРѕСЃС‚Рѕ Р»РёС€РЅРёР№ СЂР°Р· РІС‹РїРѕР»РЅРёРј BitBlt РІ С€Р°РіРµ 2. РќРёРєС‚Рѕ РЅРµ РїРѕСЃС‚СЂР°РґР°РµС‚.
+		// Р’РѕРѕР±С‰Рµ-С‚Рѕ 0 РЅР° 1 РїРѕРјРµРЅСЏС‚СЊСЃСЏ РЅРµ РјРѕР¶РµС‚ РІ РїСЂРёРЅС†РёРїРµ. РџРѕС‚РѕРјСѓ С‡С‚Рѕ С‚РѕР¶Рµ С‡РµСЂРµР· Interlocked... РµРґРёРЅРёС†Р° РІС‹СЃС‚Р°РІР»СЏРµС‚СЃСЏ
+		// РљРѕСЂРѕС‡Рµ, РІСЃС‘ СЂР°Р±РѕС‚Р°РµС‚.
 		if(1!=local_redraw_state) local_redraw_state=2;
 	}
 	
@@ -187,206 +202,207 @@ void BKBKeybWnd::OnPaint(HDC hdc)
 	//SetBkMode(memdc1,TRANSPARENT);
 
 	RECT fill_r={0,0,width,height};
-	RECT rect_pressed={int(column_pressed*cell_size),int(row_pressed*cell_size),int((column_pressed+1)*cell_size),int((row_pressed+1)*cell_size)};
+	RECT rect_pressed={int(column_pressed*cell_width),int(row_pressed*cell_height),int((column_pressed+1)*cell_width),int((row_pressed+1)*cell_height)};
 
-	/*
-	switch(local_redraw_state)
-	{
-	case 0: // Перерисовываем всё с самой глубины
-		OutputDebugString("redraw 0\n");
-		break;
-	case 1:
-		OutputDebugString("redraw 1\n");
-		break;
-	case 2:
-		OutputDebugString("redraw 2\n");
-		break;
-	default:
-		OutputDebugString("redraw XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n");
-		break;
-	}
-
-	*/
 	
-
 	switch(local_redraw_state)
 	{
-	case 0: // Перерисовываем всё с самой глубины
+	case 0: // РџРµСЂРµСЂРёСЃРѕРІС‹РІР°РµРј РІСЃС‘ СЃ СЃР°РјРѕР№ РіР»СѓР±РёРЅС‹
 		FillRect(memdc1,&fill_r,dkblue_brush);
-		// Подсвечиваем нажатую клавишу
+		// РџРѕРґСЃРІРµС‡РёРІР°РµРј РЅР°Р¶Р°С‚СѓСЋ РєР»Р°РІРёС€Сѓ
 		if(column_pressed!=-1)
 		{
 			//RECT rect_pressed={int(column_pressed*cell_size),int(row_pressed*cell_size),int((column_pressed+1)*cell_size),int((row_pressed+1)*cell_size)};
 			FillRect(memdc1,&rect_pressed,blue_brush);
 		}
 
-		// Собственно, рисование
-		// 1. Сначала подсветим нажатые  спец. клавиши
-		if(shift_pressed)
+		// РЎРѕР±СЃС‚РІРµРЅРЅРѕ, СЂРёСЃРѕРІР°РЅРёРµ
+		// 1. РЎРЅР°С‡Р°Р»Р° РїРѕРґСЃРІРµС‚РёРј РЅР°Р¶Р°С‚С‹Рµ  СЃРїРµС†. РєР»Р°РІРёС€Рё
+		if(shift_pressed&&shift_row!=-1)
 		{
-			RECT rect={0,int(2*cell_size),int(cell_size),int(3*cell_size)};
+			RECT rect={int(shift_column*cell_width),int(shift_row*cell_height),int((shift_column+1)*cell_width),int((shift_row+1)*cell_height)};
 			FillRect(memdc1,&rect,blue_brush);
-			if(caps_lock_pressed)	TextOut(memdc1,int(cell_size/3), int(cell_size*2.8),"CAPS",4);
-		}
-		if((ctrl_pressed)&&(screen_num>0))
-		{
-			RECT rect={int(14*cell_size),int(2*cell_size),int(15*cell_size),int(3*cell_size)};
-			FillRect(memdc1,&rect,blue_brush);
-		}
-		if((alt_pressed)&&(screen_num>0))
-		{
-			RECT rect={int(14*cell_size),int(cell_size),int(15*cell_size),int(2*cell_size)};
-			FillRect(memdc1,&rect,blue_brush);
-		}
-		if((Fn_pressed)&&(2==screen_num))
-		{
-			RECT rect={0,int(cell_size),int(cell_size),int(2*cell_size)};
-			FillRect(memdc1,&rect,blue_brush);
-			// Подчеркнём клавиши, которые будут функциональными (F1-F12)
-			SelectObject(memdc1,GetStockObject(WHITE_PEN));
-			MoveToEx(memdc1,int(cell_size)+2,int(2*cell_size-4),NULL);
-			LineTo(memdc1,int(12*cell_size-3),int(2*cell_size-4));
+			if(caps_lock_pressed)	TextOut(memdc1,int(shift_column*cell_width+cell_width/3), int(shift_row*cell_height+cell_height*0.8),L"CAPS",4);
 		}
 
-		// 2. Расчерчиваем линии
+		if(ctrl_pressed&&ctrl_row!=-1)
+		{
+			RECT rect={int(ctrl_column*cell_width),int(ctrl_row*cell_height),int((ctrl_column+1)*cell_width),int((ctrl_row+1)*cell_height)};
+			FillRect(memdc1,&rect,blue_brush);
+		}
+		if(alt_pressed&&alt_row!=-1)
+		{
+			//RECT rect={int(14*cell_width),int(cell_height),int(15*cell_width),int(2*cell_height)};
+			RECT rect={int(alt_column*cell_width),int(alt_row*cell_height),int((alt_column+1)*cell_width),int((alt_row+1)*cell_height)};
+			FillRect(memdc1,&rect,blue_brush);
+		}
+		if(Fn_pressed&&fn_row!=-1)
+		{
+			RECT rect={int(fn_column*cell_width),int(fn_row*cell_height),int((fn_column+1)*cell_width),int((fn_row+1)*cell_height)};
+			//RECT rect={0,int(cell_height),int(cell_width),int(2*cell_height)};
+			FillRect(memdc1,&rect,blue_brush);
+		}
+
+		// 2. Р Р°СЃС‡РµСЂС‡РёРІР°РµРј Р»РёРЅРёРё
 		SelectObject(memdc1,GetStockObject(WHITE_PEN));
-		// 2.1. Горизонтальные
-		MoveToEx(memdc1,0,int(cell_size),NULL);
-		LineTo(memdc1,screen_x-1,int(cell_size));
-		MoveToEx(memdc1,0,int(2*cell_size),NULL);
-		LineTo(memdc1,screen_x-1,int(2*cell_size));
-
-		// 2.2. Вертикальные
 		int i,j;
-		for(i=1;i<BKB_KBD_NUM_CELLS;i++)
+
+		// 2.1. Р“РѕСЂРёР·РѕРЅС‚Р°Р»СЊРЅС‹Рµ
+		for(j=1;j<rows;j++)
 		{
-			MoveToEx(memdc1,int(cell_size*i),0,NULL);
-			LineTo(memdc1,int(cell_size*i),int(cell_size*3));
+			MoveToEx(memdc1,0,int(j*cell_height),NULL);
+			LineTo(memdc1,width-1,int(j*cell_height));
+		}
+
+		// 2.2. Р’РµСЂС‚РёРєР°Р»СЊРЅС‹Рµ
+		for(i=1;i<columns;i++)
+		{
+			MoveToEx(memdc1,int(cell_width*i),0,NULL);
+			LineTo(memdc1,int(cell_width*i),height);
 			
 			//TextOut(hdc,35,60+i*screen_y/BKB_NUM_TOOLS,tool_names[i],(int)strlen(tool_names[i]));
 		}
 
-		// 3. Пишем буквы
-		// 3.1. Системным фонтом - то, что длиннее одного символа
-		for(j=0;j<3;j++)
-			for(i=0;i<BKB_KBD_NUM_CELLS;i++)
+		// 3. РџРёС€РµРј Р±СѓРєРІС‹
+		// 3.1. РЎРёСЃС‚РµРјРЅС‹Рј С„РѕРЅС‚РѕРј - С‚Рѕ, С‡С‚Рѕ РґР»РёРЅРЅРµРµ РѕРґРЅРѕРіРѕ СЃРёРјРІРѕР»Р°
+		for(j=0;j<rows;j++)
+			for(i=0;i<columns;i++)
 			{
-				if(NULL!=BKBKeybLayouts[screen_num][j][i].label) // проверка, что там не NULL
-				if(strlen(BKBKeybLayouts[screen_num][j][i].label)>1)
-				TextOut(memdc1,int(cell_size*0.4+i*cell_size) , int(cell_size/3+j*cell_size),
-					BKBKeybLayouts[screen_num][j][i].label,strlen(BKBKeybLayouts[screen_num][j][i].label));
+				key=layout[current_pane*rows*columns+j*columns+i]; //BKBKeybLayouts[current_pane][j][i];
+				if(undefined==key.bkb_keytype) continue;
+
+				if(NULL!=key.label) // РїСЂРѕРІРµСЂРєР°, С‡С‚Рѕ С‚Р°Рј РЅРµ NULL
+				if(wcslen(key.label)>1)
+				{
+					if(fn==key.bkb_keytype) SetTextColor(memdc1,RGB(255,155,155)); // РљРЅРѕРїРєСѓ Fn РїРѕРґРєСЂР°С€РёРІР°РµРј
+					TextOut(memdc1,int(cell_width*0.2+i*cell_width) , int(cell_height/3+j*cell_height),
+						key.label,wcslen(key.label));
+					if(fn==key.bkb_keytype) SetTextColor(memdc1,RGB(255,255,255)); 
+				}
+				
+				// Р•СЃР»Рё РµСЃС‚СЊ Fn-РєР»Р°РІРёС€Р°, РЅР°РїРёСЃР°С‚СЊ РµС‘ РІ РїСЂР°РІРѕРј РЅРёР¶РЅРµРј СѓРіР»Сѓ РєСЂР°СЃРЅС‹Рј С†РІРµС‚РѕРј
+				if(NULL!=key.fn_label)
+				{
+					SetTextColor(memdc1,RGB(255,155,155));
+					//TextOut(memdc1,int(cell_width*0.4+i*cell_width) , int(cell_height/3+j*cell_height), key.label,wcslen(key.label));
+					TextOut(memdc1,int(cell_width*0.4+i*cell_width) , int(cell_height*0.8+j*cell_height),key.fn_label,wcslen(key.fn_label));
+					
+					SetTextColor(memdc1,RGB(255,255,255)); // Р’РµСЂРЅРё С†РІРµС‚ РЅР° Р±РµР»С‹Р№
+				}
 			}
 				
-		// 3.2. Своим фонтом - из нескольких символов
+		// 3.2. РЎРІРѕРёРј С„РѕРЅС‚РѕРј - РёР· РѕРґРЅРѕРіРѕ СЃРёРјРІРѕР»Р°
 		old_font=(HFONT)SelectObject(memdc1, hfont);
 
-		for(j=0;j<3;j++)
-			for(i=0;i<BKB_KBD_NUM_CELLS;i++)
+		for(j=0;j<rows;j++)
+			for(i=0;i<columns;i++)
 			{
-				if(NULL!=BKBKeybLayouts[screen_num][j][i].label) // проверка, что там не NULL
-				if(1==strlen(BKBKeybLayouts[screen_num][j][i].label))
-				TextOut(memdc1,int(cell_size*0.4+i*cell_size) , int(cell_size/3+j*cell_size),
-					BKBKeybLayouts[screen_num][j][i].label,1);
+				key=layout[current_pane*rows*columns+j*columns+i]; //BKBKeybLayouts[current_pane][j][i];
+				if(undefined==key.bkb_keytype) continue;
+
+				if(NULL!=key.label) // РїСЂРѕРІРµСЂРєР°, С‡С‚Рѕ С‚Р°Рј РЅРµ NULL
+				if(1==wcslen(key.label))
+				TextOut(memdc1,int(cell_width*0.4+i*cell_width) , int(cell_height/3+j*cell_height),
+					key.label,wcslen(key.label));
 			}
 	
-		// Возвращаем старый фонт
+		// Р’РѕР·РІСЂР°С‰Р°РµРј СЃС‚Р°СЂС‹Р№ С„РѕРЅС‚
 		SelectObject(memdc1, old_font);
 
-		// ЗДЕСЬ НЕ НУЖЕН break !!! После нулевого шага всегда идёт первый!!!
+		// Р—Р”Р•РЎР¬ РќР• РќРЈР–Р•Рќ break !!! РџРѕСЃР»Рµ РЅСѓР»РµРІРѕРіРѕ С€Р°РіР° РІСЃРµРіРґР° РёРґС‘С‚ РїРµСЂРІС‹Р№!!!
 
 	case 1:
 		BitBlt(memdc2,0,0,width,height,memdc1,0,0,SRCCOPY);
 
-		// Возможно, рисовать Progress Bar
+		// Р’РѕР·РјРѕР¶РЅРѕ, СЂРёСЃРѕРІР°С‚СЊ Progress Bar
 		if(fixation_approved)
 		{
 			RECT rect;
 		
-			rect.left=(LONG)(cell_size/20+column*cell_size);
-			rect.right=(LONG)(rect.left+percentage*cell_size*90/100/100);
-			rect.top=(LONG)(cell_size/20+cell_size*row);
-			rect.bottom=(LONG)(rect.top+cell_size/20); 
+			rect.left=(LONG)(cell_width/20+column*cell_width);
+			rect.right=(LONG)(rect.left+percentage*cell_width*90/100/100);
+			rect.top=(LONG)(cell_height/20+cell_height*row);
+			rect.bottom=(LONG)(rect.top+cell_height/20); 
 
 			FillRect(memdc2,&rect,blue_brush);
 		}
 
-		// Теперь рисуем белое пятно
-		BLENDFUNCTION bfn;
-		bfn.BlendOp = AC_SRC_OVER;
-		bfn.BlendFlags = 0;
-		bfn.SourceConstantAlpha = 255;
-		bfn.AlphaFormat = AC_SRC_ALPHA;
+		// Р’ СЂРµР¶РёРјРµ Р°СЌСЂРѕРјС‹С€Рё РґР»СЏ Р‘РµР»СЏРєРѕРІР° СЌС‚Рѕ РѕС‚РєР»СЋС‡РёС‚СЊ
+#ifdef BELYAKOV
+		if(2!=flag_using_airmouse)
+#endif
+		{
+			// РўРµРїРµСЂСЊ СЂРёСЃСѓРµРј Р±РµР»РѕРµ РїСЏС‚РЅРѕ
+			BLENDFUNCTION bfn;
+			bfn.BlendOp = AC_SRC_OVER;
+			bfn.BlendFlags = 0;
+			bfn.SourceConstantAlpha = 255;
+			bfn.AlphaFormat = AC_SRC_ALPHA;
 
-		//AlphaBlend(memdc2, 0, 0, 100, 64, BufferDC, 0, 0, 100, 64, bfn);
-		AlphaBlend(memdc2,whitespot_point.x-50,whitespot_point.y-50,100,100,whitespot_dc,0,0,100,100,bfn);
+			//AlphaBlend(memdc2, 0, 0, 100, 64, BufferDC, 0, 0, 100, 64, bfn);
+			AlphaBlend(memdc2,whitespot_point.x-50,whitespot_point.y-50,100,100,whitespot_dc,0,0,100,100,bfn);
+		}
 
-		// ЗДЕСЬ НЕ НУЖЕН break !!! После первого шага всегда идёт второй!!!
+		// Р—Р”Р•РЎР¬ РќР• РќРЈР–Р•Рќ break !!! РџРѕСЃР»Рµ РїРµСЂРІРѕРіРѕ С€Р°РіР° РІСЃРµРіРґР° РёРґС‘С‚ РІС‚РѕСЂРѕР№!!!
 	case 2:
 		BitBlt(hdc,0,0,width,height,memdc2,0,0,SRCCOPY);
 		break;
 	}
 
-	// Если брал DC - верни его
+	// Р•СЃР»Рё Р±СЂР°Р» DC - РІРµСЂРЅРё РµРіРѕ
 	if(release_dc) ReleaseDC(Kbhwnd,hdc);
 
 }
 
 
 //===========================================================================
-// Похоже, что хотят нажать на кнопку, рисовать прогресс нажатия
+// РџРѕС…РѕР¶Рµ, С‡С‚Рѕ С…РѕС‚СЏС‚ РЅР°Р¶Р°С‚СЊ РЅР° РєРЅРѕРїРєСѓ, СЂРёСЃРѕРІР°С‚СЊ РїСЂРѕРіСЂРµСЃСЃ РЅР°Р¶Р°С‚РёСЏ
 //===========================================================================
 bool BKBKeybWnd::ProgressBar(POINT *p, int fixation_count, int _percentage)
 {
 	percentage=_percentage;
 
-	if(1==fixation_count) // начало фиксации, проверим и запомним эту точку
+	if(1==fixation_count) // РЅР°С‡Р°Р»Рѕ С„РёРєСЃР°С†РёРё, РїСЂРѕРІРµСЂРёРј Рё Р·Р°РїРѕРјРЅРёРј СЌС‚Сѓ С‚РѕС‡РєСѓ
 	{
 		start_point=*p;
-		if(start_point.y>=start_y) 
+		ScreenToClient(Kbhwnd,&start_point);
+		if((start_point.y>=0)&&(start_point.y<height)&&(start_point.x>=0)&&(start_point.x<width)) // РџРѕРїР°Р»Рё РІРЅСѓС‚СЂСЊ РѕРєРЅР°
 		{
 			fixation_approved=true;
 
-			// загоняем в границы экрана
-			if(start_point.y>=screen_y) start_point.y=screen_y-2; // минус два на всякий случай, чтобы не дала слишком большие row/column 
-			if(start_point.x<0) start_point.x=0;
-			if(start_point.x>=screen_x) start_point.x=screen_x-2;
-
-			row=(int)((start_point.y-start_y)/cell_size);
-			column=(int)(start_point.x/cell_size);
+			row=(int)(start_point.y/cell_height);
+			if(row>rows-1) row=rows-1;
+			column=(int)(start_point.x/cell_width);
+			if(column>columns-1) columns=columns-1;
 		}
 		else fixation_approved=false;
 	}
-	else // Это продолжение фиксации. 
+	else // Р­С‚Рѕ РїСЂРѕРґРѕР»Р¶РµРЅРёРµ С„РёРєСЃР°С†РёРё. 
 	{
 		if(fixation_approved) 
-		//if((2==flag_using_airmouse)&&fixation_approved) // Фиксация была наша. В случае с аэромышью (особенно) недопустимо, 
-		// чтобы курсор вышел за пределы клавиши, с которой началась фиксация
-		// Для остальных режимов попробуем так же
+		//if((2==flag_using_airmouse)&&fixation_approved) // Р¤РёРєСЃР°С†РёСЏ Р±С‹Р»Р° РЅР°С€Р°. Р’ СЃР»СѓС‡Р°Рµ СЃ Р°СЌСЂРѕРјС‹С€СЊСЋ (РѕСЃРѕР±РµРЅРЅРѕ) РЅРµРґРѕРїСѓСЃС‚РёРјРѕ, 
+		// С‡С‚РѕР±С‹ РєСѓСЂСЃРѕСЂ РІС‹С€РµР» Р·Р° РїСЂРµРґРµР»С‹ РєР»Р°РІРёС€Рё, СЃ РєРѕС‚РѕСЂРѕР№ РЅР°С‡Р°Р»Р°СЃСЊ С„РёРєСЃР°С†РёСЏ
+		// Р”Р»СЏ РѕСЃС‚Р°Р»СЊРЅС‹С… СЂРµР¶РёРјРѕРІ РїРѕРїСЂРѕР±СѓРµРј С‚Р°Рє Р¶Рµ
 		{
 			POINT p_tmp=*p;
-			int row_tmp=(int)((p_tmp.y-start_y)/cell_size);
-			int column_tmp=(int)(p_tmp.x/cell_size);
+			ScreenToClient(Kbhwnd,&p_tmp);
+			int row_tmp=(int)(p_tmp.y/cell_height);
+			int column_tmp=(int)(p_tmp.x/cell_width);
 
 			if((row_tmp!=row)||(column_tmp!=column)) return false;
 		}
 	}
 
 
-	// Рисуем прогресс-бар на кнопке
+	// Р РёСЃСѓРµРј РїСЂРѕРіСЂРµСЃСЃ-Р±Р°СЂ РЅР° РєРЅРѕРїРєРµ
 	if(fixation_approved)
 	{
-		// Теперь это всё в WM_PAINT
-		// Атомарно меняем 2 на 1
+		// РўРµРїРµСЂСЊ СЌС‚Рѕ РІСЃС‘ РІ WM_PAINT
+		// РђС‚РѕРјР°СЂРЅРѕ РјРµРЅСЏРµРј 2 РЅР° 1
 		LONG old_state=InterlockedCompareExchange(&redraw_state,1,2);
 		
-	/*	if(redraw_state>1) 
-		{
-			redraw_state=1; //Здесь был баг. Могло перебить перерисовку с нижнего слоя
-			//OutputDebugString("rstate->1 PB\n");
-		}	 */
-
-		// Из другого потока вроде нельзя вызывать InvalidateRect
-		// Делаем перерисовку, только если старое состояние было двойкой
+		// РР· РґСЂСѓРіРѕРіРѕ РїРѕС‚РѕРєР° РІСЂРѕРґРµ РЅРµР»СЊР·СЏ РІС‹Р·С‹РІР°С‚СЊ InvalidateRect
+		// Р”РµР»Р°РµРј РїРµСЂРµСЂРёСЃРѕРІРєСѓ, С‚РѕР»СЊРєРѕ РµСЃР»Рё СЃС‚Р°СЂРѕРµ СЃРѕСЃС‚РѕСЏРЅРёРµ Р±С‹Р»Рѕ РґРІРѕР№РєРѕР№
 		if(2==old_state) PostMessage(Kbhwnd, WM_USER_INVALRECT, 0, 0);
 		//InvalidateRect(Kbhwnd,NULL,TRUE);
 	}
@@ -395,27 +411,22 @@ bool BKBKeybWnd::ProgressBar(POINT *p, int fixation_count, int _percentage)
 }
 
 //===========================================================================
-// Не удержали взгляд, или переключаемся на другой режим
+// РќРµ СѓРґРµСЂР¶Р°Р»Рё РІР·РіР»СЏРґ, РёР»Рё РїРµСЂРµРєР»СЋС‡Р°РµРјСЃСЏ РЅР° РґСЂСѓРіРѕР№ СЂРµР¶РёРј
 //===========================================================================
 void BKBKeybWnd::ProgressBarReset()
 {
 	fixation_approved=false;
-	// Атомарно меняем 2 на 1
+	// РђС‚РѕРјР°СЂРЅРѕ РјРµРЅСЏРµРј 2 РЅР° 1
 	LONG old_state=InterlockedCompareExchange(&redraw_state,1,2);
 
-	/* if(redraw_state>1) 
-	{
-		redraw_state=1; //Здесь был баг. Могло перебить перерисовку с нижнего слоя
-		OutputDebugString("rstate->1 PBreset\n");
-	} */
-	// Из другого потока нельзя вызывать InvalidateRect
-	// Делаем перерисовку, только если старое состояние было двойкой
+	// РР· РґСЂСѓРіРѕРіРѕ РїРѕС‚РѕРєР° РЅРµР»СЊР·СЏ РІС‹Р·С‹РІР°С‚СЊ InvalidateRect
+	// Р”РµР»Р°РµРј РїРµСЂРµСЂРёСЃРѕРІРєСѓ, С‚РѕР»СЊРєРѕ РµСЃР»Рё СЃС‚Р°СЂРѕРµ СЃРѕСЃС‚РѕСЏРЅРёРµ Р±С‹Р»Рѕ РґРІРѕР№РєРѕР№
 	if(2==old_state) PostMessage(Kbhwnd, WM_USER_INVALRECT, 0, 0);
 	//InvalidateRect(Kbhwnd,NULL,TRUE);
 }
 
 //===========================================================================
-// Произошла фиксация, возможно на клавиатуре
+// РџСЂРѕРёР·РѕС€Р»Р° С„РёРєСЃР°С†РёСЏ, РІРѕР·РјРѕР¶РЅРѕ РЅР° РєР»Р°РІРёР°С‚СѓСЂРµ
 //===========================================================================
 bool BKBKeybWnd::IsItYours(POINT *p)
 {
@@ -423,141 +434,170 @@ bool BKBKeybWnd::IsItYours(POINT *p)
 
 	if(fixation_approved)
 	{
-		// Сбросить Progress Bar
+		// РЎР±СЂРѕСЃРёС‚СЊ Progress Bar
 		ProgressBarReset();
 		fixation_approved=false;
 
-		// Реагируем на нажатую кнопку
-		// Определим нажатую кнопку
-		BKB_key key_pressed=BKBKeybLayouts[screen_num][row][column];
-		if((Fn_pressed)&&(2==screen_num)&&(1==row)&&(0<column)&&(12>=column)) // Жмём одну из 12 функциональных клавиш
+		// Р РµР°РіРёСЂСѓРµРј РЅР° РЅР°Р¶Р°С‚СѓСЋ РєРЅРѕРїРєСѓ
+		// РћРїСЂРµРґРµР»РёРј РЅР°Р¶Р°С‚СѓСЋ РєРЅРѕРїРєСѓ
+		BKB_key key_pressed=layout[current_pane*rows*columns+row*columns+column]; //BKBKeybLayouts[current_pane][row][column];
+		// Р¤СѓРЅРєС†РёРѕРЅР°Р»СЊРЅС‹Рµ (Fn) РєР»Р°РІРёС€Рё
+		if(Fn_pressed)
 		{
-			ScanCodeButton(VK_F1+column-1);
-			Fn_pressed=false; // Сбрасываем нажатую клавишу Fn
+			if(key_pressed.bkb_fn_vscancode) // Р•СЃС‚СЊ, С‡С‚Рѕ РЅР°Р¶Р°С‚СЊ
+			{
+				ScanCodeButton(key_pressed.bkb_fn_vscancode);
+			}
+			Fn_pressed=false; // РЎР±СЂР°СЃС‹РІР°РµРј РЅР°Р¶Р°С‚СѓСЋ РєР»Р°РІРёС€Сѓ Fn, РґР°Р¶Рµ РµСЃР»Рё РЅРµ Р±С‹Р»Рѕ, С‡С‚Рѕ РЅР°Р¶Р°С‚СЊ
 		}
-		else // Это НЕ функциональная клавиша
+		else // Р­С‚Рѕ РќР• С„СѓРЅРєС†РёРѕРЅР°Р»СЊРЅР°СЏ РєР»Р°РІРёС€Р°
 		switch (key_pressed.bkb_keytype)
 		{
-		case unicode: // Самое простое
-					
-			// Нажатие кнопки
-			input[0].type=INPUT_KEYBOARD;
-			input[0].ki.dwFlags =  KEYEVENTF_UNICODE;
-		
-			if(shift_pressed) input[0].ki.wScan=key_pressed.bkb_unicode_uppercase;
-			else input[0].ki.wScan=key_pressed.bkb_unicode;
-
-			// Отпускание кнопки
-			input[1].type=INPUT_KEYBOARD;
-			input[1].ki.dwFlags = KEYEVENTF_KEYUP |  KEYEVENTF_UNICODE;
-			if(shift_pressed) input[1].ki.wScan=key_pressed.bkb_unicode_uppercase;
-			else input[1].ki.wScan=key_pressed.bkb_unicode;
-			
-			SendInput(2,input,sizeof(INPUT));
-
-			if((shift_pressed)&&(!caps_lock_pressed))  // Сбрасываем shift, если он не ужерживается caps_lock'ом
+		case unicode: // РЎР°РјРѕРµ РїСЂРѕСЃС‚РѕРµ
+			// РџРѕРїСЂР°РІРєР°. Р•СЃР»Рё РЅР°Р¶Р°С‚С‹ Alt РёР»Рё Ctrl Рё Р·Р°РґР°РЅ СЃРєР°РЅРєРѕРґ, С‚Рѕ РЅСѓР¶РЅРѕ РЅРµ СЋРЅРёРєРѕРґ, Р° СЃРєР°РЅРєРѕРґ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ
+			if((alt_pressed||ctrl_pressed)&&key_pressed.bkb_vscancode)
 			{
-				shift_pressed=false;
+				ScanCodeButton(key_pressed.bkb_vscancode);
 			}
-			break;
+			else
+			{
+				// РќР°Р¶Р°С‚РёРµ unicode-РєРЅРѕРїРєРё
+				input[0].type=INPUT_KEYBOARD;
+				input[0].ki.dwFlags =  KEYEVENTF_UNICODE;
+		
+				if(shift_pressed) input[0].ki.wScan=key_pressed.bkb_unicode_uppercase;
+				else input[0].ki.wScan=key_pressed.bkb_unicode;
 
-		case scancode: // Потом здесь нужно обрабатывать Alt,Shift,Ctrl; а пока - так
+				// РћС‚РїСѓСЃРєР°РЅРёРµ РєРЅРѕРїРєРё
+				input[1].type=INPUT_KEYBOARD;
+				input[1].ki.dwFlags = KEYEVENTF_KEYUP |  KEYEVENTF_UNICODE;
+				if(shift_pressed) input[1].ki.wScan=key_pressed.bkb_unicode_uppercase;
+				else input[1].ki.wScan=key_pressed.bkb_unicode;
+			
+				SendInput(2,input,sizeof(INPUT));
+
+				if((shift_pressed)&&(!caps_lock_pressed))  // РЎР±СЂР°СЃС‹РІР°РµРј shift, РµСЃР»Рё РѕРЅ РЅРµ СѓР¶РµСЂР¶РёРІР°РµС‚СЃСЏ caps_lock'РѕРј
+				{
+					shift_pressed=false;
+				}
+				break;
+			}
+
+		case scancode: // Р—РґРµСЃСЊ РЅСѓР¶РЅРѕ РѕР±СЂР°Р±Р°С‚С‹РІР°С‚СЊ Alt,Shift,Ctrl; РІС‹РЅРµСЃРµРЅРѕ РІ РѕС‚РґРµР»СЊРЅСѓСЋ С„СѓРЅРєС†РёСЋ
 			ScanCodeButton(key_pressed.bkb_vscancode);
 			break;
 
-		case leftkbd: // другой экран клавиатуры (слева от текущего)
-			screen_num--;
-			if(screen_num<0) screen_num=2;
+		case leftkbd: // РґСЂСѓРіРѕР№ СЌРєСЂР°РЅ РєР»Р°РІРёР°С‚СѓСЂС‹ (СЃР»РµРІР° РѕС‚ С‚РµРєСѓС‰РµРіРѕ)
+			current_pane--;
+			if(current_pane<0) current_pane=panes-1;
+			PopulateCtrlAltShiftFn();
 			break;
 
-		case rightkbd: // другой экран клавиатуры (справа от текущего)
-			screen_num++;
-			if(screen_num>2) screen_num=0;
+		case rightkbd: // РґСЂСѓРіРѕР№ СЌРєСЂР°РЅ РєР»Р°РІРёР°С‚СѓСЂС‹ (СЃРїСЂР°РІР° РѕС‚ С‚РµРєСѓС‰РµРіРѕ)
+			current_pane++;
+			if(current_pane>=panes) current_pane=0;
+			PopulateCtrlAltShiftFn();
 			break;
 
-		case shift: // нажали кнопку Shift
+		case top_down: // РґСЂСѓРіРѕР№ СЌРєСЂР°РЅ РєР»Р°РІРёР°С‚СѓСЂС‹ (СЃРїСЂР°РІР° РѕС‚ С‚РµРєСѓС‰РµРіРѕ)
+			PostMessage(Kbhwnd, WM_USER_KBD_TOPDOWN, 0, 0);
+			break;
+
+		case shift: // РЅР°Р¶Р°Р»Рё РєРЅРѕРїРєСѓ Shift
 			if(shift_pressed) 
 			{
-				if(caps_lock_pressed) // Это сброс caps_lock
+				if(caps_lock_pressed) // Р­С‚Рѕ СЃР±СЂРѕСЃ caps_lock
 				{
 					shift_pressed=false;
 					caps_lock_pressed=false;
 				}
-				else // Повторное нажатие на Shift взводит CapsLock
+				else // РџРѕРІС‚РѕСЂРЅРѕРµ РЅР°Р¶Р°С‚РёРµ РЅР° Shift РІР·РІРѕРґРёС‚ CapsLock
 				{
 					caps_lock_pressed=true;
 				}
 			}
-			else shift_pressed=true; // просто взводим shift
+			else shift_pressed=true; // РїСЂРѕСЃС‚Рѕ РІР·РІРѕРґРёРј shift
 			break;
 
-		case control: // нажали кнопку Ctrl
+		case control: // РЅР°Р¶Р°Р»Рё РєРЅРѕРїРєСѓ Ctrl
 			if(ctrl_pressed) ctrl_pressed=false; else ctrl_pressed=true;
 			break;
 
-		case alt: // нажали кнопку Alt
+		case alt: // РЅР°Р¶Р°Р»Рё РєРЅРѕРїРєСѓ Alt
 			if(alt_pressed) alt_pressed=false; else alt_pressed=true;
 			break;
 
-		case fn: // нажали кнопку Fn
+		case fn: // РЅР°Р¶Р°Р»Рё РєРЅРѕРїРєСѓ Fn
 			if(Fn_pressed) Fn_pressed=false; else Fn_pressed=true;
 			break;
 		}
-		// Пока здесь, потом, возможно, вынесем в отдельную функцию
+		// РџРѕРєР° Р·РґРµСЃСЊ, РїРѕС‚РѕРј, РІРѕР·РјРѕР¶РЅРѕ, РІС‹РЅРµСЃРµРј РІ РѕС‚РґРµР»СЊРЅСѓСЋ С„СѓРЅРєС†РёСЋ
 
-		// запомним, что стереть после окончания таймера
+		// Р”РѕР±Р°РІРёРј СЃРёСЃС‚РµРјРЅС‹Р№ С‰РµР»С‡РѕРє
+		//PlaySound( TEXT("DeviceDisconnect"), NULL, SND_ALIAS|SND_ASYNC );
+		// Р•СЃР»Рё РІРЅРµС€РЅРёР№ С„Р°Р№Р» СЃРѕ Р·РІСѓРєРѕРј РЅРµРґРѕСЃС‚СѓРїРµРЅ, РёРіСЂР°РµРј СЃРёРЅС‚РµР·РёСЂРѕРІР°РЅРЅС‹Р№ Р·РІСѓРє
+		if(S_OK!=PlaySound( TEXT("click.wav"), NULL, SND_FILENAME|SND_ASYNC|SND_NODEFAULT ))
+		BKBClick::Play();
+
+		// Р·Р°РїРѕРјРЅРёРј, С‡С‚Рѕ СЃС‚РµСЂРµС‚СЊ РїРѕСЃР»Рµ РѕРєРѕРЅС‡Р°РЅРёСЏ С‚Р°Р№РјРµСЂР°
 		row_pressed=row; column_pressed=column;
-		SetTimer(Kbhwnd,4,500,0); // полсекунды
-		// Теперь ВСЕГДА перерисовываем клавиатуру после ЛЮБОГО нажатия
+		SetTimer(Kbhwnd,4,500,0); // РїРѕР»СЃРµРєСѓРЅРґС‹
+		// РўРµРїРµСЂСЊ Р’РЎР•Р“Р”Рђ РїРµСЂРµСЂРёСЃРѕРІС‹РІР°РµРј РєР»Р°РІРёР°С‚СѓСЂСѓ РїРѕСЃР»Рµ Р›Р®Р‘РћР“Рћ РЅР°Р¶Р°С‚РёСЏ
 		redraw_state=0;
-		// Из другого потока нельзя вызывать InvalidateRect
+		// РР· РґСЂСѓРіРѕРіРѕ РїРѕС‚РѕРєР° РЅРµР»СЊР·СЏ РІС‹Р·С‹РІР°С‚СЊ InvalidateRect
 		PostMessage(Kbhwnd, WM_USER_INVALRECT, 0, 0);
-		//InvalidateRect(Kbhwnd,NULL,FALSE); // перерисовать клавиатуру с самого начала
+		//InvalidateRect(Kbhwnd,NULL,FALSE); // РїРµСЂРµСЂРёСЃРѕРІР°С‚СЊ РєР»Р°РІРёР°С‚СѓСЂСѓ СЃ СЃР°РјРѕРіРѕ РЅР°С‡Р°Р»Р°
 		//OutputDebugString("row_pressed\n");
 	} //fixation approved
 
-	// Возвращаем всегда, относится ли это нажатие к нам, даже если кнопку не нажали
-	if(p->y>=start_y) 	return true;
+	// Р’РѕР·РІСЂР°С‰Р°РµРј РІСЃРµРіРґР°, РѕС‚РЅРѕСЃРёС‚СЃСЏ Р»Рё СЌС‚Рѕ РЅР°Р¶Р°С‚РёРµ Рє РЅР°Рј, РґР°Р¶Рµ РµСЃР»Рё РєРЅРѕРїРєСѓ РЅРµ РЅР°Р¶Р°Р»Рё
+	POINT p_tmp=*p;
+	ScreenToClient(Kbhwnd,&p_tmp);
+	if((p_tmp.y>=0)&&(p_tmp.y<height)&&(p_tmp.x>=0)&&(p_tmp.x<width)) return true;// РџРѕРїР°Р»Рё РІРЅСѓС‚СЂСЊ РѕРєРЅР°
+	//if(p->y>=start_y) 	return true;
 	else return false;
 }
 
 //===========================================================================
-// Подсветить пятном место взгляда
+// РџРѕРґСЃРІРµС‚РёС‚СЊ РїСЏС‚РЅРѕРј РјРµСЃС‚Рѕ РІР·РіР»СЏРґР°
 //===========================================================================
 bool BKBKeybWnd::WhiteSpot(POINT *p)
 {
-	// Не, всё не так. Надо проверить, может надо стереть пятно, которое было раньше
-	//if(p->y<start_y-50) return; // Белое пятно не заехало на клавиатуру
+	// РќРµ, РІСЃС‘ РЅРµ С‚Р°Рє. РќР°РґРѕ РїСЂРѕРІРµСЂРёС‚СЊ, РјРѕР¶РµС‚ РЅР°РґРѕ СЃС‚РµСЂРµС‚СЊ РїСЏС‚РЅРѕ, РєРѕС‚РѕСЂРѕРµ Р±С‹Р»Рѕ СЂР°РЅСЊС€Рµ
+	//if(p->y<start_y-50) return; // Р‘РµР»РѕРµ РїСЏС‚РЅРѕ РЅРµ Р·Р°РµС…Р°Р»Рѕ РЅР° РєР»Р°РІРёР°С‚СѓСЂСѓ
 
 	whitespot_point=*p;
-	whitespot_point.y-=start_y; // Такой простой перевод экранных координат в оконные
+	ScreenToClient(Kbhwnd,&whitespot_point);
+	if(!((whitespot_point.y>=0)&&(whitespot_point.y<height)&&(whitespot_point.x>=0)&&(whitespot_point.x<width))) return false;// РќР• РїРѕРїР°Р»Рё РІРЅСѓС‚СЂСЊ РѕРєРЅР°
 
-	if(whitespot_point.y<0)
-		return false; // Стрелочка где-то вне клавиатуры
+	//whitespot_point.y-=start_y; // РўР°РєРѕР№ РїСЂРѕСЃС‚РѕР№ РїРµСЂРµРІРѕРґ СЌРєСЂР°РЅРЅС‹С… РєРѕРѕСЂРґРёРЅР°С‚ РІ РѕРєРѕРЅРЅС‹Рµ
+	//if(whitespot_point.y<0)
+	//	return false; // РЎС‚СЂРµР»РѕС‡РєР° РіРґРµ-С‚Рѕ РІРЅРµ РєР»Р°РІРёР°С‚СѓСЂС‹
 
 	LONG old_state=InterlockedCompareExchange(&redraw_state,1,2);
 
-	// Из другого потока нельзя вызывать InvalidateRect
-	// Делаем перерисовку, только если старое состояние было двойкой
+	// РР· РґСЂСѓРіРѕРіРѕ РїРѕС‚РѕРєР° РЅРµР»СЊР·СЏ РІС‹Р·С‹РІР°С‚СЊ InvalidateRect
+	// Р”РµР»Р°РµРј РїРµСЂРµСЂРёСЃРѕРІРєСѓ, С‚РѕР»СЊРєРѕ РµСЃР»Рё СЃС‚Р°СЂРѕРµ СЃРѕСЃС‚РѕСЏРЅРёРµ Р±С‹Р»Рѕ РґРІРѕР№РєРѕР№
 	if(2==old_state) PostMessage(Kbhwnd, WM_USER_INVALRECT, 0, 0);
 
-	return true; // Вместо стрелочки рисуем пятно
+	return true; // Р’РјРµСЃС‚Рѕ СЃС‚СЂРµР»РѕС‡РєРё СЂРёСЃСѓРµРј РїСЏС‚РЅРѕ
 }
 
 
 
 
 //===========================================================================
-// Активация клавиатуры
+// РђРєС‚РёРІР°С†РёСЏ РєР»Р°РІРёР°С‚СѓСЂС‹
 //===========================================================================
 void BKBKeybWnd::Activate()
 {
+	PopulateCtrlAltShiftFn(); // Р’РѕРѕР±С‰Рµ-С‚Рѕ СЌС‚Рѕ РЅСѓР¶РЅРѕ С‚РѕР»СЊРєРѕ РїСЂРё РїРµСЂРІРѕР№ Р°РєС‚РёРІР°С†РёРё... РќСѓ РґР° Р»Р°РґРЅРѕ.
 	ShowWindow(Kbhwnd,SW_SHOWNORMAL);
 	fixation_approved=false;
 }
 
 //===========================================================================
-// Деактивация клавиатуры
+// Р”РµР°РєС‚РёРІР°С†РёСЏ РєР»Р°РІРёР°С‚СѓСЂС‹
 //===========================================================================
 void BKBKeybWnd::DeActivate()
 {
@@ -566,8 +606,8 @@ void BKBKeybWnd::DeActivate()
 }
 
 //===========================================================================
-// Обрабатывает нажатие кнопки, заданной сканкодом, а не юникодом
-// Здесь требуется дополнительный контроль спец-клавиш Shift,Alt,Ctrl
+// РћР±СЂР°Р±Р°С‚С‹РІР°РµС‚ РЅР°Р¶Р°С‚РёРµ РєРЅРѕРїРєРё, Р·Р°РґР°РЅРЅРѕР№ СЃРєР°РЅРєРѕРґРѕРј, Р° РЅРµ СЋРЅРёРєРѕРґРѕРј
+// Р—РґРµСЃСЊ С‚СЂРµР±СѓРµС‚СЃСЏ РґРѕРїРѕР»РЅРёС‚РµР»СЊРЅС‹Р№ РєРѕРЅС‚СЂРѕР»СЊ СЃРїРµС†-РєР»Р°РІРёС€ Shift,Alt,Ctrl
 //===========================================================================
 void BKBKeybWnd::ScanCodeButton(WORD scancode)
 {
@@ -576,7 +616,7 @@ void BKBKeybWnd::ScanCodeButton(WORD scancode)
 	INPUT input={0};
 	input.type=INPUT_KEYBOARD;
 
-	// Спец-клавиши
+	// РЎРїРµС†-РєР»Р°РІРёС€Рё
 	if(shift_pressed)
 	{
 		input.ki.dwFlags =  0;
@@ -596,25 +636,25 @@ void BKBKeybWnd::ScanCodeButton(WORD scancode)
 		SendInput(1,&input,sizeof(INPUT));		
 	}
 
-	// Сама нажатая кнопка
-	// Нажатие кнопки
+	// РЎР°РјР° РЅР°Р¶Р°С‚Р°СЏ РєРЅРѕРїРєР°
+	// РќР°Р¶Р°С‚РёРµ РєРЅРѕРїРєРё
 	input.ki.dwFlags =  0;
 	input.ki.wVk=scancode;
 	SendInput(1,&input,sizeof(INPUT));		
-	// Отпускание кнопки
+	// РћС‚РїСѓСЃРєР°РЅРёРµ РєРЅРѕРїРєРё
 	input.ki.dwFlags = KEYEVENTF_KEYUP ;
 	SendInput(1,&input,sizeof(INPUT));		
 	
-	// Спец-клавиши
+	// РЎРїРµС†-РєР»Р°РІРёС€Рё
 	if(shift_pressed)
 	{
-		// Отпускаем кнопку Shift
+		// РћС‚РїСѓСЃРєР°РµРј РєРЅРѕРїРєСѓ Shift
 		input.ki.wVk=VK_SHIFT;
 		input.ki.dwFlags = KEYEVENTF_KEYUP ;
 		SendInput(1,&input,sizeof(INPUT));
 
-		// Сохраняем ли shift в работе?
-		if((shift_pressed)&&(!caps_lock_pressed))  // Сбрасываем shift, если он не ужерживается caps_lock'ом
+		// РЎРѕС…СЂР°РЅСЏРµРј Р»Рё shift РІ СЂР°Р±РѕС‚Рµ?
+		if((shift_pressed)&&(!caps_lock_pressed))  // РЎР±СЂР°СЃС‹РІР°РµРј shift, РµСЃР»Рё РѕРЅ РЅРµ СѓР¶РµСЂР¶РёРІР°РµС‚СЃСЏ caps_lock'РѕРј
 		{
 			shift_pressed=false;
 			redraw_reqired=true;
@@ -622,31 +662,31 @@ void BKBKeybWnd::ScanCodeButton(WORD scancode)
 	}
 	if(ctrl_pressed)
 	{
-		// Отпускаем кнопку Ctrl
+		// РћС‚РїСѓСЃРєР°РµРј РєРЅРѕРїРєСѓ Ctrl
 		input.ki.wVk=VK_CONTROL;
 		input.ki.dwFlags = KEYEVENTF_KEYUP ;
 		SendInput(1,&input,sizeof(INPUT));
 
 		redraw_reqired=true;
-		ctrl_pressed=false; // отпускаем Ctrl
+		ctrl_pressed=false; // РѕС‚РїСѓСЃРєР°РµРј Ctrl
 	}
 	if(alt_pressed)
 	{
-		// Отпускаем кнопку Alt
+		// РћС‚РїСѓСЃРєР°РµРј РєРЅРѕРїРєСѓ Alt
 		input.ki.wVk=VK_MENU;
 		input.ki.dwFlags = KEYEVENTF_KEYUP ;
 		SendInput(1,&input,sizeof(INPUT));
 
 		redraw_reqired=true;
-		alt_pressed=false; // отпускаем Alt
+		alt_pressed=false; // РѕС‚РїСѓСЃРєР°РµРј Alt
 	}
 	
-	//if(redraw_reqired) InvalidateRect(Kbhwnd,NULL,TRUE); // перерисовать клавиатуру
+	//if(redraw_reqired) InvalidateRect(Kbhwnd,NULL,TRUE); // РїРµСЂРµСЂРёСЃРѕРІР°С‚СЊ РєР»Р°РІРёР°С‚СѓСЂСѓ
 }
 
 //===================================================================
-// Меняем размеры окна (фактически, один раз при создании окна)
-// Пересоздает все memdc и hbm
+// РњРµРЅСЏРµРј СЂР°Р·РјРµСЂС‹ РѕРєРЅР° (С„Р°РєС‚РёС‡РµСЃРєРё, РѕРґРёРЅ СЂР°Р· РїСЂРё СЃРѕР·РґР°РЅРёРё РѕРєРЅР°)
+// РџРµСЂРµСЃРѕР·РґР°РµС‚ РІСЃРµ memdc Рё hbm
 //===================================================================
 void BKBKeybWnd::OnSize(HWND hwnd, int _width, int _height)
 {
@@ -654,16 +694,18 @@ void BKBKeybWnd::OnSize(HWND hwnd, int _width, int _height)
 
 	width=_width;
 	height=_height;
+	cell_width=width/(float)columns;
+	cell_height=height/(float)rows;
 
-	// Убираем DC
+	// РЈР±РёСЂР°РµРј DC
 	if(memdc1!=0) DeleteDC(memdc1);
 	if(memdc2!=0) DeleteDC(memdc2);
 	
-	// Убираем битмапы
+	// РЈР±РёСЂР°РµРј Р±РёС‚РјР°РїС‹
 	if(hbm1!=0) DeleteObject(hbm1);
 	if(hbm2!=0) DeleteObject(hbm2);
 	
-	// Воссоздаём DC и битмапы
+	// Р’РѕСЃСЃРѕР·РґР°С‘Рј DC Рё Р±РёС‚РјР°РїС‹
 	memdc1=CreateCompatibleDC(hdc);
 	memdc2=CreateCompatibleDC(hdc);
 
@@ -675,11 +717,11 @@ void BKBKeybWnd::OnSize(HWND hwnd, int _width, int _height)
 
 	ReleaseDC(hwnd,hdc);
 
-	redraw_state=0; // Требуется пересовка всех слоёв
+	redraw_state=0; // РўСЂРµР±СѓРµС‚СЃСЏ РїРµСЂРµСЃРѕРІРєР° РІСЃРµС… СЃР»РѕС‘РІ
 }
 
 //===================================================================
-// Создаём битмап с пятном, как у фонарика
+// РЎРѕР·РґР°С‘Рј Р±РёС‚РјР°Рї СЃ РїСЏС‚РЅРѕРј, РєР°Рє Сѓ С„РѕРЅР°СЂРёРєР°
 //===================================================================
 void BKBKeybWnd::CreateWhiteSpot(HWND hwnd)
 {
@@ -687,7 +729,7 @@ void BKBKeybWnd::CreateWhiteSpot(HWND hwnd)
 	whitespot_dc=CreateCompatibleDC(hdc);
 	whitespot_bitmap=CreateCompatibleBitmap(hdc,100,100);
 
-	// Создаём битмап с альфа-каналом
+	// РЎРѕР·РґР°С‘Рј Р±РёС‚РјР°Рї СЃ Р°Р»СЊС„Р°-РєР°РЅР°Р»РѕРј
 
 	BITMAPINFO BufferInfo;
 	ZeroMemory(&BufferInfo,sizeof(BITMAPINFO));
@@ -703,13 +745,13 @@ void BKBKeybWnd::CreateWhiteSpot(HWND hwnd)
 	whitespot_bitmap = CreateDIBSection(whitespot_dc, &BufferInfo, DIB_RGB_COLORS,
                                        (void**)&pArgb, NULL, 0);
 
-	// Заполяем альфа-канал
+	// Р—Р°РїРѕР»СЏРµРј Р°Р»СЊС„Р°-РєР°РЅР°Р»
 	int i,j,alpha,distance_squared;
 	for(i=0;i<100;i++)
 	{
 		for(j=0;j<100;j++)
 		{
-			// Чем дальше от центра, тем прозрачнее (в квадрате)
+			// Р§РµРј РґР°Р»СЊС€Рµ РѕС‚ С†РµРЅС‚СЂР°, С‚РµРј РїСЂРѕР·СЂР°С‡РЅРµРµ (РІ РєРІР°РґСЂР°С‚Рµ)
 			distance_squared=(i-50)*(i-50)+(j-50)*(j-50);
 			//alpha=255-distance_squared/10; if(alpha<0) alpha=0; 
 			alpha=100-distance_squared/24; if(alpha<0) alpha=0; 
@@ -729,4 +771,74 @@ void BKBKeybWnd::CreateWhiteSpot(HWND hwnd)
 	
 }
 
+//============================================================================================
+// РџРµСЂРµРјРµС‰Р°РµС‚ РѕРєРЅРѕ РєР»Р°РІРёР°С‚СѓСЂС‹ СЃРІРµСЂС…Сѓ РІРЅРёР· Рё РЅР°РѕР±РѕСЂРѕС‚
+//============================================================================================
+void BKBKeybWnd::OnTopDown()
+{
+	POINT p;
 
+	if(bottom_side)
+	{
+		bottom_side=false;
+		p.x=0; p.y=0;
+	}
+	else
+	{
+		bottom_side=true;
+		p.x=0; p.y=screen_y-1-height;
+	}
+	SetWindowPos(Kbhwnd,HWND_TOPMOST,p.x,p.y,0,0,SWP_NOSIZE);
+}
+
+//============================================================================================
+//  Р’ РїРµСЂРµРєР»СЋС‡РµРЅРЅРѕР№ СЂР°СЃРєР»Р°РґРєРµ РЅР°С…РѕРґРёРј РєР»Р°РІРёС€Рё Ctrl, Alt, Shift, Fn
+//============================================================================================
+void BKBKeybWnd::PopulateCtrlAltShiftFn()
+{
+	if(!layout) return;
+
+	int i,j;
+
+	ctrl_row=-1;
+	ctrl_column=-1;
+	alt_row=-1;
+	alt_column=-1;
+	shift_row=-1;
+	shift_column=-1;
+	fn_row=-1;
+	fn_column=-1;
+
+	for(j=0;j<rows;j++)
+		for(i=0;i<columns;i++)
+		{
+			switch(layout[current_pane*rows*columns+j*columns+i].bkb_keytype)
+			{
+			case shift:
+				shift_row=j;
+				shift_column=i;
+				break;
+				
+			case control:
+				ctrl_row=j;
+				ctrl_column=i;
+				break;
+				
+			case alt:
+				alt_row=j;
+				alt_column=i;
+				break;
+				
+			case fn:
+				fn_row=j;
+				fn_column=i;
+				break;
+			}
+		}
+
+		// Р•СЃР»Рё РІ РІС‹Р±СЂР°РЅРЅРѕР№ СЂР°СЃРєР»Р°РґРєРµ РЅРµС‚ СЃРїРµС†. РєР»Р°РІРёС€, РєРѕС‚РѕСЂС‹Рµ РЅР°Р¶Р°С‚С‹, С‚Рѕ РёС… РѕС‚Р¶Р°С‚СЊ, С‡С‚РѕР±С‹ РЅРµ СЃСЂР°Р±РѕС‚Р°Р»Рѕ С‡С‚Рѕ-С‚Рѕ РЅРµРѕР¶РёРґР°РЅРЅРѕРµ
+		if(-1==shift_row) {shift_pressed=false;	caps_lock_pressed=false;}
+		if(-1==ctrl_row) ctrl_pressed=false;
+		if(-1==alt_row)  alt_pressed=false; 
+		if(-1==fn_row) Fn_pressed=false; 
+}

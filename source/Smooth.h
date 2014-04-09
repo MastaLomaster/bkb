@@ -1,7 +1,7 @@
-// Сглаживание данных от трекера
+п»ї// РЎРіР»Р°Р¶РёРІР°РЅРёРµ РґР°РЅРЅС‹С… РѕС‚ С‚СЂРµРєРµСЂР°
 #ifndef __BKB_SMOOTH
 #define __BKB_SMOOTH
 
-double BKBSmooth(POINT *point, bool left_eye); // левый глаз - 0, правый - 1
+double BKBSmooth(POINT *point, bool left_eye); // Р»РµРІС‹Р№ РіР»Р°Р· - 0, РїСЂР°РІС‹Р№ - 1
 
 #endif

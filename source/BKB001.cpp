@@ -1,5 +1,6 @@
-#include <windows.h>
+п»ї#include <windows.h>
 #include "BKBRepErr.h"
+#include "Internat.h"
 #include "TobiiREX.h"
 #include "MagnifyWnd.h"
 #include "ToolWnd.h"
@@ -8,82 +9,78 @@
 #include "AirMouse.h"
 #include "BKBgdi.h"
 #include "TET.h"
+#include "Click.h"
 
-// Прототип WndProc решил в .h не включать
+// РџСЂРѕС‚РѕС‚РёРї WndProc СЂРµС€РёР» РІ .h РЅРµ РІРєР»СЋС‡Р°С‚СЊ
 LRESULT CALLBACK WndProc(HWND,UINT,WPARAM,LPARAM);
-// И вот это тоже
+// Р РІРѕС‚ СЌС‚Рѕ С‚РѕР¶Рµ
 int StartupDialog();
 
-// Глобальные переменные, которые могут потребоваться везде
-char*		BKBAppName="Клавиатура и мышь для управления глазами : сборка B";
+// Р“Р»РѕР±Р°Р»СЊРЅС‹Рµ РїРµСЂРµРјРµРЅРЅС‹Рµ, РєРѕС‚РѕСЂС‹Рµ РјРѕРіСѓС‚ РїРѕС‚СЂРµР±РѕРІР°С‚СЊСЃСЏ РІРµР·РґРµ
+//TCHAR		BKBAppName=L"РљР»Р°РІРёР°С‚СѓСЂР° Рё РјС‹С€СЊ РґР»СЏ СѓРїСЂР°РІР»РµРЅРёСЏ РіР»Р°Р·Р°РјРё : СЃР±РѕСЂРєР° B / Keyboard & Mouse control with the eyes : Release B";
 HINSTANCE	BKBInst;
 HWND		BKBhwnd;
 int flag_using_airmouse;
 
-// Имя класса окна
-static const char BKBWindowCName[]="BKB0B"; 
+// РРјСЏ РєР»Р°СЃСЃР° РѕРєРЅР°
+//static const char BKBWindowCName[]="BKB0B"; 
 
 int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
-// Командную строку не обрабатываем
+// РљРѕРјР°РЅРґРЅСѓСЋ СЃС‚СЂРѕРєСѓ РЅРµ РѕР±СЂР°Р±Р°С‚С‹РІР°РµРј
 {
-	ATOM aresult; // Для всяких кодов возврата
-	BOOL boolresult;
-	MSG msg; // Сообщение
+	MSG msg; // РЎРѕРѕР±С‰РµРЅРёРµ
 
-	// Сразу делаем Instance доступной всем
+	// РЎСЂР°Р·Сѓ РґРµР»Р°РµРј Instance РґРѕСЃС‚СѓРїРЅРѕР№ РІСЃРµРј
 	BKBInst=hInst;
 
-	// Что будем использовать?
+	// Р•СЃР»Рё РµСЃС‚СЊ РґСЂСѓРіРѕР№ СЏР·С‹Рє - Р·Р°РіСЂСѓР¶Р°РµРј РµРіРѕ
+	Internat::LoadMessages();
+	BKBKeybWnd::Load(); // Р•СЃР»Рё РµСЃС‚СЊ РєР»Р°РІРёР°С‚СѓСЂР° - Р·Р°РіСЂСѓР¶Р°РµРј РµС‘
+
+	// Р§С‚Рѕ Р±СѓРґРµРј РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ?
 	flag_using_airmouse=StartupDialog();
 
 	switch(flag_using_airmouse)
 	{
 	case 0: // Tobii
-		// Инициализируем работу с Tobii REX
-		// Если произошла ошибка, переходим на работу с [аэро]мышью
-		if(BKBTobiiREX::Init()) flag_using_airmouse=1; // пробуем с TheEyeTribe (запоминаем, что гасить в конце)
-		else break; // всё прошло успешно
+		// РРЅРёС†РёР°Р»РёР·РёСЂСѓРµРј СЂР°Р±РѕС‚Сѓ СЃ Tobii REX
+		// Р•СЃР»Рё РїСЂРѕРёР·РѕС€Р»Р° РѕС€РёР±РєР°, РїРµСЂРµС…РѕРґРёРј РЅР° СЂР°Р±РѕС‚Сѓ СЃ [Р°СЌСЂРѕ]РјС‹С€СЊСЋ
+		if(BKBTobiiREX::Init()) flag_using_airmouse=1; // РїСЂРѕР±СѓРµРј СЃ TheEyeTribe (Р·Р°РїРѕРјРёРЅР°РµРј, С‡С‚Рѕ РіР°СЃРёС‚СЊ РІ РєРѕРЅС†Рµ)
+		else break; // РІСЃС‘ РїСЂРѕС€Р»Рѕ СѓСЃРїРµС€РЅРѕ
 
 	case 1: // TheEyeTribe
-		if(BKBTET::Init()) flag_using_airmouse=2; // пробуем с TheEyeTribe (запоминаем, что гасить в конце)
-		else break; // всё прошло успешно
+		if(BKBTET::Init()) flag_using_airmouse=2; // РїСЂРѕР±СѓРµРј СЃ TheEyeTribe (Р·Р°РїРѕРјРёРЅР°РµРј, С‡С‚Рѕ РіР°СЃРёС‚СЊ РІ РєРѕРЅС†Рµ)
+		else break; // РІСЃС‘ РїСЂРѕС€Р»Рѕ СѓСЃРїРµС€РЅРѕ
 		
-	case 2: // просто мышь... ничего здесь не делаем
-		// Запускаем эмуляцию работы устройства Tobii аэромышью
-		// Это сделаем в WM_CREATE ToolBar'a
+	case 2: // РїСЂРѕСЃС‚Рѕ РјС‹С€СЊ... РЅРёС‡РµРіРѕ Р·РґРµСЃСЊ РЅРµ РґРµР»Р°РµРј
+		// Р—Р°РїСѓСЃРєР°РµРј СЌРјСѓР»СЏС†РёСЋ СЂР°Р±РѕС‚С‹ СѓСЃС‚СЂРѕР№СЃС‚РІР° Tobii Р°СЌСЂРѕРјС‹С€СЊСЋ
+		// Р­С‚Рѕ СЃРґРµР»Р°РµРј РІ WM_CREATE ToolBar'a
 		break;
 	}
 
-	/*	{
-		// Запускаем эмуляцию работы устройства Tobii аэромышью
-		// Это сделаем в WM_CREATE ToolBar'a
-	}
-	else
-	{
-		// Инициализируем работу с Tobii REX
-		// Если произошла ошибка, переходим на работу с [аэро]мышью
-		flag_using_airmouse=BKBTobiiREX::Init();
-	}
-*/
-	// Кисти-фонты
+	// РљРёСЃС‚Рё-С„РѕРЅС‚С‹
 	BKBgdiInit();
+	// Р—РІСѓРєРё
+	BKBClick::Init();
 
-	// Создаем окна
-	BKBMagnifyWnd::Init(); // Увеличительное
-	BKBToolWnd::Init(); // Инструменты с правой стороны
-	BKBKeybWnd::Init(); // Клавиатура
-	BKBTranspWnd::Init(); // Прозрачное окно
+	// РЎРѕР·РґР°РµРј РѕРєРЅР°
+	BKBMagnifyWnd::Init(); // РЈРІРµР»РёС‡РёС‚РµР»СЊРЅРѕРµ
+	BKBToolWnd::Init(); // РРЅСЃС‚СЂСѓРјРµРЅС‚С‹ СЃ РїСЂР°РІРѕР№ СЃС‚РѕСЂРѕРЅС‹
+	BKBKeybWnd::Init(); // РљР»Р°РІРёР°С‚СѓСЂР°
+	BKBTranspWnd::Init(); // РџСЂРѕР·СЂР°С‡РЅРѕРµ РѕРєРЅРѕ
 
-	//Цикл обработки сообщений
+	//Р¦РёРєР» РѕР±СЂР°Р±РѕС‚РєРё СЃРѕРѕР±С‰РµРЅРёР№
 	while(GetMessage(&msg,NULL,0,0)) 
     {
 		TranslateMessage( &msg );
         DispatchMessage( &msg );
 	}// while !WM_QUIT
 
-	// Чистим за собой
+	// Р§РёСЃС‚РёРј Р·Р° СЃРѕР±РѕР№
 
-	// Кисти-фонты
+	// Р—РІСѓРєРё
+	BKBClick::Halt();
+	// РљРёСЃС‚Рё-С„РѕРЅС‚С‹
 	BKBgdiHalt();
 
 	switch(flag_using_airmouse)
@@ -97,6 +94,7 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 		break;
 	}
 
+	Internat::Unload();
 
 	return 0;
 }

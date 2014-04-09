@@ -1,5 +1,5 @@
-/*
-*	Сообщает об ошибках времени исполнения
+п»ї/*
+*	РЎРѕРѕР±С‰Р°РµС‚ РѕР± РѕС€РёР±РєР°С… РІСЂРµРјРµРЅРё РёСЃРїРѕР»РЅРµРЅРёСЏ
 */
 
 #include <windows.h>
@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include "BKBRepErr.h"
 #include "resource.h"
+#include "Internat.h"
 
 extern HINSTANCE	BKBInst;
 
@@ -14,12 +15,12 @@ typedef TOBIIGAZE_API const char* (TOBIIGAZE_CALL *type_tobiigaze_get_error_mess
 extern type_tobiigaze_get_error_message fp_tobiigaze_get_error_message;
 
 //============================================================================================
-// Свой message box с таймаутом
+// РЎРІРѕР№ message box СЃ С‚Р°Р№РјР°СѓС‚РѕРј
 //============================================================================================
-static char *header;
-static char *body;
+static TCHAR *header;
+static TCHAR *body;
 
-static char *timeout_chars[5]={"00","01","02","03","04"};
+static TCHAR *timeout_chars[5]={L"00",L"01",L"02",L"03",L"04"};
 
 
 static BOOL CALLBACK DlgSettingsWndProc(HWND hdwnd,
@@ -46,6 +47,8 @@ static BOOL CALLBACK DlgSettingsWndProc(HWND hdwnd,
 		SetWindowPos(hdwnd,NULL,100,100,0,0,SWP_NOSIZE);
 		SetWindowText(hdwnd,header);
 		SendDlgItemMessage(hdwnd,IDC_BODY, WM_SETTEXT, 0L, (LPARAM)body);
+		SendDlgItemMessage(hdwnd,IDC_STATIC_WILLCLOSE, WM_SETTEXT, 0L, (LPARAM)Internat::Message(3,L"Р—Р°РєСЂРѕРµС‚СЃСЏ С‡РµСЂРµР·"));
+		SendDlgItemMessage(hdwnd,IDC_STATIC_SEC, WM_SETTEXT, 0L, (LPARAM)Internat::Message(4,L"СЃРµРє."));
 		SetTimer(hdwnd,3,1000,0);
 		timeout_counter=5;
 	}
@@ -66,104 +69,113 @@ return 0;
 
 int BKBMessageBox(HWND hWnd, LPCTSTR lpText, LPCTSTR lpCaption, UINT uType)
 {
-	header=(char *)lpCaption;
-	body=(char *)lpText;
+	header=(TCHAR *)lpCaption;
+	body=(TCHAR *)lpText;
 	return DialogBox(BKBInst,MAKEINTRESOURCE(IDD_DIALOG_MB),hWnd,(DLGPROC)DlgSettingsWndProc);
 }
 
 //============================================================================================
-// Сообщает о СИСТЕМНЫХ ошибках времени исполнения
+// РЎРѕРѕР±С‰Р°РµС‚ Рѕ РЎРРЎРўР•РњРќР«РҐ РѕС€РёР±РєР°С… РІСЂРµРјРµРЅРё РёСЃРїРѕР»РЅРµРЅРёСЏ
 //============================================================================================
-void BKBReportError(char *SourceFile, char *FuncName, int LineNumber)
+void BKBReportError(TCHAR *SourceFile, TCHAR *FuncName, int LineNumber)
 {
-	DWORD res;				// Результат функции FormatMessage
-	void *BKBStringError;	// Указатель на строку для получения системной ошибки
-	char BKBMessage[1024];	// Это строка, в которой формируется сообщение об ошибке
-	DWORD BKBLastError=GetLastError(); // Получили код системной ошибки
+	DWORD res;				// Р РµР·СѓР»СЊС‚Р°С‚ С„СѓРЅРєС†РёРё FormatMessage
+	void *BKBStringError;	// РЈРєР°Р·Р°С‚РµР»СЊ РЅР° СЃС‚СЂРѕРєСѓ РґР»СЏ РїРѕР»СѓС‡РµРЅРёСЏ СЃРёСЃС‚РµРјРЅРѕР№ РѕС€РёР±РєРё
+	TCHAR BKBMessage[2048];	// Р­С‚Рѕ СЃС‚СЂРѕРєР°, РІ РєРѕС‚РѕСЂРѕР№ С„РѕСЂРјРёСЂСѓРµС‚СЃСЏ СЃРѕРѕР±С‰РµРЅРёРµ РѕР± РѕС€РёР±РєРµ
+	DWORD BKBLastError=GetLastError(); // РџРѕР»СѓС‡РёР»Рё РєРѕРґ СЃРёСЃС‚РµРјРЅРѕР№ РѕС€РёР±РєРё
 	
 	
-	if (BKBLastError!=(DWORD)0) // Получить строку, если код не равен нулю
+	if (BKBLastError!=(DWORD)0) // РџРѕР»СѓС‡РёС‚СЊ СЃС‚СЂРѕРєСѓ, РµСЃР»Рё РєРѕРґ РЅРµ СЂР°РІРµРЅ РЅСѓР»СЋ
 	{
 		res=FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
 						NULL, BKBLastError,
 						MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // Default language
 						(LPTSTR) &BKBStringError, 0, NULL );
 
-		if(res==(DWORD)0) BKBStringError=(void *)"Сообщение об ошибке не найдено";
+		if(res==(DWORD)0) BKBStringError=(void *)Internat::Message(1,L"РЎРѕРѕР±С‰РµРЅРёРµ РѕР± РѕС€РёР±РєРµ РЅРµ РЅР°Р№РґРµРЅРѕ");
 	}
 	else
 	{
-		BKBStringError=(void *)"Нет системной ошибки";
+		BKBStringError=(void *)Internat::Message(2,L"РќРµС‚ СЃРёСЃС‚РµРјРЅРѕР№ РѕС€РёР±РєРё");
 	}
 	
-	// Сформировать строку с полным описанием ошибки
-	sprintf_s(BKBMessage, sizeof(BKBMessage),
-			"Module: %s\nFunction: %s\nLine number: %d\nSysErr: %d (%s)",
+	// РЎС„РѕСЂРјРёСЂРѕРІР°С‚СЊ СЃС‚СЂРѕРєСѓ СЃ РїРѕР»РЅС‹Рј РѕРїРёСЃР°РЅРёРµРј РѕС€РёР±РєРё
+	swprintf_s(BKBMessage, _countof(BKBMessage),
+			L"Module: %s\r\nFunction: %s\r\nLine number: %d\r\nSysErr: %d (%s)",
 			SourceFile, FuncName, LineNumber,
-			BKBLastError, (char *)BKBStringError);
+			BKBLastError, (TCHAR *)BKBStringError);
 
 
-	//Освобождаем память, которую выделила функция FormatMessage
+	//РћСЃРІРѕР±РѕР¶РґР°РµРј РїР°РјСЏС‚СЊ, РєРѕС‚РѕСЂСѓСЋ РІС‹РґРµР»РёР»Р° С„СѓРЅРєС†РёСЏ FormatMessage
 	if (BKBLastError!=(DWORD)0)
 	{
 			LocalFree( BKBStringError );
 	}
 
-	//Печатаем сообщение об ошибке (если возможно, на экран)
-	BKBMessageBox(NULL,BKBMessage,"BKB: сообщение об ошибке",MB_OK|MB_ICONINFORMATION );
+	//РџРµС‡Р°С‚Р°РµРј СЃРѕРѕР±С‰РµРЅРёРµ РѕР± РѕС€РёР±РєРµ (РµСЃР»Рё РІРѕР·РјРѕР¶РЅРѕ, РЅР° СЌРєСЂР°РЅ)
+	BKBMessageBox(NULL,BKBMessage,Internat::Message(0,L"BKB: СЃРѕРѕР±С‰РµРЅРёРµ РѕР± РѕС€РёР±РєРµ"),MB_OK|MB_ICONINFORMATION );
 
-	//А также в файл 
+	//Рђ С‚Р°РєР¶Рµ РІ С„Р°Р№Р» 
 	FILE *fout;
-	fout=fopen("reperr.log","a");
+	fopen_s(&fout,"reperr.log","ab");
 
 	time_t mytime = time(0); /* not 'long' */
-
-	fprintf(fout,"****\n%s%s\n", ctime(&mytime), BKBMessage);
+	TCHAR ctbuf[1024];
+	_wctime_s(ctbuf,1023,&mytime);
+	fwprintf(fout,L"****\r\n%s\r\n%s\r\n", ctbuf, BKBMessage);
 	fflush(fout);
 	fclose(fout);
 }
 
 //============================================================================================
-// Для НЕсистемных ошибок (перегружена)
-// Реально не видел, где бы она использовалась
+// Р”Р»СЏ РќР•СЃРёСЃС‚РµРјРЅС‹С… РѕС€РёР±РѕРє (РїРµСЂРµРіСЂСѓР¶РµРЅР°)
+// Р РµР°Р»СЊРЅРѕ РЅРµ РІРёРґРµР», РіРґРµ Р±С‹ РѕРЅР° РёСЃРїРѕР»СЊР·РѕРІР°Р»Р°СЃСЊ
 //============================================================================================
-void BKBReportError(char *Error) 
+void BKBReportError(TCHAR *Error) 
 {
-	//Печатаем сообщение об ошибке (если возможно, на экран)
-	BKBMessageBox(NULL,Error,"Непорядок!",MB_OK|MB_ICONINFORMATION );
+	//РџРµС‡Р°С‚Р°РµРј СЃРѕРѕР±С‰РµРЅРёРµ РѕР± РѕС€РёР±РєРµ (РµСЃР»Рё РІРѕР·РјРѕР¶РЅРѕ, РЅР° СЌРєСЂР°РЅ)
+	BKBMessageBox(NULL,Error,Internat::Message(23,L"РќРµРїРѕСЂСЏРґРѕРє!"),MB_OK|MB_ICONINFORMATION );
 }
 
+
 //============================================================================================
-// Для ошибок Tobii Gaze SDK (перегружена)
+// Р”Р»СЏ РѕС€РёР±РѕРє Tobii Gaze SDK (РїРµСЂРµРіСЂСѓР¶РµРЅР°)
 //============================================================================================
-void BKBReportError(tobiigaze_error_code tbg_error_code, char *SourceFile, char *FuncName, int LineNumber)
+void BKBReportError(tobiigaze_error_code tbg_error_code, TCHAR *SourceFile, TCHAR *FuncName, int LineNumber)
 {
-	char BKBMessage[1024];	// Это строка, в которой формируется сообщение об ошибке
+	TCHAR BKBMessage[1024];	// Р­С‚Рѕ СЃС‚СЂРѕРєР°, РІ РєРѕС‚РѕСЂРѕР№ С„РѕСЂРјРёСЂСѓРµС‚СЃСЏ СЃРѕРѕР±С‰РµРЅРёРµ РѕР± РѕС€РёР±РєРµ
+	TCHAR ConvertASCII2W[1024];
 
 	if (tbg_error_code)
     {
-		const char *tmp_char;
-		if(fp_tobiigaze_get_error_message) tmp_char=(*fp_tobiigaze_get_error_message)(tbg_error_code);
-		else tmp_char="неизвестно";
+		const TCHAR *tmp_char;
+		if(fp_tobiigaze_get_error_message)
+		{
+			MultiByteToWideChar(CP_ACP, 0, (*fp_tobiigaze_get_error_message)(tbg_error_code), -1, ConvertASCII2W, 1023);
+			tmp_char=ConvertASCII2W;
+		}
+		else tmp_char=Internat::Message(24,L"РЅРµРёР·РІРµСЃС‚РЅРѕ");
 
-		// Сформировать строку с полным описанием ошибки
-		sprintf_s(BKBMessage, sizeof(BKBMessage),
-			"Module: %s\nFunction: %s\nLine number: %d\nОшибка Tobii Gaze SDK: %d (%s)",
+		// РЎС„РѕСЂРјРёСЂРѕРІР°С‚СЊ СЃС‚СЂРѕРєСѓ СЃ РїРѕР»РЅС‹Рј РѕРїРёСЃР°РЅРёРµРј РѕС€РёР±РєРё
+		swprintf_s(BKBMessage, _countof(BKBMessage),
+			Internat::Message(25,L"Module: %s\nFunction: %s\nLine number: %d\nРћС€РёР±РєР° Tobii Gaze SDK: %d (%s)"),
 			SourceFile, FuncName, LineNumber,
 			tbg_error_code, 
 			tmp_char);
 
 
-		//Печатаем сообщение об ошибке (если возможно, на экран)
-		BKBMessageBox(NULL,BKBMessage,"BKB:Gaze SDK: сообщение об ошибке",MB_OK|MB_ICONINFORMATION );
+		//РџРµС‡Р°С‚Р°РµРј СЃРѕРѕР±С‰РµРЅРёРµ РѕР± РѕС€РёР±РєРµ (РµСЃР»Рё РІРѕР·РјРѕР¶РЅРѕ, РЅР° СЌРєСЂР°РЅ)
+		BKBMessageBox(NULL,BKBMessage,Internat::Message(26,L"BKB:Gaze SDK: СЃРѕРѕР±С‰РµРЅРёРµ РѕР± РѕС€РёР±РєРµ"),MB_OK|MB_ICONINFORMATION );
 
-		//А также в файл 
+		//Рђ С‚Р°РєР¶Рµ РІ С„Р°Р№Р» 
 		FILE *fout;
-		fout=fopen("reperr.log","a");
+		fopen_s(&fout,"reperr.log","ab");
 
 		time_t mytime = time(0); /* not 'long' */
-
-		fprintf(fout,"****\n%s%s\n", ctime(&mytime), BKBMessage);
+		TCHAR ctbuf[1024];
+		_wctime_s(ctbuf,1023,&mytime);
+		
+		fwprintf(fout,L"****\n%s%s\n", ctbuf, BKBMessage);
 		fflush(fout);
 		fclose(fout);
 	}

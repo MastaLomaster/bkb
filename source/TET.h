@@ -1,12 +1,12 @@
-// Взаимодействие c TheEyeTribe 
+п»ї// Р’Р·Р°РёРјРѕРґРµР№СЃС‚РІРёРµ c TheEyeTribe 
 #ifndef __BKB_TET
 #define __BKB_TET
 
 class BKBTET
 {
 public:
-	static int Init(); // Инициализация работы с устройством
-	static int Halt(); // Завершение работы с устройством
+	static int Init(); // РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ СЂР°Р±РѕС‚С‹ СЃ СѓСЃС‚СЂРѕР№СЃС‚РІРѕРј
+	static int Halt(); // Р—Р°РІРµСЂС€РµРЅРёРµ СЂР°Р±РѕС‚С‹ СЃ СѓСЃС‚СЂРѕР№СЃС‚РІРѕРј
 protected:
 	static bool initialized;
 };

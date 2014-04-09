@@ -21,7 +21,7 @@ void BKBgdiInit()
 
 	hfont = CreateFont( -48, 0, 0, 0, FW_BOLD, 0, 0, 0,
 		RUSSIAN_CHARSET,
-		0, 0, 0, 0, "Arial");
+		0, 0, 0, 0, L"Arial");
 	
 
 	// Получим разрешение экрана

@@ -1,4 +1,4 @@
-#include <Windows.h>
+п»ї#include <Windows.h>
 #include <process.h>
 #include "BKBRepErr.h"
 #include "TobiiREX.h"
@@ -7,19 +7,20 @@
 #include "TranspWnd.h"
 #include "KeybWnd.h"
 #include "ToolWnd.h"
+#include "Internat.h"
 
-#define DISPERSION_LIMIT 100.0 // Для отслеживания фиксаций
-#define DISPERSION_HIGH_LIMIT 300.0 // Для отслеживания быстрых перемещений
-#define FIXATION_LIMIT 30 // Сколько последовательных точек с низкой дисперсией считать фиксацией
-#define POSTFIXATION_SKIP 30 // сколько точек пропустить после фиксации, чтобы начать считать новую фиксацию
-#define CURSOR_SMOOTHING 7; // Направление движения курсора меняется только раз в CURSOR_SMOOTHING отсчетов
+#define DISPERSION_LIMIT 100.0 // Р”Р»СЏ РѕС‚СЃР»РµР¶РёРІР°РЅРёСЏ С„РёРєСЃР°С†РёР№
+#define DISPERSION_HIGH_LIMIT 300.0 // Р”Р»СЏ РѕС‚СЃР»РµР¶РёРІР°РЅРёСЏ Р±С‹СЃС‚СЂС‹С… РїРµСЂРµРјРµС‰РµРЅРёР№
+#define FIXATION_LIMIT 30 // РЎРєРѕР»СЊРєРѕ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅС‹С… С‚РѕС‡РµРє СЃ РЅРёР·РєРѕР№ РґРёСЃРїРµСЂСЃРёРµР№ СЃС‡РёС‚Р°С‚СЊ С„РёРєСЃР°С†РёРµР№
+#define POSTFIXATION_SKIP 30 // СЃРєРѕР»СЊРєРѕ С‚РѕС‡РµРє РїСЂРѕРїСѓСЃС‚РёС‚СЊ РїРѕСЃР»Рµ С„РёРєСЃР°С†РёРё, С‡С‚РѕР±С‹ РЅР°С‡Р°С‚СЊ СЃС‡РёС‚Р°С‚СЊ РЅРѕРІСѓСЋ С„РёРєСЃР°С†РёСЋ
+#define CURSOR_SMOOTHING 7; // РќР°РїСЂР°РІР»РµРЅРёРµ РґРІРёР¶РµРЅРёСЏ РєСѓСЂСЃРѕСЂР° РјРµРЅСЏРµС‚СЃСЏ С‚РѕР»СЊРєРѕ СЂР°Р· РІ CURSOR_SMOOTHING РѕС‚СЃС‡РµС‚РѕРІ
 
-// Заголовочные файлы из Tobii Gaze SDK
+// Р—Р°РіРѕР»РѕРІРѕС‡РЅС‹Рµ С„Р°Р№Р»С‹ РёР· Tobii Gaze SDK
 #include "tobiigaze_error_codes.h"
 #include "tobiigaze.h"
 #include "tobiigaze_config.h"
 
-// Для динамической подгрузки библиотек
+// Р”Р»СЏ РґРёРЅР°РјРёС‡РµСЃРєРѕР№ РїРѕРґРіСЂСѓР·РєРё Р±РёР±Р»РёРѕС‚РµРє
 typedef  TOBIIGAZE_API void (TOBIIGAZE_CALL *type_tobiigaze_config_init)(tobiigaze_error_code *error_code);
 typedef TOBIIGAZE_API void (TOBIIGAZE_CALL *type_tobiigaze_config_get_default_eye_tracker_url)(char *url, uint32_t url_size, tobiigaze_error_code *error_code);
 typedef TOBIIGAZE_API tobiigaze_eye_tracker* (TOBIIGAZE_CALL *type_tobiigaze_create)(const char *url, tobiigaze_error_code *error_code);
@@ -38,7 +39,7 @@ typedef TOBIIGAZE_API void (TOBIIGAZE_CALL *type_tobiigaze_run_event_loop)(tobii
 
 HMODULE TobiiConfigDLL=0, TobiiCoreDLL=0;
 
-// указатели на фунуции из DLL
+// СѓРєР°Р·Р°С‚РµР»Рё РЅР° С„СѓРЅСѓС†РёРё РёР· DLL
 type_tobiigaze_config_init fp_tobiigaze_config_init;
 type_tobiigaze_config_get_default_eye_tracker_url fp_tobiigaze_config_get_default_eye_tracker_url;
 type_tobiigaze_create fp_tobiigaze_create;
@@ -51,17 +52,17 @@ type_tobiigaze_destroy fp_tobiigaze_destroy;
 type_tobiigaze_get_error_message fp_tobiigaze_get_error_message=0;
 type_tobiigaze_run_event_loop fp_tobiigaze_run_event_loop;
 
-// Всякие переменные для работы с Tobii Gaze SDK видны только локально (static)
+// Р’СЃСЏРєРёРµ РїРµСЂРµРјРµРЅРЅС‹Рµ РґР»СЏ СЂР°Р±РѕС‚С‹ СЃ Tobii Gaze SDK РІРёРґРЅС‹ С‚РѕР»СЊРєРѕ Р»РѕРєР°Р»СЊРЅРѕ (static)
 static tobiigaze_error_code tbg_error_code;
 static char url[64];
 static tobiigaze_eye_tracker* eye_tracker=0;
 
-static uintptr_t tobii_thread_handler; // Хендлер потока для Gaze SDK
+static uintptr_t tobii_thread_handler; // РҐРµРЅРґР»РµСЂ РїРѕС‚РѕРєР° РґР»СЏ Gaze SDK
 extern int screenX, screenY;
 
 
-static int fixation_count=0; // количество точек, когда мышь почти не двигается
-static int skip_count=0; // сколько точек осталось пропустить после фиксации, чтобы начать считать новую фиксацию
+static int fixation_count=0; // РєРѕР»РёС‡РµСЃС‚РІРѕ С‚РѕС‡РµРє, РєРѕРіРґР° РјС‹С€СЊ РїРѕС‡С‚Рё РЅРµ РґРІРёРіР°РµС‚СЃСЏ
+static int skip_count=0; // СЃРєРѕР»СЊРєРѕ С‚РѕС‡РµРє РѕСЃС‚Р°Р»РѕСЃСЊ РїСЂРѕРїСѓСЃС‚РёС‚СЊ РїРѕСЃР»Рµ С„РёРєСЃР°С†РёРё, С‡С‚РѕР±С‹ РЅР°С‡Р°С‚СЊ СЃС‡РёС‚Р°С‚СЊ РЅРѕРІСѓСЋ С„РёРєСЃР°С†РёСЋ
 
 bool BKBTobiiREX::initialized(false);
 
@@ -69,7 +70,7 @@ bool BKBTobiiREX::initialized(false);
 extern int flag_using_airmouse;
 
 //=====================================================================================
-// Функция, возвращающая знак целого числа
+// Р¤СѓРЅРєС†РёСЏ, РІРѕР·РІСЂР°С‰Р°СЋС‰Р°СЏ Р·РЅР°Рє С†РµР»РѕРіРѕ С‡РёСЃР»Р°
 //=====================================================================================
 inline long signum(long x)
 {
@@ -79,33 +80,33 @@ inline long signum(long x)
 }
 
 //=====================================================================================
-// Функция, которую вызывает REX, когда сообщает данные о глазах
-// 01.02.04 Её может вызывать и аэромышь
+// Р¤СѓРЅРєС†РёСЏ, РєРѕС‚РѕСЂСѓСЋ РІС‹Р·С‹РІР°РµС‚ REX, РєРѕРіРґР° СЃРѕРѕР±С‰Р°РµС‚ РґР°РЅРЅС‹Рµ Рѕ РіР»Р°Р·Р°С…
+// 01.02.04 Р•С‘ РјРѕР¶РµС‚ РІС‹Р·С‹РІР°С‚СЊ Рё Р°СЌСЂРѕРјС‹С€СЊ
 //=====================================================================================
 void on_gaze_data(const tobiigaze_gaze_data* gazedata, void *user_data)
 {
-	HDC hdc;
+	//HDC hdc;
 	static POINT point_left={0,0}, point_right={0,0}, point={0,0}; //, last_point={0,0}, tmp_point;
-	double disp1,disp2; // дисперсия в последних отсчетах левого и правого глаза
+	double disp1,disp2; // РґРёСЃРїРµСЂСЃРёСЏ РІ РїРѕСЃР»РµРґРЅРёС… РѕС‚СЃС‡РµС‚Р°С… Р»РµРІРѕРіРѕ Рё РїСЂР°РІРѕРіРѕ РіР»Р°Р·Р°
 	static POINT  screen_cursor_point; //cursor_position={0,0};
 	static double cursor_position_x, cursor_position_y;
-	static int cursor_linear_move_counter=CURSOR_SMOOTHING; // Столько отсчетов курсор будет двигаться линейно 
+	static int cursor_linear_move_counter=CURSOR_SMOOTHING; // РЎС‚РѕР»СЊРєРѕ РѕС‚СЃС‡РµС‚РѕРІ РєСѓСЂСЃРѕСЂ Р±СѓРґРµС‚ РґРІРёРіР°С‚СЊСЃСЏ Р»РёРЅРµР№РЅРѕ 
 	static double cursor_speed_x=0.0, cursor_speed_y=0.0; 
 	static uint64_t last_timestamp=0;
-	static bool mouse_inside_keyboard=false, last_mouse_inside_keyboard=false; // Для скрытия второго курсора при перемещении в область клавиатуры
+	static bool mouse_inside_keyboard=false, last_mouse_inside_keyboard=false; // Р”Р»СЏ СЃРєСЂС‹С‚РёСЏ РІС‚РѕСЂРѕРіРѕ РєСѓСЂСЃРѕСЂР° РїСЂРё РїРµСЂРµРјРµС‰РµРЅРёРё РІ РѕР±Р»Р°СЃС‚СЊ РєР»Р°РІРёР°С‚СѓСЂС‹
 	
-		// Для проверки рисуем точку на экране
-	// Но только если отследили оба глаза!!
+		// Р”Р»СЏ РїСЂРѕРІРµСЂРєРё СЂРёСЃСѓРµРј С‚РѕС‡РєСѓ РЅР° СЌРєСЂР°РЅРµ
+	// РќРѕ С‚РѕР»СЊРєРѕ РµСЃР»Рё РѕС‚СЃР»РµРґРёР»Рё РѕР±Р° РіР»Р°Р·Р°!!
 	if (gazedata->tracking_status == TOBIIGAZE_TRACKING_STATUS_BOTH_EYES_TRACKED)
 	{
 		//hdc=GetDC(BKBhwnd);
 
-		// Трекинг левого глаза 
+		// РўСЂРµРєРёРЅРі Р»РµРІРѕРіРѕ РіР»Р°Р·Р° 
 		point_left.x=screenX*gazedata->left.gaze_point_on_display_normalized.x;
 		point_left.y=screenY*gazedata->left.gaze_point_on_display_normalized.y;
 		disp1=BKBSmooth(&point_left, 0);
 		
-		// Трекинг правого глаза 
+		// РўСЂРµРєРёРЅРі РїСЂР°РІРѕРіРѕ РіР»Р°Р·Р° 
 		point_right.x=screenX*gazedata->right.gaze_point_on_display_normalized.x;
 		point_right.y=screenY*gazedata->right.gaze_point_on_display_normalized.y;
 		disp2=BKBSmooth(&point_right, 1);
@@ -114,81 +115,81 @@ void on_gaze_data(const tobiigaze_gaze_data* gazedata, void *user_data)
 		point.y=(point_right.y+point_left.y)/2;
 		
 		//=================================================================================
-		// Теперь о перемещениях курсора
-		// Сглаживаниеы не нужно для аэромыши
+		// РўРµРїРµСЂСЊ Рѕ РїРµСЂРµРјРµС‰РµРЅРёСЏС… РєСѓСЂСЃРѕСЂР°
+		// РЎРіР»Р°Р¶РёРІР°РЅРёРµС‹ РЅРµ РЅСѓР¶РЅРѕ РґР»СЏ Р°СЌСЂРѕРјС‹С€Рё
 		if((disp1>DISPERSION_HIGH_LIMIT)&&(disp2>DISPERSION_HIGH_LIMIT)||(2==flag_using_airmouse))
 		{
-			// Курсор перемещаем быстро
+			// РљСѓСЂСЃРѕСЂ РїРµСЂРµРјРµС‰Р°РµРј Р±С‹СЃС‚СЂРѕ
 			//cursor_position=point;
 			cursor_position_x=point.x;
 			cursor_position_y=point.y;
-			cursor_linear_move_counter=0; // В следующем такте нужно будет пересчитать скорость
+			cursor_linear_move_counter=0; // Р’ СЃР»РµРґСѓСЋС‰РµРј С‚Р°РєС‚Рµ РЅСѓР¶РЅРѕ Р±СѓРґРµС‚ РїРµСЂРµСЃС‡РёС‚Р°С‚СЊ СЃРєРѕСЂРѕСЃС‚СЊ
 		}
-		else // Курсор перемещаем вяло, беря только каждую CURSOR_SMOOTHING (пятую) опорную точку
+		else // РљСѓСЂСЃРѕСЂ РїРµСЂРµРјРµС‰Р°РµРј РІСЏР»Рѕ, Р±РµСЂСЏ С‚РѕР»СЊРєРѕ РєР°Р¶РґСѓСЋ CURSOR_SMOOTHING (РїСЏС‚СѓСЋ) РѕРїРѕСЂРЅСѓСЋ С‚РѕС‡РєСѓ
 		{
-			// Пора ли посчитать новое направление движения курсора?
-			if(cursor_linear_move_counter>0) // нет, не пора
+			// РџРѕСЂР° Р»Рё РїРѕСЃС‡РёС‚Р°С‚СЊ РЅРѕРІРѕРµ РЅР°РїСЂР°РІР»РµРЅРёРµ РґРІРёР¶РµРЅРёСЏ РєСѓСЂСЃРѕСЂР°?
+			if(cursor_linear_move_counter>0) // РЅРµС‚, РЅРµ РїРѕСЂР°
 			{
 				cursor_linear_move_counter--;
 			}
-			else // новое направление движения
+			else // РЅРѕРІРѕРµ РЅР°РїСЂР°РІР»РµРЅРёРµ РґРІРёР¶РµРЅРёСЏ
 			{
 				cursor_linear_move_counter=CURSOR_SMOOTHING;
 				cursor_speed_x=(point.x-cursor_position_x)/(double)CURSOR_SMOOTHING;
 				cursor_speed_y=(point.y-cursor_position_y)/(double)CURSOR_SMOOTHING;
 			}
 			
-			// Всплыли-таки ошибки округления, поменяли cursor_position на double
-			cursor_position_x+=cursor_speed_x; // Здесь будут рудименты округления, пока забьём
+			// Р’СЃРїР»С‹Р»Рё-С‚Р°РєРё РѕС€РёР±РєРё РѕРєСЂСѓРіР»РµРЅРёСЏ, РїРѕРјРµРЅСЏР»Рё cursor_position РЅР° double
+			cursor_position_x+=cursor_speed_x; // Р—РґРµСЃСЊ Р±СѓРґСѓС‚ СЂСѓРґРёРјРµРЅС‚С‹ РѕРєСЂСѓРіР»РµРЅРёСЏ, РїРѕРєР° Р·Р°Р±СЊС‘Рј
 			cursor_position_y+=cursor_speed_y; 
-		} // вялое перемещение курсора
+		} // РІСЏР»РѕРµ РїРµСЂРµРјРµС‰РµРЅРёРµ РєСѓСЂСЃРѕСЂР°
 
 
-		// Что получится?
-		screen_cursor_point.x=cursor_position_x+0.5; // Теперь переводим в POINT
-		screen_cursor_point.y=cursor_position_y+0.5; // 0.5 компенсирует ошибку округления при переводе в целое	
+		// Р§С‚Рѕ РїРѕР»СѓС‡РёС‚СЃСЏ?
+		screen_cursor_point.x=cursor_position_x+0.5; // РўРµРїРµСЂСЊ РїРµСЂРµРІРѕРґРёРј РІ POINT
+		screen_cursor_point.y=cursor_position_y+0.5; // 0.5 РєРѕРјРїРµРЅСЃРёСЂСѓРµС‚ РѕС€РёР±РєСѓ РѕРєСЂСѓРіР»РµРЅРёСЏ РїСЂРё РїРµСЂРµРІРѕРґРµ РІ С†РµР»РѕРµ	
 
 		//===============================================================================================
-		// Обработка скролла
+		// РћР±СЂР°Р±РѕС‚РєР° СЃРєСЂРѕР»Р»Р°
 		if(BKB_MODE_SCROLL==Fixation::CurrentMode())
 		{
-			if(screen_cursor_point.y>screenY*3/4) // Скролл вниз
+			if(screen_cursor_point.y>screenY*3/4) // РЎРєСЂРѕР»Р» РІРЅРёР·
 			{
 				Fixation::Scroll(gazedata->timestamp-last_timestamp,-1);
 			}
-			else if(screen_cursor_point.y<screenY/4) // Скролл вверх
+			else if(screen_cursor_point.y<screenY/4) // РЎРєСЂРѕР»Р» РІРІРµСЂС…
 			{
 				Fixation::Scroll(gazedata->timestamp-last_timestamp,1);
 			}
 			last_timestamp=gazedata->timestamp;
 		}
 		
-		// Курсор при скролле и клавиатуре двигается только в отдельных случаях, обрабатываемых ниже
+		// РљСѓСЂСЃРѕСЂ РїСЂРё СЃРєСЂРѕР»Р»Рµ Рё РєР»Р°РІРёР°С‚СѓСЂРµ РґРІРёРіР°РµС‚СЃСЏ С‚РѕР»СЊРєРѕ РІ РѕС‚РґРµР»СЊРЅС‹С… СЃР»СѓС‡Р°СЏС…, РѕР±СЂР°Р±Р°С‚С‹РІР°РµРјС‹С… РЅРёР¶Рµ
 		if((BKB_MODE_SCROLL!=Fixation::CurrentMode())&&(BKB_MODE_KEYBOARD!=Fixation::CurrentMode()))
 				BKBTranspWnd::Move(screen_cursor_point.x,screen_cursor_point.y); 
 		
-		// Рисуем окно со стрелкой или белое пятно на клавиатуре?
+		// Р РёСЃСѓРµРј РѕРєРЅРѕ СЃРѕ СЃС‚СЂРµР»РєРѕР№ РёР»Рё Р±РµР»РѕРµ РїСЏС‚РЅРѕ РЅР° РєР»Р°РІРёР°С‚СѓСЂРµ?
 		if(BKB_MODE_KEYBOARD==Fixation::CurrentMode()) 
 		{
 			mouse_inside_keyboard=BKBKeybWnd::WhiteSpot(&screen_cursor_point);
-			if((true==mouse_inside_keyboard)&&(false==last_mouse_inside_keyboard)) // пришли в клавиатуру
-				BKBTranspWnd::Hide(); // Убрать стрелку
-			else if((false==mouse_inside_keyboard)&&(true==last_mouse_inside_keyboard)) // вышли из клавиатуры
-				BKBTranspWnd::Show(); // Показать стрелку
+			if((true==mouse_inside_keyboard)&&(false==last_mouse_inside_keyboard)) // РїСЂРёС€Р»Рё РІ РєР»Р°РІРёР°С‚СѓСЂСѓ
+				BKBTranspWnd::Hide(); // РЈР±СЂР°С‚СЊ СЃС‚СЂРµР»РєСѓ
+			else if((false==mouse_inside_keyboard)&&(true==last_mouse_inside_keyboard)) // РІС‹С€Р»Рё РёР· РєР»Р°РІРёР°С‚СѓСЂС‹
+				BKBTranspWnd::Show(); // РџРѕРєР°Р·Р°С‚СЊ СЃС‚СЂРµР»РєСѓ
 
 			last_mouse_inside_keyboard=mouse_inside_keyboard;
 			if(!mouse_inside_keyboard)
 				BKBTranspWnd::Move(screen_cursor_point.x,screen_cursor_point.y);
 		}
 
-		// При скролле рисуем прозрачное окно только тогда, когда оно попадает на тулбар
+		// РџСЂРё СЃРєСЂРѕР»Р»Рµ СЂРёСЃСѓРµРј РїСЂРѕР·СЂР°С‡РЅРѕРµ РѕРєРЅРѕ С‚РѕР»СЊРєРѕ С‚РѕРіРґР°, РєРѕРіРґР° РѕРЅРѕ РїРѕРїР°РґР°РµС‚ РЅР° С‚СѓР»Р±Р°СЂ
 		if(BKB_MODE_SCROLL==Fixation::CurrentMode()) 
 		{
 			BKBToolWnd::ScrollCursor(&screen_cursor_point);
 		}
 
 		//===============================================================================================
-		// Искать фиксацию, только если уже оправились от предыдущей фиксации, иначе уменьшаем skip_count
+		// РСЃРєР°С‚СЊ С„РёРєСЃР°С†РёСЋ, С‚РѕР»СЊРєРѕ РµСЃР»Рё СѓР¶Рµ РѕРїСЂР°РІРёР»РёСЃСЊ РѕС‚ РїСЂРµРґС‹РґСѓС‰РµР№ С„РёРєСЃР°С†РёРё, РёРЅР°С‡Рµ СѓРјРµРЅСЊС€Р°РµРј skip_count
 		if(skip_count<=0)
 		{
 			if((disp1<DISPERSION_LIMIT)&&(disp2<DISPERSION_LIMIT)) 
@@ -196,20 +197,20 @@ void on_gaze_data(const tobiigaze_gaze_data* gazedata, void *user_data)
 				fixation_count++;
 				if(BKB_MODE_KEYBOARD==Fixation::CurrentMode())
 				{
-					// Показывать прогресс нажатия на клавиатуре
+					// РџРѕРєР°Р·С‹РІР°С‚СЊ РїСЂРѕРіСЂРµСЃСЃ РЅР°Р¶Р°С‚РёСЏ РЅР° РєР»Р°РІРёР°С‚СѓСЂРµ
 					POINT point_screen=point;
-					//ClientToScreen(BKBhwnd,&point_screen); ОТОВИЗМ
+					//ClientToScreen(BKBhwnd,&point_screen); РћРўРћР’РР—Рњ
 					//BKBKeybWnd::ProgressBar(&point_screen,fixation_count,100*fixation_count/FIXATION_LIMIT);
 					if(!BKBKeybWnd::ProgressBar(&point_screen,fixation_count,100*fixation_count/FIXATION_LIMIT))
 					{
-						fixation_count=0; // копили-копили, ан нет, сорвалось
+						fixation_count=0; // РєРѕРїРёР»Рё-РєРѕРїРёР»Рё, Р°РЅ РЅРµС‚, СЃРѕСЂРІР°Р»РѕСЃСЊ
 						BKBKeybWnd::ProgressBarReset();
 					}
 				}
 			}
 			else
 			{
-				fixation_count=0; // копили-копили, ан нет, сорвалось
+				fixation_count=0; // РєРѕРїРёР»Рё-РєРѕРїРёР»Рё, Р°РЅ РЅРµС‚, СЃРѕСЂРІР°Р»РѕСЃСЊ
 				if(BKB_MODE_KEYBOARD==Fixation::CurrentMode()) BKBKeybWnd::ProgressBarReset();
 			}
 		}
@@ -217,15 +218,15 @@ void on_gaze_data(const tobiigaze_gaze_data* gazedata, void *user_data)
 		{
 			skip_count--;
 		}
-		// Замечена попытка фиксации взгляда
+		// Р—Р°РјРµС‡РµРЅР° РїРѕРїС‹С‚РєР° С„РёРєСЃР°С†РёРё РІР·РіР»СЏРґР°
 		if(fixation_count>=FIXATION_LIMIT) 
 		{
-			fixation_count=0; // первым делом сбросим эту переменную
+			fixation_count=0; // РїРµСЂРІС‹Рј РґРµР»РѕРј СЃР±СЂРѕСЃРёРј СЌС‚Сѓ РїРµСЂРµРјРµРЅРЅСѓСЋ
 			skip_count=POSTFIXATION_SKIP;
 
-			// Далее обрабатываем фиксацию в зависимости от текущего режима.
+			// Р”Р°Р»РµРµ РѕР±СЂР°Р±Р°С‚С‹РІР°РµРј С„РёРєСЃР°С†РёСЋ РІ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ С‚РµРєСѓС‰РµРіРѕ СЂРµР¶РёРјР°.
 			Fixation::Fix(screen_cursor_point);
-			BKBTranspWnd::ToTop(); // После фиксации могут всплыть окна более близкие в z-order'e
+			BKBTranspWnd::ToTop(); // РџРѕСЃР»Рµ С„РёРєСЃР°С†РёРё РјРѕРіСѓС‚ РІСЃРїР»С‹С‚СЊ РѕРєРЅР° Р±РѕР»РµРµ Р±Р»РёР·РєРёРµ РІ z-order'e
 		}
 
 
@@ -234,7 +235,7 @@ void on_gaze_data(const tobiigaze_gaze_data* gazedata, void *user_data)
 }
 
 //=====================================================================================
-// Поток, чья функция - запустить цикл обработки в Tobii Gaze SDK
+// РџРѕС‚РѕРє, С‡СЊСЏ С„СѓРЅРєС†РёСЏ - Р·Р°РїСѓСЃС‚РёС‚СЊ С†РёРєР» РѕР±СЂР°Р±РѕС‚РєРё РІ Tobii Gaze SDK
 //=====================================================================================
 unsigned __stdcall TobiiREXThread(void *p)
 {
@@ -243,37 +244,37 @@ unsigned __stdcall TobiiREXThread(void *p)
     (*fp_tobiigaze_run_event_loop)((tobiigaze_eye_tracker*)eye_tracker, &my_error_code);
     if(my_error_code)
 	{
-		BKBReportError(my_error_code, __FILE__,"tobiigaze_run_event_loop",__LINE__);
+		BKBReportError(my_error_code, __WIDEFILE__,L"tobiigaze_run_event_loop",__LINE__);
 	}
 	return 0;
 }
 
 
 //=====================================================================================
-// Начало работы с устройством
+// РќР°С‡Р°Р»Рѕ СЂР°Р±РѕС‚С‹ СЃ СѓСЃС‚СЂРѕР№СЃС‚РІРѕРј
 //=====================================================================================
 int BKBTobiiREX::Init()
 {
-	if(initialized) return 1; // уже инициализировали
+	if(initialized) return 1; // СѓР¶Рµ РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°Р»Рё
 
-	// -1. Загрузка DLL
-	TobiiConfigDLL = LoadLibrary("TobiiGazeConfig32.dll");
+	// -1. Р—Р°РіСЂСѓР·РєР° DLL
+	TobiiConfigDLL = LoadLibrary(L"TobiiGazeConfig32.dll");
 	if(0==TobiiConfigDLL)
 	{
-		BKBReportError("Не удалось загрузить библиотеку TobiiGazeConfig32.dll\r\nСкопируйте её в рабочий каталог программы");
+		BKBReportError(Internat::Message(27,L"РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ Р±РёР±Р»РёРѕС‚РµРєСѓ TobiiGazeConfig32.dll\r\nРЎРєРѕРїРёСЂСѓР№С‚Рµ РµС‘ РІ СЂР°Р±РѕС‡РёР№ РєР°С‚Р°Р»РѕРі РїСЂРѕРіСЂР°РјРјС‹"));
 		return 1;
 	}
 	
-	TobiiCoreDLL = LoadLibrary("TobiiGazeCore32.dll");
+	TobiiCoreDLL = LoadLibrary(L"TobiiGazeCore32.dll");
 	if(0==TobiiCoreDLL)
 	{
-		BKBReportError("Не удалось загрузить библиотеку TobiiGazeCore32.dll\r\nСкопируйте её в рабочий каталог программы");
+		BKBReportError(Internat::Message(28,L"РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ Р±РёР±Р»РёРѕС‚РµРєСѓ TobiiGazeCore32.dll\r\nРЎРєРѕРїРёСЂСѓР№С‚Рµ РµС‘ РІ СЂР°Р±РѕС‡РёР№ РєР°С‚Р°Р»РѕРі РїСЂРѕРіСЂР°РјРјС‹"));
 		return 1;
 	}
 
 
-	// 0. Загрузка функций из DLL
-	// Пытаемся найти там нужные функции
+	// 0. Р—Р°РіСЂСѓР·РєР° С„СѓРЅРєС†РёР№ РёР· DLL
+	// РџС‹С‚Р°РµРјСЃСЏ РЅР°Р№С‚Рё С‚Р°Рј РЅСѓР¶РЅС‹Рµ С„СѓРЅРєС†РёРё
 	fp_tobiigaze_config_init=(type_tobiigaze_config_init)GetProcAddress(TobiiConfigDLL,"tobiigaze_config_init");
 	fp_tobiigaze_config_get_default_eye_tracker_url=(type_tobiigaze_config_get_default_eye_tracker_url)GetProcAddress(TobiiConfigDLL,"tobiigaze_config_get_default_eye_tracker_url");
 	fp_tobiigaze_create=(type_tobiigaze_create)GetProcAddress(TobiiCoreDLL,"tobiigaze_create");
@@ -291,16 +292,16 @@ int BKBTobiiREX::Init()
 		!fp_tobiigaze_disconnect||!fp_tobiigaze_break_event_loop||!fp_tobiigaze_destroy||
 		!fp_tobiigaze_get_error_message||!fp_tobiigaze_run_event_loop)
 	{
-		BKBReportError("Не удалось получить необходимые функции из TobiiGazeCore32.dll или TobiiGazeConfig32.dll");
+		BKBReportError(Internat::Message(29,L"РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РЅРµРѕР±С…РѕРґРёРјС‹Рµ С„СѓРЅРєС†РёРё РёР· TobiiGazeCore32.dll РёР»Рё TobiiGazeConfig32.dll"));
 		return 1;
 	}
 
-	// 1. Содрано из Tobii Gaze SDK 
+	// 1. РЎРѕРґСЂР°РЅРѕ РёР· Tobii Gaze SDK 
 	// 1.1.
 	(*fp_tobiigaze_config_init)(&tbg_error_code);
 	if(tbg_error_code)
 	{
-		BKBReportError(tbg_error_code, __FILE__,"tobiigaze_config_init",__LINE__);
+		BKBReportError(tbg_error_code, __WIDEFILE__,L"tobiigaze_config_init",__LINE__);
 		return 1;
 	}
 
@@ -308,7 +309,7 @@ int BKBTobiiREX::Init()
 	(*fp_tobiigaze_config_get_default_eye_tracker_url)(url, 64, &tbg_error_code);
 	if(tbg_error_code)
 	{
-		BKBReportError(tbg_error_code, __FILE__,"tobiigaze_config_get_default_eye_tracker_url",__LINE__);
+		BKBReportError(tbg_error_code, __WIDEFILE__,L"tobiigaze_config_get_default_eye_tracker_url",__LINE__);
 		return 1;
 	}
 
@@ -316,15 +317,15 @@ int BKBTobiiREX::Init()
 	eye_tracker = (*fp_tobiigaze_create)(url, &tbg_error_code);
     if(tbg_error_code)
 	{
-		BKBReportError(tbg_error_code, __FILE__,"tobiigaze_create",__LINE__);
+		BKBReportError(tbg_error_code, __WIDEFILE__,L"tobiigaze_create",__LINE__);
 		return 1;
 	}
 
-	// 1.4. Здесь создаём поток для Gaze SDK
+	// 1.4. Р—РґРµСЃСЊ СЃРѕР·РґР°С‘Рј РїРѕС‚РѕРє РґР»СЏ Gaze SDK
 	tobii_thread_handler=_beginthreadex(NULL,0,TobiiREXThread,NULL,0,NULL);
 	if(1>tobii_thread_handler)
 	{
-		BKBReportError(__FILE__,"start Tobii Gaze SDK loop thread",__LINE__);
+		BKBReportError(__WIDEFILE__,L"start Tobii Gaze SDK loop thread",__LINE__);
 		return 1;
 	}
 
@@ -332,39 +333,39 @@ int BKBTobiiREX::Init()
 	(*fp_tobiigaze_connect)(eye_tracker, &tbg_error_code);
     if(tbg_error_code)
 	{
-		BKBReportError(tbg_error_code, __FILE__,"tobiigaze_connect",__LINE__);
+		BKBReportError(tbg_error_code, __WIDEFILE__,L"tobiigaze_connect",__LINE__);
 		return 1;
 	}
 
-	// В примере из SDK рекомендуют тут посмотреть детали устройства. Оставим на потом.
+	// Р’ РїСЂРёРјРµСЂРµ РёР· SDK СЂРµРєРѕРјРµРЅРґСѓСЋС‚ С‚СѓС‚ РїРѕСЃРјРѕС‚СЂРµС‚СЊ РґРµС‚Р°Р»Рё СѓСЃС‚СЂРѕР№СЃС‚РІР°. РћСЃС‚Р°РІРёРј РЅР° РїРѕС‚РѕРј.
     // print_device_info(eye_tracker)
 
 	// 1.6.
     (*fp_tobiigaze_start_tracking)(eye_tracker, &on_gaze_data, &tbg_error_code, 0);
 	if(tbg_error_code)
 	{
-		BKBReportError(tbg_error_code, __FILE__,"tobiigaze_start_tracking",__LINE__);
+		BKBReportError(tbg_error_code, __WIDEFILE__,L"tobiigaze_start_tracking",__LINE__);
 		return 1;
 	}
 
 	initialized=true;
-	return 0; // нормально отработали
+	return 0; // РЅРѕСЂРјР°Р»СЊРЅРѕ РѕС‚СЂР°Р±РѕС‚Р°Р»Рё
 }
 
 //=====================================================================================
-// Завершение работы с устройством
+// Р—Р°РІРµСЂС€РµРЅРёРµ СЂР°Р±РѕС‚С‹ СЃ СѓСЃС‚СЂРѕР№СЃС‚РІРѕРј
 //=====================================================================================
 int BKBTobiiREX::Halt()
 {
-	if(!initialized) return 1; // уже завершили работу
+	if(!initialized) return 1; // СѓР¶Рµ Р·Р°РІРµСЂС€РёР»Рё СЂР°Р±РѕС‚Сѓ
 
 
-	// Содрано из Tobii Gaze SDK
+	// РЎРѕРґСЂР°РЅРѕ РёР· Tobii Gaze SDK
 	(*fp_tobiigaze_stop_tracking)(eye_tracker, &tbg_error_code);
 	if(tbg_error_code)
 	{
-		BKBReportError(tbg_error_code, __FILE__,"tobiigaze_stop_tracking",__LINE__);
-		initialized=false; // На всякий случай
+		BKBReportError(tbg_error_code, __WIDEFILE__,L"tobiigaze_stop_tracking",__LINE__);
+		initialized=false; // РќР° РІСЃСЏРєРёР№ СЃР»СѓС‡Р°Р№
 		return 1;
 	}
 
@@ -376,25 +377,25 @@ int BKBTobiiREX::Halt()
 
 	initialized=false;
 
-	// Выгружаем DLL
+	// Р’С‹РіСЂСѓР¶Р°РµРј DLL
 	if(TobiiConfigDLL) FreeLibrary(TobiiConfigDLL);
 	if(TobiiCoreDLL) FreeLibrary(TobiiCoreDLL);
 
-	return 0; // нормально отработали
+	return 0; // РЅРѕСЂРјР°Р»СЊРЅРѕ РѕС‚СЂР°Р±РѕС‚Р°Р»Рё
 }
 
 
 /*
-// Старая версия, до динамически подключаемых DLL
+// РЎС‚Р°СЂР°СЏ РІРµСЂСЃРёСЏ, РґРѕ РґРёРЅР°РјРёС‡РµСЃРєРё РїРѕРґРєР»СЋС‡Р°РµРјС‹С… DLL
 
 //=====================================================================================
-// Начало работы с устройством
+// РќР°С‡Р°Р»Рѕ СЂР°Р±РѕС‚С‹ СЃ СѓСЃС‚СЂРѕР№СЃС‚РІРѕРј
 //=====================================================================================
 int BKBTobiiREX::Init()
 {
-	if(initialized) return 1; // уже инициализировали
+	if(initialized) return 1; // СѓР¶Рµ РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°Р»Рё
 
-	// 1. Содрано из Tobii Gaze SDK 
+	// 1. РЎРѕРґСЂР°РЅРѕ РёР· Tobii Gaze SDK 
 	// 1.1.
 	tobiigaze_config_init(&tbg_error_code);
 	if(tbg_error_code)
@@ -419,7 +420,7 @@ int BKBTobiiREX::Init()
 		return 1;
 	}
 
-	// 1.4. Здесь создаём поток для Gaze SDK
+	// 1.4. Р—РґРµСЃСЊ СЃРѕР·РґР°С‘Рј РїРѕС‚РѕРє РґР»СЏ Gaze SDK
 	tobii_thread_handler=_beginthreadex(NULL,0,TobiiREXThread,NULL,0,NULL);
 	if(1>tobii_thread_handler)
 	{
@@ -435,7 +436,7 @@ int BKBTobiiREX::Init()
 		return 1;
 	}
 
-	// В примере из SDK рекомендуют тут посмотреть детали устройства. Оставим на потом.
+	// Р’ РїСЂРёРјРµСЂРµ РёР· SDK СЂРµРєРѕРјРµРЅРґСѓСЋС‚ С‚СѓС‚ РїРѕСЃРјРѕС‚СЂРµС‚СЊ РґРµС‚Р°Р»Рё СѓСЃС‚СЂРѕР№СЃС‚РІР°. РћСЃС‚Р°РІРёРј РЅР° РїРѕС‚РѕРј.
     // print_device_info(eye_tracker)
 
 	// 1.6.
@@ -447,22 +448,22 @@ int BKBTobiiREX::Init()
 	}
 
 	initialized=true;
-	return 0; // нормально отработали
+	return 0; // РЅРѕСЂРјР°Р»СЊРЅРѕ РѕС‚СЂР°Р±РѕС‚Р°Р»Рё
 }
 
 //=====================================================================================
-// Завершение работы с устройством
+// Р—Р°РІРµСЂС€РµРЅРёРµ СЂР°Р±РѕС‚С‹ СЃ СѓСЃС‚СЂРѕР№СЃС‚РІРѕРј
 //=====================================================================================
 int BKBTobiiREX::Halt()
 {
-	if(!initialized) return 1; // уже завершили работу
+	if(!initialized) return 1; // СѓР¶Рµ Р·Р°РІРµСЂС€РёР»Рё СЂР°Р±РѕС‚Сѓ
 
-	// Содрано из Tobii Gaze SDK
+	// РЎРѕРґСЂР°РЅРѕ РёР· Tobii Gaze SDK
 	tobiigaze_stop_tracking(eye_tracker, &tbg_error_code);
 	if(tbg_error_code)
 	{
 		BKBReportError(tbg_error_code, __FILE__,"tobiigaze_stop_tracking",__LINE__);
-		initialized=false; // На всякий случай
+		initialized=false; // РќР° РІСЃСЏРєРёР№ СЃР»СѓС‡Р°Р№
 		return 1;
 	}
 
@@ -473,6 +474,6 @@ int BKBTobiiREX::Halt()
     tobiigaze_destroy(eye_tracker);
 
 	initialized=false;
-	return 0; // нормально отработали
+	return 0; // РЅРѕСЂРјР°Р»СЊРЅРѕ РѕС‚СЂР°Р±РѕС‚Р°Р»Рё
 }
 */

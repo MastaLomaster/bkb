@@ -1,4 +1,4 @@
-#ifndef __BKB_TRANSPWND
+п»ї#ifndef __BKB_TRANSPWND
 #define __BKB_TRANSPWND
 
 
@@ -10,7 +10,7 @@ public:
 	static void ToTop(){ SetActiveWindow(Trhwnd); BringWindowToTop(Trhwnd); }
 	static void Show();
 	static void Hide();
-	static bool flag_show_transp_window; // В режиме [Аэро]мышь окно отключено через этот флаг
+	static bool flag_show_transp_window; // Р’ СЂРµР¶РёРјРµ [РђСЌСЂРѕ]РјС‹С€СЊ РѕРєРЅРѕ РѕС‚РєР»СЋС‡РµРЅРѕ С‡РµСЂРµР· СЌС‚РѕС‚ С„Р»Р°Рі
 protected:
 	static HWND Trhwnd;
 	static int screen_x, screen_y;

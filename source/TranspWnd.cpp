@@ -1,10 +1,10 @@
-#include <Windows.h>
+п»ї#include <Windows.h>
 #include "TranspWnd.h"
 #include "BKBRepErr.h"
 
 #define WM_USER_MOVEWINDOW (WM_USER + 101)
 
-static const char *wnd_class_name="BKBTransp";
+static const TCHAR *wnd_class_name=L"BKBTransp";
 extern HINSTANCE BKBInst;
 
 bool BKBTranspWnd::flag_show_transp_window=true;
@@ -12,7 +12,7 @@ bool BKBTranspWnd::flag_show_transp_window=true;
 int BKBTranspWnd::screen_x, BKBTranspWnd::screen_y;
 HWND  BKBTranspWnd::Trhwnd=0;
 
-// Оконная процедура 
+// РћРєРѕРЅРЅР°СЏ РїСЂРѕС†РµРґСѓСЂР° 
 LRESULT CALLBACK BKBTranspWndProc(HWND hwnd,
 						UINT message,
 						WPARAM wparam,
@@ -21,7 +21,7 @@ LRESULT CALLBACK BKBTranspWndProc(HWND hwnd,
 	switch (message)
 	{
 		case WM_CREATE:
-			// Содрано из интернета - так мы делаем окно прозрачным в белых его частях
+			// РЎРѕРґСЂР°РЅРѕ РёР· РёРЅС‚РµСЂРЅРµС‚Р° - С‚Р°Рє РјС‹ РґРµР»Р°РµРј РѕРєРЅРѕ РїСЂРѕР·СЂР°С‡РЅС‹Рј РІ Р±РµР»С‹С… РµРіРѕ С‡Р°СЃС‚СЏС…
 			// Suppose the window background color is white (255,255,255).
             // Call the SetLayeredWindowAttributes when create the window.
             SetLayeredWindowAttributes(hwnd,RGB(255,255,255),NULL,LWA_COLORKEY);
@@ -49,26 +49,26 @@ LRESULT CALLBACK BKBTranspWndProc(HWND hwnd,
 		return DefWindowProc(hwnd,message,wparam,lparam);
 	}
 
-	return 0; // Обработали, свалились сюда по break
+	return 0; // РћР±СЂР°Р±РѕС‚Р°Р»Рё, СЃРІР°Р»РёР»РёСЃСЊ СЃСЋРґР° РїРѕ break
 }
 
 //================================================================
-// Инициализация 
+// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ 
 //================================================================
 void BKBTranspWnd::Init()
 {
-	ATOM aresult; // Для всяких кодов возврата
+	ATOM aresult; // Р”Р»СЏ РІСЃСЏРєРёС… РєРѕРґРѕРІ РІРѕР·РІСЂР°С‚Р°
 	
-	// 1. Регистрация класса окна
+	// 1. Р РµРіРёСЃС‚СЂР°С†РёСЏ РєР»Р°СЃСЃР° РѕРєРЅР°
 	WNDCLASS wcl={CS_HREDRAW | CS_VREDRAW, BKBTranspWndProc, 0,
-		//sizeof(LONG_PTR), // Сюда пропишем ссылку на объект
+		//sizeof(LONG_PTR), // РЎСЋРґР° РїСЂРѕРїРёС€РµРј СЃСЃС‹Р»РєСѓ РЅР° РѕР±СЉРµРєС‚
 		0,
 		BKBInst,
 		LoadIcon( NULL, IDI_APPLICATION),
         LoadCursor(NULL, IDC_ARROW), 
 		(HBRUSH)GetStockObject(WHITE_BRUSH), 
 		NULL,
-		TEXT(wnd_class_name)
+		wnd_class_name
 	};
 
 	aresult=::RegisterClass(&wcl); 
@@ -76,7 +76,7 @@ void BKBTranspWnd::Init()
 
 	if (aresult==0)
 	{
-		BKBReportError(__FILE__,"RegisterClass (",__LINE__);
+		BKBReportError(__WIDEFILE__,L"RegisterClass (",__LINE__);
 		return;
 	}
 
@@ -86,18 +86,18 @@ void BKBTranspWnd::Init()
 	Trhwnd=CreateWindowEx(
 	WS_EX_LAYERED|WS_EX_TOPMOST|WS_EX_CLIENTEDGE,
 	//WS_EX_LAYERED|WS_EX_TOPMOST,
-	TEXT(wnd_class_name),
+	wnd_class_name,
 	NULL, //TEXT(KBWindowName),
     //WS_VISIBLE|WS_POPUP,
 	WS_POPUP,
-	//100,100, // Не здесь ли крылась мерзкая ошибка, когда окно с курсором рисовалось в стороне?? Нет, похоже это было из-за HighDPI
+	//100,100, // РќРµ Р·РґРµСЃСЊ Р»Рё РєСЂС‹Р»Р°СЃСЊ РјРµСЂР·РєР°СЏ РѕС€РёР±РєР°, РєРѕРіРґР° РѕРєРЅРѕ СЃ РєСѓСЂСЃРѕСЂРѕРј СЂРёСЃРѕРІР°Р»РѕСЃСЊ РІ СЃС‚РѕСЂРѕРЅРµ?? РќРµС‚, РїРѕС…РѕР¶Рµ СЌС‚Рѕ Р±С‹Р»Рѕ РёР·-Р·Р° HighDPI
 	0,0,
 	100,100, 
     0, 0, BKBInst, 0L );
 
 	if(NULL==Trhwnd)
 	{
-		BKBReportError(__FILE__,"CreateWindow",__LINE__);
+		BKBReportError(__WIDEFILE__,L"CreateWindow",__LINE__);
 	}
 
 	Show();
@@ -106,7 +106,7 @@ void BKBTranspWnd::Init()
 
 void BKBTranspWnd::Move(int x, int y)
 {
-	// Это другой поток, а мы ждать не будем
+	// Р­С‚Рѕ РґСЂСѓРіРѕР№ РїРѕС‚РѕРє, Р° РјС‹ Р¶РґР°С‚СЊ РЅРµ Р±СѓРґРµРј
 	if(flag_show_transp_window)
 		PostMessage(Trhwnd, WM_USER_MOVEWINDOW, x-50, y-50);
 	//MoveWindow(Trhwnd,x-50,y-50,100,100,FALSE);

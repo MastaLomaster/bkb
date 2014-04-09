@@ -1,20 +1,20 @@
-#ifndef __BKB_KEYBWND
+п»ї#ifndef __BKB_KEYBWND
 #define __BKB_KEYBWND
 
-#define BKB_KBD_NUM_CELLS 15
-
-// Типы клавиш на клавиатуре
-typedef enum {undefined=0,scancode,unicode,shift,control,alt,leftkbd,rightkbd,fn
+// РўРёРїС‹ РєР»Р°РІРёС€ РЅР° РєР»Р°РІРёР°С‚СѓСЂРµ
+typedef enum {undefined=0,scancode,unicode,shift,control,alt,leftkbd,rightkbd,fn,top_down
 	} BKB_KEY_TYPE;
 
-// Клавиша на клавиатуре
+// РљР»Р°РІРёС€Р° РЅР° РєР»Р°РІРёР°С‚СѓСЂРµ
 typedef struct
 {
-	BKB_KEY_TYPE bkb_keytype; // тип клавиши
-	WORD bkb_vscancode; // скакод (для обычных клавиш)
-	WORD bkb_unicode; // юникод (для кириллицы)
-	WORD bkb_unicode_uppercase; // юникод буквы в верхнем регистре
-	char *label; // Временно: что писать на клавише
+	BKB_KEY_TYPE bkb_keytype; // С‚РёРї РєР»Р°РІРёС€Рё
+	WORD bkb_vscancode; // СЃРєР°РєРѕРґ (РґР»СЏ РѕР±С‹С‡РЅС‹С… РєР»Р°РІРёС€)
+	WORD bkb_unicode; // СЋРЅРёРєРѕРґ (РґР»СЏ РєРёСЂРёР»Р»РёС†С‹)
+	WORD bkb_unicode_uppercase; // СЋРЅРёРєРѕРґ Р±СѓРєРІС‹ РІ РІРµСЂС…РЅРµРј СЂРµРіРёСЃС‚СЂРµ
+	WORD bkb_fn_vscancode; // РљРѕРґ РїСЂРё РЅР°Р¶Р°С‚РѕР№ РєРЅРѕРїРєРµ fn
+	TCHAR *label; // Р’СЂРµРјРµРЅРЅРѕ: С‡С‚Рѕ РїРёСЃР°С‚СЊ РЅР° РєР»Р°РІРёС€Рµ
+	TCHAR *fn_label;
 } BKB_key;
 
 
@@ -26,7 +26,7 @@ public:
 	static void OnPaint(HDC hdc=0);
 	static bool IsItYours(POINT *p);
 	static bool WhiteSpot(POINT *p);
-	static bool ProgressBar(POINT *p, int fixation_count, int _percentage); // Возвращает false, если соскочили с клавиши (для аэромыши)
+	static bool ProgressBar(POINT *p, int fixation_count, int _percentage); // Р’РѕР·РІСЂР°С‰Р°РµС‚ false, РµСЃР»Рё СЃРѕСЃРєРѕС‡РёР»Рё СЃ РєР»Р°РІРёС€Рё (РґР»СЏ Р°СЌСЂРѕРјС‹С€Рё)
 	static void ProgressBarReset();
 	static void Activate();
 	static void DeActivate();
@@ -34,11 +34,17 @@ public:
 	static void OnTimer();
 	static void CreateWhiteSpot(HWND hwnd);
 	static POINT whitespot_point;
+	static void OnTopDown();
+	static void Load();
 protected:
 	static void ScanCodeButton(WORD scancode);
+	static void PopulateCtrlAltShiftFn(); // Р’ РїРµСЂРµРєР»СЋС‡РµРЅРЅРѕР№ СЂР°СЃРєР»Р°РґРєРµ РЅР°С…РѕРґРёРј РєР»Р°РІРёС€Рё Ctrl, Alt, Shift, Fn
+	static int ctrl_row,ctrl_column,alt_row,alt_column,shift_row,shift_column,fn_row,fn_column;
+
 	static HWND Kbhwnd;
-	static int screen_x, screen_y, start_y;
-	static float cell_size;
+	//static int screen_x, screen_y, start_y;
+	static int screen_x, screen_y;
+	//static float cell_size;
 	static int current_pane;
 	static int percentage;
 
@@ -47,12 +53,20 @@ protected:
 	static int row, column, row_pressed, column_pressed;
 
 	static bool shift_pressed, ctrl_pressed, alt_pressed, caps_lock_pressed, Fn_pressed;
-	static int screen_num;
+	//static int screen_num;
 
 	static HDC memdc1, memdc2, whitespot_dc;
 	static HBITMAP hbm1, hbm2, whitespot_bitmap; 
 	volatile static LONG redraw_state; 
 	static int width, height;
+
+	// Р­С‚Рё Р·Р°РґР°СЋС‚СЃСЏ РІ С„Р°Р№Р»Рµ KeybLayouts
+	static BKB_key *layout;
+	static float cell_width, cell_height;
+	static int columns,rows,panes;
+	static bool bottom_side;
+
+	
 	
 };
 

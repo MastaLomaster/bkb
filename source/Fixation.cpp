@@ -1,78 +1,78 @@
-#include <Windows.h>
-#include <stdint.h> // Это для uint64_t
-#include <stdio.h> // Это для отладки 
+п»ї#include <Windows.h>
+#include <stdint.h> // Р­С‚Рѕ РґР»СЏ uint64_t
+#include <stdio.h> // Р­С‚Рѕ РґР»СЏ РѕС‚Р»Р°РґРєРё 
 #include "Fixation.h"
 #include "MagnifyWnd.h"
 #include "ToolWnd.h"
 #include "KeybWnd.h"
 
-static char debug_buf[4096];
+//static char debug_buf[4096];
 
 BKB_MODE Fixation::BKB_Mode=BKB_MODE_NONE;
 
 //==============================================================================================
-// Взгляд зафиксировался
-// Возвращает true, если взгляд зафиксировался где надо , и можно переходить к следующему шагу
+// Р’Р·РіР»СЏРґ Р·Р°С„РёРєСЃРёСЂРѕРІР°Р»СЃСЏ
+// Р’РѕР·РІСЂР°С‰Р°РµС‚ true, РµСЃР»Рё РІР·РіР»СЏРґ Р·Р°С„РёРєСЃРёСЂРѕРІР°Р»СЃСЏ РіРґРµ РЅР°РґРѕ , Рё РјРѕР¶РЅРѕ РїРµСЂРµС…РѕРґРёС‚СЊ Рє СЃР»РµРґСѓСЋС‰РµРјСѓ С€Р°РіСѓ
 //==============================================================================================
 bool Fixation::Fix(POINT p)
 {
-	// Это чтобы случайно не переключить режим в середине дрега
+	// Р­С‚Рѕ С‡С‚РѕР±С‹ СЃР»СѓС‡Р°Р№РЅРѕ РЅРµ РїРµСЂРµРєР»СЋС‡РёС‚СЊ СЂРµР¶РёРј РІ СЃРµСЂРµРґРёРЅРµ РґСЂРµРіР°
 	static bool drag_in_progress=false;
 
-	// Смотря какой режим выбран
+	// РЎРјРѕС‚СЂСЏ РєР°РєРѕР№ СЂРµР¶РёРј РІС‹Р±СЂР°РЅ
 	switch (BKB_Mode)
 	{
-	// Сначала все мышиные с увеличением
-	case BKB_MODE_LCLICK: // Щелчок левой кнопкой мыши
-	case BKB_MODE_RCLICK: // Щелчок правой кнопкой мыши
-	case BKB_MODE_DOUBLECLICK: // Двойной щелчок
-	case BKB_MODE_DRAG: // Ну, дрег
+	// РЎРЅР°С‡Р°Р»Р° РІСЃРµ РјС‹С€РёРЅС‹Рµ СЃ СѓРІРµР»РёС‡РµРЅРёРµРј
+	case BKB_MODE_LCLICK: // Р©РµР»С‡РѕРє Р»РµРІРѕР№ РєРЅРѕРїРєРѕР№ РјС‹С€Рё
+	case BKB_MODE_RCLICK: // Р©РµР»С‡РѕРє РїСЂР°РІРѕР№ РєРЅРѕРїРєРѕР№ РјС‹С€Рё
+	case BKB_MODE_DOUBLECLICK: // Р”РІРѕР№РЅРѕР№ С‰РµР»С‡РѕРє
+	case BKB_MODE_DRAG: // РќСѓ, РґСЂРµРі
 
-		// Если окно уже показано, получить координаты на экране в этом окне
-		// Переключение режима с открытым окном Magnify невозможно
+		// Р•СЃР»Рё РѕРєРЅРѕ СѓР¶Рµ РїРѕРєР°Р·Р°РЅРѕ, РїРѕР»СѓС‡РёС‚СЊ РєРѕРѕСЂРґРёРЅР°С‚С‹ РЅР° СЌРєСЂР°РЅРµ РІ СЌС‚РѕРј РѕРєРЅРµ
+		// РџРµСЂРµРєР»СЋС‡РµРЅРёРµ СЂРµР¶РёРјР° СЃ РѕС‚РєСЂС‹С‚С‹Рј РѕРєРЅРѕРј Magnify РЅРµРІРѕР·РјРѕР¶РЅРѕ
 		if(BKBMagnifyWnd::IsVisible())
 		{
-			if(BKBMagnifyWnd::FixPoint(&p)) // попали в окно, координаты точки уточнены при увеличении
+			if(BKBMagnifyWnd::FixPoint(&p)) // РїРѕРїР°Р»Рё РІ РѕРєРЅРѕ, РєРѕРѕСЂРґРёРЅР°С‚С‹ С‚РѕС‡РєРё СѓС‚РѕС‡РЅРµРЅС‹ РїСЂРё СѓРІРµР»РёС‡РµРЅРёРё
 			{
-				switch (BKB_Mode) // О! Опять!
+				switch (BKB_Mode) // Рћ! РћРїСЏС‚СЊ!
 				{
-					case BKB_MODE_LCLICK: // Щелчок левой кнопкой мыши
+					case BKB_MODE_LCLICK: // Р©РµР»С‡РѕРє Р»РµРІРѕР№ РєРЅРѕРїРєРѕР№ РјС‹С€Рё
 						LeftClick(p);
-						BKBToolWnd::Reset(&BKB_Mode); // один раз только ловим клик-то
+						BKBToolWnd::Reset(&BKB_Mode); // РѕРґРёРЅ СЂР°Р· С‚РѕР»СЊРєРѕ Р»РѕРІРёРј РєР»РёРє-С‚Рѕ
 						break;
 
-					case BKB_MODE_RCLICK: // Щелчок правой кнопкой мыши
+					case BKB_MODE_RCLICK: // Р©РµР»С‡РѕРє РїСЂР°РІРѕР№ РєРЅРѕРїРєРѕР№ РјС‹С€Рё
 						RightClick(p);
-						BKBToolWnd::Reset(&BKB_Mode); // один раз только ловим клик-то
+						BKBToolWnd::Reset(&BKB_Mode); // РѕРґРёРЅ СЂР°Р· С‚РѕР»СЊРєРѕ Р»РѕРІРёРј РєР»РёРє-С‚Рѕ
 						break;
 
-					case BKB_MODE_DOUBLECLICK: // Двойной щелчок
+					case BKB_MODE_DOUBLECLICK: // Р”РІРѕР№РЅРѕР№ С‰РµР»С‡РѕРє
 						DoubleClick(p);
-						BKBToolWnd::Reset(&BKB_Mode); // один раз только ловим клик-то
+						BKBToolWnd::Reset(&BKB_Mode); // РѕРґРёРЅ СЂР°Р· С‚РѕР»СЊРєРѕ Р»РѕРІРёРј РєР»РёРє-С‚Рѕ
 						break;
 
-					case BKB_MODE_DRAG: // Ну, дрег
+					case BKB_MODE_DRAG: // РќСѓ, РґСЂРµРі
 						drag_in_progress=Drag(p);
 						if(!drag_in_progress) BKBToolWnd::Reset(&BKB_Mode);
 						break;
 				}
 			}
-			// else = промахнулись мимо окна, окно скрылось, режим не изменился
+			// else = РїСЂРѕРјР°С…РЅСѓР»РёСЃСЊ РјРёРјРѕ РѕРєРЅР°, РѕРєРЅРѕ СЃРєСЂС‹Р»РѕСЃСЊ, СЂРµР¶РёРј РЅРµ РёР·РјРµРЅРёР»СЃСЏ
 		}
-		else // Окно с увеличением не активно
+		else // РћРєРЅРѕ СЃ СѓРІРµР»РёС‡РµРЅРёРµРј РЅРµ Р°РєС‚РёРІРЅРѕ
 		{
-			if(!drag_in_progress) // Окно-то неактивно, а вдруг тянем?
+			if(!drag_in_progress) // РћРєРЅРѕ-С‚Рѕ РЅРµР°РєС‚РёРІРЅРѕ, Р° РІРґСЂСѓРі С‚СЏРЅРµРј?
 			{
-				// либо переключаем режим, либо показываем окно Magnify
+				// Р»РёР±Рѕ РїРµСЂРµРєР»СЋС‡Р°РµРј СЂРµР¶РёРј, Р»РёР±Рѕ РїРѕРєР°Р·С‹РІР°РµРј РѕРєРЅРѕ Magnify
 				if(!BKBToolWnd::IsItYours(&p, &BKB_Mode))
 				{
-					// Мимо Toolbox, показываем окно Magnify
+					// РњРёРјРѕ Toolbox, РїРѕРєР°Р·С‹РІР°РµРј РѕРєРЅРѕ Magnify
 					BKBMagnifyWnd::FixPoint(&p);
 				}
 			}
-			else // При drag_in_progress нужно закончить его
+			else // РџСЂРё drag_in_progress РЅСѓР¶РЅРѕ Р·Р°РєРѕРЅС‡РёС‚СЊ РµРіРѕ
 			{
-				if(BKBMagnifyWnd::FixPoint(&p)) // попали в окно, координаты точки уточнены при увеличении
+				if(BKBMagnifyWnd::FixPoint(&p)) // РїРѕРїР°Р»Рё РІ РѕРєРЅРѕ, РєРѕРѕСЂРґРёРЅР°С‚С‹ С‚РѕС‡РєРё СѓС‚РѕС‡РЅРµРЅС‹ РїСЂРё СѓРІРµР»РёС‡РµРЅРёРё
 				{
 					drag_in_progress=Drag(p); 
 				}
@@ -81,16 +81,16 @@ bool Fixation::Fix(POINT p)
 		break;
 
 	case BKB_MODE_KEYBOARD: 
-		// клавиша нажата?
+		// РєР»Р°РІРёС€Р° РЅР°Р¶Р°С‚Р°?
 		if(!BKBKeybWnd::IsItYours(&p))
 		{
-			// нет, возможно, это переключение режима
+			// РЅРµС‚, РІРѕР·РјРѕР¶РЅРѕ, СЌС‚Рѕ РїРµСЂРµРєР»СЋС‡РµРЅРёРµ СЂРµР¶РёРјР°
 			BKBToolWnd::IsItYours(&p, &BKB_Mode);
 		}
 		break;
 
-	default: // Все, кого мы пока не умеем обрабатывать, должны хотя-бы переключать режим
-		// В том числе BKB_MODE_NONE
+	default: // Р’СЃРµ, РєРѕРіРѕ РјС‹ РїРѕРєР° РЅРµ СѓРјРµРµРј РѕР±СЂР°Р±Р°С‚С‹РІР°С‚СЊ, РґРѕР»Р¶РЅС‹ С…РѕС‚СЏ-Р±С‹ РїРµСЂРµРєР»СЋС‡Р°С‚СЊ СЂРµР¶РёРј
+		// Р’ С‚РѕРј С‡РёСЃР»Рµ BKB_MODE_NONE
 		BKBToolWnd::IsItYours(&p, &BKB_Mode);
 	}
 
@@ -100,11 +100,11 @@ bool Fixation::Fix(POINT p)
 }
 
 //==============================================================================================
-// Имитирует нажатие и отпускание левой кнопки мыши
+// РРјРёС‚РёСЂСѓРµС‚ РЅР°Р¶Р°С‚РёРµ Рё РѕС‚РїСѓСЃРєР°РЅРёРµ Р»РµРІРѕР№ РєРЅРѕРїРєРё РјС‹С€Рё
 //==============================================================================================
 void Fixation::LeftClick(POINT p)
 {
-	// Содрано из интернета
+	// РЎРѕРґСЂР°РЅРѕ РёР· РёРЅС‚РµСЂРЅРµС‚Р°
 	double XSCALEFACTOR = 65535.0 / (GetSystemMetrics(SM_CXSCREEN) - 1);
     double YSCALEFACTOR = 65535.0 / (GetSystemMetrics(SM_CYSCREEN) - 1);
 
@@ -115,86 +115,86 @@ void Fixation::LeftClick(POINT p)
 	x=p.x;
 	y=p.y;
 	//screenx=GetSystemMetrics(SM_CXSCREEN);
-	sprintf(debug_buf,"xs:%d ys:%d x:%d y:%d",xs,ys,x,y);
+	//sprintf(debug_buf,"xs:%d ys:%d x:%d y:%d",xs,ys,x,y);
 	//MessageBox(NULL,debug_buf,"debug",MB_OK);
 
 	INPUT input[3];
 
-	// 1. Сначала подвинем курсор
+	// 1. РЎРЅР°С‡Р°Р»Р° РїРѕРґРІРёРЅРµРј РєСѓСЂСЃРѕСЂ
 	input[0].type=INPUT_MOUSE;
 	input[0].mi.dx=(LONG)(p.x*XSCALEFACTOR);
 	input[0].mi.dy=(LONG)(p.y*YSCALEFACTOR);
-	input[0].mi.mouseData=0; // Нужно для всяких колёс прокрутки 
+	input[0].mi.mouseData=0; // РќСѓР¶РЅРѕ РґР»СЏ РІСЃСЏРєРёС… РєРѕР»С‘СЃ РїСЂРѕРєСЂСѓС‚РєРё 
 	input[0].mi.dwFlags=MOUSEEVENTF_ABSOLUTE|MOUSEEVENTF_MOVE;
 	input[0].mi.time=0;
 	input[0].mi.dwExtraInfo=0;
 
-	// 2. нажатие левой кнопки
+	// 2. РЅР°Р¶Р°С‚РёРµ Р»РµРІРѕР№ РєРЅРѕРїРєРё
 	input[1].type=INPUT_MOUSE;
 	input[1].mi.dx=(LONG)(p.x*XSCALEFACTOR);
 	input[1].mi.dy=(LONG)(p.y*YSCALEFACTOR);
-	input[1].mi.mouseData=0; // Нужно для всяких колёс прокрутки 
+	input[1].mi.mouseData=0; // РќСѓР¶РЅРѕ РґР»СЏ РІСЃСЏРєРёС… РєРѕР»С‘СЃ РїСЂРѕРєСЂСѓС‚РєРё 
 	input[1].mi.dwFlags=MOUSEEVENTF_ABSOLUTE|MOUSEEVENTF_LEFTDOWN;
 	input[1].mi.time=0;
 	input[1].mi.dwExtraInfo=0;
 
-	// 3. отпускание левой кнопки
+	// 3. РѕС‚РїСѓСЃРєР°РЅРёРµ Р»РµРІРѕР№ РєРЅРѕРїРєРё
 	input[2].type=INPUT_MOUSE;
 	input[2].mi.dx=(LONG)(p.x*XSCALEFACTOR);
 	input[2].mi.dy=(LONG)(p.y*YSCALEFACTOR);
-	input[2].mi.mouseData=0; // Нужно для всяких колёс прокрутки 
+	input[2].mi.mouseData=0; // РќСѓР¶РЅРѕ РґР»СЏ РІСЃСЏРєРёС… РєРѕР»С‘СЃ РїСЂРѕРєСЂСѓС‚РєРё 
 	input[2].mi.dwFlags=MOUSEEVENTF_ABSOLUTE|MOUSEEVENTF_LEFTUP;
 	input[2].mi.time=0;
 	input[2].mi.dwExtraInfo=0;
 		
-	// Имитирует нажатие и отпускание левой кнопки мыши
+	// РРјРёС‚РёСЂСѓРµС‚ РЅР°Р¶Р°С‚РёРµ Рё РѕС‚РїСѓСЃРєР°РЅРёРµ Р»РµРІРѕР№ РєРЅРѕРїРєРё РјС‹С€Рё
 	SendInput(3,input,sizeof(INPUT));
 }
 
 //==============================================================================================
-// Имитирует нажатие и отпускание правой кнопки мыши
+// РРјРёС‚РёСЂСѓРµС‚ РЅР°Р¶Р°С‚РёРµ Рё РѕС‚РїСѓСЃРєР°РЅРёРµ РїСЂР°РІРѕР№ РєРЅРѕРїРєРё РјС‹С€Рё
 //==============================================================================================
 void Fixation::RightClick(POINT p)
 {
-	// Содрано из интернета
+	// РЎРѕРґСЂР°РЅРѕ РёР· РёРЅС‚РµСЂРЅРµС‚Р°
 	double XSCALEFACTOR = 65535.0 / (GetSystemMetrics(SM_CXSCREEN) - 1);
     double YSCALEFACTOR = 65535.0 / (GetSystemMetrics(SM_CYSCREEN) - 1);
 
 	INPUT input[3];
 
-	// 1. Сначала подвинем курсор
+	// 1. РЎРЅР°С‡Р°Р»Р° РїРѕРґРІРёРЅРµРј РєСѓСЂСЃРѕСЂ
 	input[0].type=INPUT_MOUSE;
 	input[0].mi.dx=(LONG)(p.x*XSCALEFACTOR);
 	input[0].mi.dy=(LONG)(p.y*YSCALEFACTOR);
-	input[0].mi.mouseData=0; // Нужно для всяких колёс прокрутки 
+	input[0].mi.mouseData=0; // РќСѓР¶РЅРѕ РґР»СЏ РІСЃСЏРєРёС… РєРѕР»С‘СЃ РїСЂРѕРєСЂСѓС‚РєРё 
 	input[0].mi.dwFlags=MOUSEEVENTF_ABSOLUTE|MOUSEEVENTF_MOVE;
 	input[0].mi.time=0;
 	input[0].mi.dwExtraInfo=0;
 
-	// 2. нажатие правой кнопки
+	// 2. РЅР°Р¶Р°С‚РёРµ РїСЂР°РІРѕР№ РєРЅРѕРїРєРё
 	input[1].type=INPUT_MOUSE;
 	input[1].mi.dx=(LONG)(p.x*XSCALEFACTOR);
 	input[1].mi.dy=(LONG)(p.y*YSCALEFACTOR);
-	input[1].mi.mouseData=0; // Нужно для всяких колёс прокрутки 
+	input[1].mi.mouseData=0; // РќСѓР¶РЅРѕ РґР»СЏ РІСЃСЏРєРёС… РєРѕР»С‘СЃ РїСЂРѕРєСЂСѓС‚РєРё 
 	input[1].mi.dwFlags=MOUSEEVENTF_ABSOLUTE|MOUSEEVENTF_RIGHTDOWN;
 	input[1].mi.time=0;
 	input[1].mi.dwExtraInfo=0;
 
-	// 3. отпускание правой кнопки
+	// 3. РѕС‚РїСѓСЃРєР°РЅРёРµ РїСЂР°РІРѕР№ РєРЅРѕРїРєРё
 	input[2].type=INPUT_MOUSE;
 	input[2].mi.dx=(LONG)(p.x*XSCALEFACTOR);
 	input[2].mi.dy=(LONG)(p.y*YSCALEFACTOR);
-	input[2].mi.mouseData=0; // Нужно для всяких колёс прокрутки 
+	input[2].mi.mouseData=0; // РќСѓР¶РЅРѕ РґР»СЏ РІСЃСЏРєРёС… РєРѕР»С‘СЃ РїСЂРѕРєСЂСѓС‚РєРё 
 	input[2].mi.dwFlags=MOUSEEVENTF_ABSOLUTE|MOUSEEVENTF_RIGHTUP;
 	input[2].mi.time=0;
 	input[2].mi.dwExtraInfo=0;
 		
-	// Имитирует нажатие и отпускание правой кнопки мыши
+	// РРјРёС‚РёСЂСѓРµС‚ РЅР°Р¶Р°С‚РёРµ Рё РѕС‚РїСѓСЃРєР°РЅРёРµ РїСЂР°РІРѕР№ РєРЅРѕРїРєРё РјС‹С€Рё
 	SendInput(3,input,sizeof(INPUT));
 }
 
 //==============================================================================================
-// Имитирует сами знаете что
+// РРјРёС‚РёСЂСѓРµС‚ СЃР°РјРё Р·РЅР°РµС‚Рµ С‡С‚Рѕ
 //==============================================================================================
 void Fixation::DoubleClick(POINT p)
 {
@@ -205,79 +205,79 @@ void Fixation::DoubleClick(POINT p)
 
 
 //==============================================================================================
-// Имитирует начало и конец дрега
+// РРјРёС‚РёСЂСѓРµС‚ РЅР°С‡Р°Р»Рѕ Рё РєРѕРЅРµС† РґСЂРµРіР°
 //==============================================================================================
 bool Fixation::Drag(POINT p)
 {
 	static bool drag_in_progress=false;
 	static POINT p_initial;
 
-	// Содрано из интернета
+	// РЎРѕРґСЂР°РЅРѕ РёР· РёРЅС‚РµСЂРЅРµС‚Р°
 	double XSCALEFACTOR = 65535.0 / (GetSystemMetrics(SM_CXSCREEN) - 1);
     double YSCALEFACTOR = 65535.0 / (GetSystemMetrics(SM_CYSCREEN) - 1);
 
 	INPUT input[4];
 
-	if(!drag_in_progress) // Только нажимаем
+	if(!drag_in_progress) // РўРѕР»СЊРєРѕ РЅР°Р¶РёРјР°РµРј
 	{
 		drag_in_progress=true;
-		// просто запоминаем исходную позицию
+		// РїСЂРѕСЃС‚Рѕ Р·Р°РїРѕРјРёРЅР°РµРј РёСЃС…РѕРґРЅСѓСЋ РїРѕР·РёС†РёСЋ
 		p_initial=p;
 	}
 	else
 	{
 		drag_in_progress=false;
 
-		// 1. Сначала подвинем курсор
+		// 1. РЎРЅР°С‡Р°Р»Р° РїРѕРґРІРёРЅРµРј РєСѓСЂСЃРѕСЂ
 		input[0].type=INPUT_MOUSE;
 		input[0].mi.dx=(LONG)(p_initial.x*XSCALEFACTOR);
 		input[0].mi.dy=(LONG)(p_initial.y*YSCALEFACTOR);
-		input[0].mi.mouseData=0; // Нужно для всяких колёс прокрутки 
+		input[0].mi.mouseData=0; // РќСѓР¶РЅРѕ РґР»СЏ РІСЃСЏРєРёС… РєРѕР»С‘СЃ РїСЂРѕРєСЂСѓС‚РєРё 
 		input[0].mi.dwFlags=MOUSEEVENTF_ABSOLUTE|MOUSEEVENTF_MOVE;
 		input[0].mi.time=0;
 		input[0].mi.dwExtraInfo=0;
 
-		// 2. нажатие левой кнопки
+		// 2. РЅР°Р¶Р°С‚РёРµ Р»РµРІРѕР№ РєРЅРѕРїРєРё
 		input[1].type=INPUT_MOUSE;
 		input[1].mi.dx=(LONG)(p_initial.x*XSCALEFACTOR);
 		input[1].mi.dy=(LONG)(p_initial.y*YSCALEFACTOR);
-		input[1].mi.mouseData=0; // Нужно для всяких колёс прокрутки 
+		input[1].mi.mouseData=0; // РќСѓР¶РЅРѕ РґР»СЏ РІСЃСЏРєРёС… РєРѕР»С‘СЃ РїСЂРѕРєСЂСѓС‚РєРё 
 		input[1].mi.dwFlags=MOUSEEVENTF_ABSOLUTE|MOUSEEVENTF_LEFTDOWN;
 		input[1].mi.time=0;
 		input[1].mi.dwExtraInfo=0;
 		
-		// 3. Сначала подвинем курсор
+		// 3. РЎРЅР°С‡Р°Р»Р° РїРѕРґРІРёРЅРµРј РєСѓСЂСЃРѕСЂ
 		input[2].type=INPUT_MOUSE;
 		input[2].mi.dx=(LONG)(p.x*XSCALEFACTOR);
 		input[2].mi.dy=(LONG)(p.y*YSCALEFACTOR);
-		input[2].mi.mouseData=0; // Нужно для всяких колёс прокрутки 
+		input[2].mi.mouseData=0; // РќСѓР¶РЅРѕ РґР»СЏ РІСЃСЏРєРёС… РєРѕР»С‘СЃ РїСЂРѕРєСЂСѓС‚РєРё 
 		input[2].mi.dwFlags=MOUSEEVENTF_ABSOLUTE|MOUSEEVENTF_MOVE;
 		input[2].mi.time=0;
 		input[2].mi.dwExtraInfo=0;
 
 	
-		// 4. отпускание левой кнопки
+		// 4. РѕС‚РїСѓСЃРєР°РЅРёРµ Р»РµРІРѕР№ РєРЅРѕРїРєРё
 		input[3].type=INPUT_MOUSE;
 		input[3].mi.dx=(LONG)(p.x*XSCALEFACTOR);
 		input[3].mi.dy=(LONG)(p.y*YSCALEFACTOR);
-		input[3].mi.mouseData=0; // Нужно для всяких колёс прокрутки 
+		input[3].mi.mouseData=0; // РќСѓР¶РЅРѕ РґР»СЏ РІСЃСЏРєРёС… РєРѕР»С‘СЃ РїСЂРѕРєСЂСѓС‚РєРё 
 		input[3].mi.dwFlags=MOUSEEVENTF_ABSOLUTE|MOUSEEVENTF_LEFTUP;
 		input[3].mi.time=0;
 		input[3].mi.dwExtraInfo=0;
 	}
 
-	// Имитирует нажатие и отпускание правой кнопки мыши
+	// РРјРёС‚РёСЂСѓРµС‚ РЅР°Р¶Р°С‚РёРµ Рё РѕС‚РїСѓСЃРєР°РЅРёРµ РїСЂР°РІРѕР№ РєРЅРѕРїРєРё РјС‹С€Рё
 	SendInput(4,input,sizeof(INPUT));
 	return drag_in_progress;
 
 }
 
 //==============================================================================================
-// Скролл на величину, пропорциональную времени в сторону direction
+// РЎРєСЂРѕР»Р» РЅР° РІРµР»РёС‡РёРЅСѓ, РїСЂРѕРїРѕСЂС†РёРѕРЅР°Р»СЊРЅСѓСЋ РІСЂРµРјРµРЅРё РІ СЃС‚РѕСЂРѕРЅСѓ direction
 //==============================================================================================
 void Fixation::Scroll(uint64_t timelag, int direction)
 {
-	// Для отладки и понимания пределов timelag
+	// Р”Р»СЏ РѕС‚Р»Р°РґРєРё Рё РїРѕРЅРёРјР°РЅРёСЏ РїСЂРµРґРµР»РѕРІ timelag
 			//char msgbuf[1024];
 			//sprintf(msgbuf,"%llu\n",timelag);
 			//OutputDebugString(msgbuf); 
@@ -289,8 +289,8 @@ void Fixation::Scroll(uint64_t timelag, int direction)
 	input.type=INPUT_MOUSE;
 	input.mi.dx=0L;
 	input.mi.dy=0L;
-	input.mi.mouseData=direction*(timelag/2000UL); // Скролл на величину, пропорциональную времени
-	//input.mi.mouseData=direction*3; // для пробы
+	input.mi.mouseData=direction*(timelag/2000UL); // РЎРєСЂРѕР»Р» РЅР° РІРµР»РёС‡РёРЅСѓ, РїСЂРѕРїРѕСЂС†РёРѕРЅР°Р»СЊРЅСѓСЋ РІСЂРµРјРµРЅРё
+	//input.mi.mouseData=direction*3; // РґР»СЏ РїСЂРѕР±С‹
 	input.mi.dwFlags=MOUSEEVENTF_WHEEL;
 	input.mi.time=0;
 	input.mi.dwExtraInfo=0;
