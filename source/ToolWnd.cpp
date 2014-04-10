@@ -11,12 +11,12 @@
 #define WM_USER_INVALRECT (WM_USER + 100)
 
 #define BKB_TOOLBOX_WIDTH 128
-#define BKB_NUM_TOOLS 8
+#define BKB_NUM_TOOLS 9
 
 extern HINSTANCE BKBInst;
 static const TCHAR *wnd_class_name=L"BKBTool";
 static const TCHAR *tool_names[BKB_NUM_TOOLS];
-static BKB_MODE tool_bm[BKB_NUM_TOOLS]={BKB_MODE_LCLICK, BKB_MODE_RCLICK, BKB_MODE_DOUBLECLICK, BKB_MODE_DRAG, 
+static BKB_MODE tool_bm[BKB_NUM_TOOLS]={BKB_MODE_LCLICK, BKB_MODE_LCLICK_PLUS, BKB_MODE_RCLICK, BKB_MODE_DOUBLECLICK, BKB_MODE_DRAG, 
 	BKB_MODE_SCROLL, BKB_MODE_KEYBOARD, BKB_MODE_NONE, BKB_MODE_NONE};
 
 int BKBToolWnd::screen_x, BKBToolWnd::screen_y;
@@ -78,13 +78,14 @@ void BKBToolWnd::Init()
 	
 	// 0. Заполняем названия инструментов иностранным языком
 	tool_names[0]=Internat::Message(12,L"ЛЕВЫЙ");
-	tool_names[1]=Internat::Message(13,L"ПРАВЫЙ");
-	tool_names[2]=Internat::Message(14,L"ДВОЙНОЙ");
-	tool_names[3]=Internat::Message(15,L"ДРЕГ");
-	tool_names[4]=Internat::Message(16,L"СКРОЛЛ");
-	tool_names[5]=Internat::Message(17,L"КЛАВИШИ");
-	tool_names[6]=Internat::Message(18,L"Туда-Сюда");
-	tool_names[7]=Internat::Message(19,L"РЕЗЕРВ");
+	tool_names[1]=Internat::Message(34,L"ЛЕВЫЙ,..");
+	tool_names[2]=Internat::Message(13,L"ПРАВЫЙ");
+	tool_names[3]=Internat::Message(14,L"ДВОЙНОЙ");
+	tool_names[4]=Internat::Message(15,L"ДРЕГ");
+	tool_names[5]=Internat::Message(16,L"СКРОЛЛ");
+	tool_names[6]=Internat::Message(17,L"КЛАВИШИ");
+	tool_names[7]=Internat::Message(18,L"Туда-Сюда");
+	tool_names[8]=Internat::Message(19,L"РЕЗЕРВ");
 
 	// 1. Регистрация класса окна
 	WNDCLASS wcl={CS_HREDRAW | CS_VREDRAW, BKBToolWndProc, 0,
@@ -183,10 +184,10 @@ bool BKBToolWnd::IsItYours(POINT *pnt, BKB_MODE *bm)
 		int tool_candidate=pnt->y/(screen_y/BKB_NUM_TOOLS);
 		
 		// пока восьмой выбрать нельзя
-		if(tool_candidate>=7) return false;
+		if(tool_candidate>=8) return false;
 
 		// Перенести панель инструментов в другую половину экрана
-		if(6==tool_candidate)
+		if(7==tool_candidate)
 		{
 			if(left_side)
 			{

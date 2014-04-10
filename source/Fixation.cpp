@@ -24,6 +24,7 @@ bool Fixation::Fix(POINT p)
 	{
 	// Сначала все мышиные с увеличением
 	case BKB_MODE_LCLICK: // Щелчок левой кнопкой мыши
+	case BKB_MODE_LCLICK_PLUS: // Щелчок левой кнопкой мыши
 	case BKB_MODE_RCLICK: // Щелчок правой кнопкой мыши
 	case BKB_MODE_DOUBLECLICK: // Двойной щелчок
 	case BKB_MODE_DRAG: // Ну, дрег
@@ -39,6 +40,10 @@ bool Fixation::Fix(POINT p)
 					case BKB_MODE_LCLICK: // Щелчок левой кнопкой мыши
 						LeftClick(p);
 						BKBToolWnd::Reset(&BKB_Mode); // один раз только ловим клик-то
+						break;
+
+					case BKB_MODE_LCLICK_PLUS: // Повторяющийся щелчок левой кнопкой мыши
+						LeftClick(p);
 						break;
 
 					case BKB_MODE_RCLICK: // Щелчок правой кнопкой мыши
