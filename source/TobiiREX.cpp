@@ -8,6 +8,7 @@
 #include "KeybWnd.h"
 #include "ToolWnd.h"
 #include "Internat.h"
+#include "WM_USER_messages.h"
 
 #define DISPERSION_LIMIT 100.0 // Для отслеживания фиксаций
 #define DISPERSION_HIGH_LIMIT 300.0 // Для отслеживания быстрых перемещений
@@ -69,6 +70,9 @@ bool BKBTobiiREX::initialized(false);
 //extern HWND	BKBhwnd;
 extern int flag_using_airmouse;
 
+static tobiigaze_gaze_data TGD_interchange; // Буфер, куда записывается пришедшее значение для передачи в другую очередь
+static volatile long TGD_is_processing=0; // Типа мьютекса для InterlockedCompareExchange
+
 //=====================================================================================
 // Функция, возвращающая знак целого числа
 //=====================================================================================
@@ -79,13 +83,43 @@ inline long signum(long x)
 	return 0;
 }
 
-//=====================================================================================
+//===========================================================================================================
 // Функция, которую вызывает REX, когда сообщает данные о глазах
 // 01.02.04 Её может вызывать и аэромышь
-//=====================================================================================
+// 14.04.04 Теперь посылает сообщение другому потоку, если тот уже закончил обработку предыдущего сообщения
+//===========================================================================================================
 void on_gaze_data(const tobiigaze_gaze_data* gazedata, void *user_data)
 {
-	//HDC hdc;
+	// Сбагриваем очередные данные, только если старые уже обработаны
+	// Нет нужды в хитрых сравнениях, если мы пропустим один отсчёт, ровным счетом ничего не произойдёт
+	// достаточно было бы if(0==TGD_is_processing)
+	// но вдруг эту функцию вызовут одновременно два потока? Перестрахуемся.
+	if(0==InterlockedCompareExchange(&TGD_is_processing,1,0))
+	{
+		HWND htb=BKBToolWnd::GetHwnd();
+		if(0!=htb)
+		{
+			TGD_is_processing=1;
+			TGD_interchange=*gazedata;
+		
+			if(0==PostMessage(BKBToolWnd::GetHwnd(), WM_USER_DATA_READY, 0, 0))
+			{
+				//BKBReportError(L"Failed to Post a Message");
+			}
+		}
+	}
+	
+}
+
+
+//==========================================================================================================
+// Обработка в основном потоке. Здесь можно делать sleep, обрабатываем неспешно, не влияя на другие потоки
+//==========================================================================================================
+void on_gaze_data_main_thread()
+{
+	tobiigaze_gaze_data* gazedata=&TGD_interchange;
+	
+
 	static POINT point_left={0,0}, point_right={0,0}, point={0,0}; //, last_point={0,0}, tmp_point;
 	double disp1,disp2; // дисперсия в последних отсчетах левого и правого глаза
 	static POINT  screen_cursor_point; //cursor_position={0,0};
@@ -113,7 +147,7 @@ void on_gaze_data(const tobiigaze_gaze_data* gazedata, void *user_data)
 		
 		point.x=(point_right.x+point_left.x)/2;
 		point.y=(point_right.y+point_left.y)/2;
-		
+	
 		//=================================================================================
 		// Теперь о перемещениях курсора
 		// Сглаживаниеы не нужно для аэромыши
@@ -232,6 +266,7 @@ void on_gaze_data(const tobiigaze_gaze_data* gazedata, void *user_data)
 
 		
 	}
+	TGD_is_processing=0; // Без этого новые данные не поступят !
 }
 
 //=====================================================================================

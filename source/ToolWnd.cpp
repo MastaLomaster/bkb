@@ -7,8 +7,8 @@
 #include "AirMouse.h"
 #include "TranspWnd.h"
 #include "Internat.h"
+#include "WM_USER_messages.h"
 
-#define WM_USER_INVALRECT (WM_USER + 100)
 
 #define BKB_TOOLBOX_WIDTH 128
 #define BKB_NUM_TOOLS 9
@@ -20,12 +20,14 @@ static BKB_MODE tool_bm[BKB_NUM_TOOLS]={BKB_MODE_LCLICK, BKB_MODE_LCLICK_PLUS, B
 	BKB_MODE_SCROLL, BKB_MODE_KEYBOARD, BKB_MODE_NONE, BKB_MODE_NONE};
 
 int BKBToolWnd::screen_x, BKBToolWnd::screen_y;
-HWND  BKBToolWnd::Tlhwnd;
+HWND  BKBToolWnd::Tlhwnd=0;
 int BKBToolWnd::current_tool=-1;
 bool BKBToolWnd::left_side=false;
 
 extern HBRUSH dkblue_brush, blue_brush;
 extern int flag_using_airmouse;
+
+void on_gaze_data_main_thread(); // определена в TobiiREX.cpp
 
 // Оконная процедура 
 LRESULT CALLBACK BKBToolWndProc(HWND hwnd,
@@ -60,6 +62,10 @@ LRESULT CALLBACK BKBToolWndProc(HWND hwnd,
 
 	case WM_TIMER:
 		BKBAirMouse::OnTimer();
+		break;
+
+	case WM_USER_DATA_READY:
+		on_gaze_data_main_thread();
 		break;
 
 	default:

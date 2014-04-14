@@ -2,11 +2,10 @@
 #include "KeybWnd.h"
 #include "BKBRepErr.h"
 #include "Click.h"
+#include "WM_USER_messages.h"
 
 //#define BELYAKOV
-#define WM_USER_INVALRECT (WM_USER + 100)
-#define WM_USER_KBD_TOPDOWN (WM_USER + 101)
-
+ 
 extern int flag_using_airmouse;
 
 // Раскладка клавиатур задана в файле KeybLayouts.cpp
@@ -122,8 +121,11 @@ void BKBKeybWnd::Init()
 		0,
 		BKBInst,
 		LoadIcon( NULL, IDI_APPLICATION),
+#ifdef BELYAKOV
+        LoadCursor(NULL, IDC_ARROW), 
+#else
 		NULL,
-        //LoadCursor(NULL, IDC_ARROW), 
+#endif
 		// Фон красится теперь в memdc1
         //dkblue_brush,
 		0,

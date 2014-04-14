@@ -1,8 +1,8 @@
 ﻿#include <Windows.h>
 #include "TranspWnd.h"
 #include "BKBRepErr.h"
+#include "WM_USER_messages.h"
 
-#define WM_USER_MOVEWINDOW (WM_USER + 101)
 
 static const TCHAR *wnd_class_name=L"BKBTransp";
 extern HINSTANCE BKBInst;

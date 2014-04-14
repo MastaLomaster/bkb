@@ -1,0 +1,9 @@
+#ifndef __BKB_WM_USER
+#define __BKB_WM_USER
+
+#define WM_USER_INVALRECT (WM_USER + 100)
+#define WM_USER_KBD_TOPDOWN (WM_USER + 101)
+#define WM_USER_MOVEWINDOW (WM_USER + 102)
+//#define WM_USER_SHOWHIDE (WM_USER + 103)
+#define WM_USER_DATA_READY (WM_USER + 104)
+#endif

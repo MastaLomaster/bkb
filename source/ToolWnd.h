@@ -5,12 +5,13 @@
 
 class BKBToolWnd
 {
-public:
+public: 
 	static void Init();
 	static bool IsItYours(POINT *pnt, BKB_MODE *bm);
 	static void OnPaint(HDC hdc=0);
 	static void Reset(BKB_MODE *bm);
 	static void ScrollCursor(POINT *p);
+	static HWND GetHwnd(){return Tlhwnd;};
 protected:
 	static HWND Tlhwnd;
 	static int screen_x, screen_y;

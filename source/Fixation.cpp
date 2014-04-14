@@ -6,7 +6,7 @@
 #include "ToolWnd.h"
 #include "KeybWnd.h"
 
-//static char debug_buf[4096];
+//static char debug_buf[4096]; 
 
 BKB_MODE Fixation::BKB_Mode=BKB_MODE_NONE;
 
@@ -123,7 +123,7 @@ void Fixation::LeftClick(POINT p)
 	//sprintf(debug_buf,"xs:%d ys:%d x:%d y:%d",xs,ys,x,y);
 	//MessageBox(NULL,debug_buf,"debug",MB_OK);
 
-	INPUT input[3];
+	INPUT input[3]={0};
 
 	// 1. Сначала подвинем курсор
 	input[0].type=INPUT_MOUSE;
@@ -165,7 +165,7 @@ void Fixation::RightClick(POINT p)
 	double XSCALEFACTOR = 65535.0 / (GetSystemMetrics(SM_CXSCREEN) - 1);
     double YSCALEFACTOR = 65535.0 / (GetSystemMetrics(SM_CYSCREEN) - 1);
 
-	INPUT input[3];
+	INPUT input[3]={0};
 
 	// 1. Сначала подвинем курсор
 	input[0].type=INPUT_MOUSE;
@@ -221,7 +221,8 @@ bool Fixation::Drag(POINT p)
 	double XSCALEFACTOR = 65535.0 / (GetSystemMetrics(SM_CXSCREEN) - 1);
     double YSCALEFACTOR = 65535.0 / (GetSystemMetrics(SM_CYSCREEN) - 1);
 
-	INPUT input[4];
+	// Из-за того, что не обнулял, были страшные глюки. Очень странно...
+	INPUT input[4]={0};
 
 	if(!drag_in_progress) // Только нажимаем
 	{
@@ -272,7 +273,11 @@ bool Fixation::Drag(POINT p)
 	}
 
 	// Имитирует нажатие и отпускание правой кнопки мыши
-	SendInput(4,input,sizeof(INPUT));
+	//SendInput(4,input,sizeof(INPUT));
+	SendInput(2,&input[0],sizeof(INPUT));
+	Sleep(80);
+	SendInput(2,&input[2],sizeof(INPUT));
+
 	return drag_in_progress;
 
 }
@@ -289,7 +294,7 @@ void Fixation::Scroll(uint64_t timelag, int direction)
 
 	if(timelag>100000UL) timelag=100000UL;
 
-	INPUT input;
+	INPUT input={0};
 
 	input.type=INPUT_MOUSE;
 	input.mi.dx=0L;

@@ -3,7 +3,7 @@
 #include "BKBRepErr.h"
 #include "TranspWnd.h"
 
-#include <stdio.h>
+#include <stdio.h> 
 char debug_buffer[4096];
 
 extern double screen_scale;
@@ -132,7 +132,7 @@ bool BKBMagnifyWnd::FixPoint(POINT *pnt)
 
 		// точка в середине окна
 		midpoint_x=pnt->x; midpoint_y=pnt->y;
-
+/*
 		// В точке, которая передана параметром, должна быть видна середина окна
 		// Если точка слишком близко к краю, корректируем её
 		// левый край
@@ -141,16 +141,18 @@ bool BKBMagnifyWnd::FixPoint(POINT *pnt)
 		// правый край
 		if(midpoint_x>screen_x-MAGNIFY_WINDOW_SIZE/MAGNIFY_FACTOR/2) midpoint_x=screen_x-MAGNIFY_WINDOW_SIZE/MAGNIFY_FACTOR/2;
 		if(midpoint_y>screen_y-MAGNIFY_WINDOW_SIZE/MAGNIFY_FACTOR/2) midpoint_y=screen_y-MAGNIFY_WINDOW_SIZE/MAGNIFY_FACTOR/2;
-
+*/
 		// Двигаем окно
-		// Окно не должно выезжать за экран
 		int x_pos=midpoint_x-MAGNIFY_WINDOW_SIZE/2;
+		int y_pos=midpoint_y-MAGNIFY_WINDOW_SIZE/2;
+
+/*		// Окно не должно выезжать за экран
 		if(x_pos<0) x_pos=0;
 		if(x_pos>screen_x-MAGNIFY_WINDOW_SIZE) x_pos=screen_x-MAGNIFY_WINDOW_SIZE;
-		int y_pos=midpoint_y-MAGNIFY_WINDOW_SIZE/2;
+		
 		if(y_pos<0) y_pos=0;
 		if(y_pos>screen_y-MAGNIFY_WINDOW_SIZE) y_pos=screen_y-MAGNIFY_WINDOW_SIZE;
-		
+*/		
 		MoveWindow(Mghwnd,x_pos,y_pos,MAGNIFY_WINDOW_SIZE,MAGNIFY_WINDOW_SIZE, FALSE); // Последний параметр проверить
 
 		// Делаем увеличенную копию фрагмента экрана
@@ -183,16 +185,16 @@ bool BKBMagnifyWnd::FixPoint(POINT *pnt)
 
 		//screen_scale
 
-		// делаем окно видимым
+		// делаем окно видимым (теперь это в самом конце)
 		mgf_visible=true;
 		ShowWindow(Mghwnd,SW_SHOWNORMAL);
 
 		// Возвращаем окно с псевдокурсором
 		BKBTranspWnd::Show();
 
+		
 		// Вернуть прозрачное окно наверх!!! (Теперь это делается после любого Fixation)
 		//BKBTranspWnd::ToTop();
-		
 
 		// Выплёскиваем увеличенную часть экрана в окно
 		HDC MgWindowDC=GetDC(Mghwnd);
@@ -202,12 +204,19 @@ bool BKBMagnifyWnd::FixPoint(POINT *pnt)
 			(MAGNIFY_WINDOW_SIZE-x_size)/2,
 			(MAGNIFY_WINDOW_SIZE-y_size)/2,
 			SRCCOPY);
+		
+
 		ReleaseDC(Mghwnd,MgWindowDC);
+
+		
+
 
 		SelectObject(MagBmpDC,OldBmp); // Освобождаем наш битмап из DC
 		DeleteObject(MagBmp); // Теперь наш битмап можно спокойно стереть
 		DeleteDC(MagBmpDC); // Туда же и совместимый DC
 		ReleaseDC(NULL,ScreenDC);
+
+		
 	}
 
 	return false; // Точке не передано уточненное значение
