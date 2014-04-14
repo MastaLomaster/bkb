@@ -99,7 +99,6 @@ void on_gaze_data(const tobiigaze_gaze_data* gazedata, void *user_data)
 		HWND htb=BKBToolWnd::GetHwnd();
 		if(0!=htb)
 		{
-			TGD_is_processing=1;
 			TGD_interchange=*gazedata;
 		
 			if(0==PostMessage(BKBToolWnd::GetHwnd(), WM_USER_DATA_READY, 0, 0))
@@ -107,6 +106,7 @@ void on_gaze_data(const tobiigaze_gaze_data* gazedata, void *user_data)
 				//BKBReportError(L"Failed to Post a Message");
 			}
 		}
+		else TGD_is_processing=0;
 	}
 	
 }
