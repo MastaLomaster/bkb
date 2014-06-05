@@ -643,6 +643,10 @@ void BKBKeybWnd::ScanCodeButton(WORD scancode)
 	input.ki.dwFlags =  0;
 	input.ki.wVk=scancode;
 	SendInput(1,&input,sizeof(INPUT));		
+	
+	// Попробуем внести задержку в 0.08 секунды
+	Sleep(80);
+
 	// Отпускание кнопки
 	input.ki.dwFlags = KEYEVENTF_KEYUP ;
 	SendInput(1,&input,sizeof(INPUT));		

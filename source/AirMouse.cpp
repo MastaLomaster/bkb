@@ -5,7 +5,7 @@
 // Заголовочные файлы из Tobii Gaze SDK
 #include "tobiigaze_error_codes.h"
 #include "tobiigaze.h"
-#include "tobiigaze_config.h"
+//#include "tobiigaze_config.h" - такой файл был в Gaze SDK 2.0
 
 // Прототип callback-функции из TobiiREX.cpp
 void on_gaze_data(const tobiigaze_gaze_data* gazedata, void *user_data);
