@@ -33,7 +33,7 @@ LRESULT CALLBACK BKBMagnifyWndProc(HWND hwnd,
 //================================================================
 // Инициализация 
 //================================================================
-void BKBMagnifyWnd::Init()
+void BKBMagnifyWnd::Init(HWND master_hwnd)
 {
 	ATOM aresult; // Для всяких кодов возврата
 	
@@ -67,7 +67,9 @@ void BKBMagnifyWnd::Init()
     //WS_VISIBLE|WS_POPUP,
 	WS_POPUP,
 	100,700,MAGNIFY_WINDOW_SIZE,MAGNIFY_WINDOW_SIZE, 
-    0, 0, BKBInst, 0L );
+    //0,
+	master_hwnd, // Чтобы в таскбаре и при альт-табе не появлялись лишние окна
+	0, BKBInst, 0L );
 
 	if(NULL==Mghwnd)
 	{

@@ -12,6 +12,7 @@
 #define DISPERSION_LIMIT 100.0 // Для отслеживания фиксаций
 #define DISPERSION_HIGH_LIMIT 300.0 // Для отслеживания быстрых перемещений
 #define FIXATION_LIMIT 30 // Сколько последовательных точек с низкой дисперсией считать фиксацией
+//#define FIXATION_LIMIT 45 // Сколько последовательных точек с низкой дисперсией считать фиксацией
 #define POSTFIXATION_SKIP 30 // сколько точек пропустить после фиксации, чтобы начать считать новую фиксацию
 #define CURSOR_SMOOTHING 7; // Направление движения курсора меняется только раз в CURSOR_SMOOTHING отсчетов
 
@@ -40,8 +41,8 @@ inline long signum(long x)
 
 //===========================================================================================================
 // Функция, которую вызывает REX, когда сообщает данные о глазах
-// 01.02.04 Её может вызывать и аэромышь
-// 14.04.04 Теперь посылает сообщение другому потоку, если тот уже закончил обработку предыдущего сообщения
+// 01.02.14 Её может вызывать и аэромышь
+// 14.04.14 Теперь посылает сообщение другому потоку, если тот уже закончил обработку предыдущего сообщения
 //===========================================================================================================
 void on_gaze_data(const tobiigaze_gaze_data* gazedata, void *user_data)
 {
@@ -86,8 +87,30 @@ void on_gaze_data_main_thread()
 		// Для проверки рисуем точку на экране
 	// Но только если отследили оба глаза!!
 	if (gazedata->tracking_status == TOBIIGAZE_TRACKING_STATUS_BOTH_EYES_TRACKED)
+	//if (gazedata->tracking_status != TOBIIGAZE_TRACKING_STATUS_NO_EYES_TRACKED)
 	{
 		//hdc=GetDC(BKBhwnd);
+		// Этот кусок не отрабатывает, если выше мы ограничились только  TOBIIGAZE_TRACKING_STATUS_BOTH_EYES_TRACKED
+		switch(gazedata->tracking_status)
+		{
+		case TOBIIGAZE_TRACKING_STATUS_ONLY_LEFT_EYE_TRACKED:
+		case TOBIIGAZE_TRACKING_STATUS_ONE_EYE_TRACKED_PROBABLY_LEFT:
+			gazedata->right.gaze_point_on_display_normalized.x=gazedata->left.gaze_point_on_display_normalized.x;
+			gazedata->right.gaze_point_on_display_normalized.y=gazedata->left.gaze_point_on_display_normalized.y;
+			break;
+
+		case TOBIIGAZE_TRACKING_STATUS_ONE_EYE_TRACKED_UNKNOWN_WHICH:
+			TGD_is_processing=0;
+			return;
+			break;
+			
+		case TOBIIGAZE_TRACKING_STATUS_ONE_EYE_TRACKED_PROBABLY_RIGHT:
+		case TOBIIGAZE_TRACKING_STATUS_ONLY_RIGHT_EYE_TRACKED:
+			gazedata->left.gaze_point_on_display_normalized.x=gazedata->right.gaze_point_on_display_normalized.x;
+			gazedata->left.gaze_point_on_display_normalized.y=gazedata->right.gaze_point_on_display_normalized.y;
+			break;
+		}
+
 
 		// Трекинг левого глаза 
 		point_left.x=screenX*gazedata->left.gaze_point_on_display_normalized.x;
@@ -207,10 +230,12 @@ void on_gaze_data_main_thread()
 			skip_count--;
 		}
 		// Замечена попытка фиксации взгляда
-		if(fixation_count>=FIXATION_LIMIT) 
+		// Фиксация увеличивается вдвое при работе без зума
+		if((fixation_count>=FIXATION_LIMIT*2)||((fixation_count>=FIXATION_LIMIT)&&(!BKBToolWnd::tool_modifier[3]))) 
 		{
 			fixation_count=0; // первым делом сбросим эту переменную
 			skip_count=POSTFIXATION_SKIP;
+			if(BKBToolWnd::tool_modifier[3]) skip_count*=2; // Фиксация увеличивается вдвое при работе без зума
 
 			// Далее обрабатываем фиксацию в зависимости от текущего режима.
 			Fixation::Fix(screen_cursor_point);
@@ -220,5 +245,10 @@ void on_gaze_data_main_thread()
 
 		
 	}
+	//else OutputDebugString(L"ONE EYE\n\r");
+
+
+	
+		
 	TGD_is_processing=0; // Без этого новые данные не поступят !
 }

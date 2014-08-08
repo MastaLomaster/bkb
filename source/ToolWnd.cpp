@@ -19,12 +19,14 @@ static const TCHAR *tool_names[BKB_NUM_TOOLS];
 static BKB_MODE tool_bm[BKB_NUM_TOOLS]={BKB_MODE_LCLICK, BKB_MODE_LCLICK_PLUS, BKB_MODE_RCLICK, BKB_MODE_DOUBLECLICK, BKB_MODE_DRAG, 
 	BKB_MODE_SCROLL, BKB_MODE_KEYBOARD, BKB_MODE_NONE, BKB_MODE_NONE};
 
+bool BKBToolWnd::tool_modifier[4]={false,false,false,false};
+TCHAR *BKBToolWnd::tool_modifier_name[4]={L"+ Ctrl",L"+ Shift",L"+ Alt",L"Без Зума"};
 int BKBToolWnd::screen_x, BKBToolWnd::screen_y;
 HWND  BKBToolWnd::Tlhwnd=0;
 int BKBToolWnd::current_tool=-1;
 bool BKBToolWnd::left_side=false;
 
-extern HBRUSH dkblue_brush, blue_brush;
+extern HBRUSH dkblue_brush, dkblue_brush2, blue_brush;
 extern int flag_using_airmouse;
 
 void on_gaze_data_main_thread(); // определена в TobiiREX.cpp
@@ -78,7 +80,7 @@ LRESULT CALLBACK BKBToolWndProc(HWND hwnd,
 //================================================================
 // Инициализация 
 //================================================================
-void BKBToolWnd::Init()
+HWND BKBToolWnd::Init()
 {
 	ATOM aresult; // Для всяких кодов возврата
 	
@@ -92,6 +94,11 @@ void BKBToolWnd::Init()
 	tool_names[6]=Internat::Message(17,L"КЛАВИШИ");
 	tool_names[7]=Internat::Message(18,L"Туда-Сюда");
 	tool_names[8]=Internat::Message(19,L"РЕЗЕРВ");
+
+	//
+	// tool_names[3]=Internat::Message(35,L"ПРАВЫЙ,..");
+	//tool_modifier_name[0]=Internat::Message(35,L"ПОВТОР");
+	tool_modifier_name[3]=Internat::Message(36,L"БЕЗ ЗУМА");
 
 	// 1. Регистрация класса окна
 	WNDCLASS wcl={CS_HREDRAW | CS_VREDRAW, BKBToolWndProc, 0,
@@ -113,7 +120,7 @@ void BKBToolWnd::Init()
 	if (aresult==0)
 	{
 		BKBReportError(__WIDEFILE__,L"RegisterClass (",__LINE__);
-		return;
+		return 0;
 	}
 
 	screen_x=GetSystemMetrics(SM_CXSCREEN);
@@ -134,6 +141,8 @@ void BKBToolWnd::Init()
 	}
 
 	ShowWindow(Tlhwnd,SW_SHOWNORMAL);
+
+	return Tlhwnd;
 }
 
 //================================================================
@@ -141,7 +150,9 @@ void BKBToolWnd::Init()
 //================================================================
 void BKBToolWnd::OnPaint(HDC hdc)
 {
+	int i;
 	bool release_dc=false;
+	LONG tool_height=screen_y/BKB_NUM_TOOLS;
 
 	if(0==hdc)
 	{
@@ -153,8 +164,19 @@ void BKBToolWnd::OnPaint(HDC hdc)
 	// 1. Сначала подсветим рабочий инструмент
 	if(current_tool>=0)
 	{
-		RECT rect={0,current_tool*(screen_y/BKB_NUM_TOOLS),BKB_TOOLBOX_WIDTH,(current_tool+1)*(screen_y/BKB_NUM_TOOLS)};
+		RECT rect={0,current_tool*tool_height,BKB_TOOLBOX_WIDTH,(current_tool+1)*tool_height};
 		FillRect(hdc,&rect,blue_brush);
+
+		// Для первых ЧЕТЫРЁХ также подсветим модификаторы
+		if(current_tool<=3)
+		{
+			for(i=0;i<4;i++)
+			{
+				rect.top+=tool_height; rect.bottom+=tool_height; // на один прямоугольник ниже
+				if(tool_modifier[i]) FillRect(hdc,&rect,blue_brush);
+				else FillRect(hdc,&rect,dkblue_brush2);
+			}
+		}
 	}
 
 	// цвета подправим
@@ -162,12 +184,14 @@ void BKBToolWnd::OnPaint(HDC hdc)
 	SetBkColor(hdc,RGB(45,62,90));
 	SelectObject(hdc,GetStockObject(WHITE_PEN));
 
-	int i;
+	
 	for(i=0;i<BKB_NUM_TOOLS;i++)
 	{
-		MoveToEx(hdc,0,i*screen_y/BKB_NUM_TOOLS,NULL);
-		LineTo(hdc,BKB_TOOLBOX_WIDTH-1,i*screen_y/BKB_NUM_TOOLS);
-		TextOut(hdc,25,60+i*screen_y/BKB_NUM_TOOLS,tool_names[i],wcslen(tool_names[i]));
+		MoveToEx(hdc,0,i*tool_height,NULL);
+		LineTo(hdc,BKB_TOOLBOX_WIDTH-1,i*tool_height);
+		// Для первых четырёх пишем модификаторы вместо следующих четырёх инструментов
+		if((current_tool>=0)&&(current_tool<=3)&&(i>current_tool)&&(i<=current_tool+4)) TextOut(hdc,25,60+i*tool_height,BKBToolWnd::tool_modifier_name[i-current_tool-1],wcslen(BKBToolWnd::tool_modifier_name[i-current_tool-1]));
+		else TextOut(hdc,25,60+i*tool_height,tool_names[i],wcslen(tool_names[i]));
 	}
 
 
@@ -189,8 +213,8 @@ bool BKBToolWnd::IsItYours(POINT *pnt, BKB_MODE *bm)
 		// попала, определяем номер инструмента
 		int tool_candidate=pnt->y/(screen_y/BKB_NUM_TOOLS);
 		
-		// пока восьмой выбрать нельзя
-		if(tool_candidate>=8) return false;
+		// пока восьмой выбрать нельзя - отменено
+		if(tool_candidate>7) return false;
 
 		// Перенести панель инструментов в другую половину экрана
 		if(7==tool_candidate)
@@ -206,6 +230,21 @@ bool BKBToolWnd::IsItYours(POINT *pnt, BKB_MODE *bm)
 				MoveWindow(Tlhwnd, 0,0,BKB_TOOLBOX_WIDTH,screen_y,TRUE);
 
 			}
+			return true; // В частности, не выводит увеличительное стекло
+		}
+
+
+		// Добавление контролов и шифтов с альтами к кликам мыши
+		if((current_tool>=0)&&(current_tool<=3)&&(tool_candidate>current_tool)&&(tool_candidate<=current_tool+4))
+		{
+			// Попали в модификаторы кликов
+			int modif_number=tool_candidate-current_tool-1; // Какой из модификаторов поменять
+			if(tool_modifier[modif_number]) tool_modifier[modif_number]=false;
+			else tool_modifier[modif_number]=true;
+
+			// Пусть окно перерисует стандартная оконная процедура
+			PostMessage(Tlhwnd, WM_USER_INVALRECT, 0, 0);
+
 			return true; // В частности, не выводит увеличительное стекло
 		}
 
@@ -229,6 +268,13 @@ bool BKBToolWnd::IsItYours(POINT *pnt, BKB_MODE *bm)
 			if(BKB_MODE_KEYBOARD==*bm) BKBKeybWnd::Activate();	// активировать клавиатуру
 		}
 
+		// сбросим контрол-шифт-альт модификаторы
+		tool_modifier[0]=false;
+		tool_modifier[1]=false;
+		tool_modifier[2]=false;
+		tool_modifier[3]=false;
+		// tool_modifier[4]=false; - нет более такого
+
 		// Пусть окно перерисует стандартная оконная процедура
 		 PostMessage(Tlhwnd, WM_USER_INVALRECT, 0, 0);
 		
@@ -246,9 +292,18 @@ void BKBToolWnd::Reset(BKB_MODE *bm)
 {
 	current_tool=-1;
 	*bm=BKB_MODE_NONE;
+
+	// На всякий случай
+	tool_modifier[0]=false;
+	tool_modifier[1]=false;
+	tool_modifier[2]=false;
+	tool_modifier[3]=false;
+	// tool_modifier[4]=false; - нет его более
+
 	// Пусть окно перерисует стандартная оконная процедура
 	 PostMessage(Tlhwnd, WM_USER_INVALRECT, 0, 0);
 
+		
 }
 
 //=======================================================================

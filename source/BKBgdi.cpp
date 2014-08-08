@@ -2,7 +2,7 @@
 #include "BKBgdi.h"
 
 HPEN red_pen, green_pen, dkyellow_pen; // перья и кисти для рисования
-HBRUSH dkblue_brush, blue_brush;
+HBRUSH dkblue_brush, dkblue_brush2, blue_brush;
 HFONT hfont;
 
 int screenX, screenY;
@@ -17,6 +17,7 @@ void BKBgdiInit()
 	dkyellow_pen=CreatePen(PS_SOLID,1,RGB(227,198,2));
 
 	dkblue_brush=CreateSolidBrush(RGB(45,62,90));
+	dkblue_brush2=CreateSolidBrush(RGB(100,72,100));
 	blue_brush=CreateSolidBrush(RGB(188,199,216));
 
 	hfont = CreateFont( -48, 0, 0, 0, FW_BOLD, 0, 0, 0,

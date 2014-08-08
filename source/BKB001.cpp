@@ -64,10 +64,11 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 	BKBClick::Init();
 
 	// Создаем окна
-	BKBMagnifyWnd::Init(); // Увеличительное
-	BKBToolWnd::Init(); // Инструменты с правой стороны
-	BKBKeybWnd::Init(); // Клавиатура
-	BKBTranspWnd::Init(); // Прозрачное окно
+	//BKBMagnifyWnd::Init(); // Увеличительное
+	HWND master_hwnd=BKBToolWnd::Init(); // Инструменты с правой стороны
+	BKBMagnifyWnd::Init(master_hwnd); // Увеличительное
+	BKBKeybWnd::Init(master_hwnd); // Клавиатура
+	BKBTranspWnd::Init(master_hwnd); // Прозрачное окно
 
 	//Цикл обработки сообщений
 	while(GetMessage(&msg,NULL,0,0)) 

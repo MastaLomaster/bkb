@@ -12,10 +12,12 @@ public:
 	static BKB_MODE CurrentMode(){return BKB_Mode; };
 	static void Scroll(uint64_t timelag, int direction);
 protected:
-	static void LeftClick(POINT p);
+	static void LeftClick(POINT p, bool skip_modifier_press=false, bool skip_modifier_unpress=false);
 	static void RightClick(POINT p);
 	static void DoubleClick(POINT p);
 	static bool Drag(POINT p); // true - значит закончил, можно сбрасывать режим
+	static void ClickModifiers(bool press); // нажать-отпустить модификаторы клика
+
 	static BKB_MODE BKB_Mode;
 };
 

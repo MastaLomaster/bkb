@@ -5,6 +5,7 @@
 #include "MagnifyWnd.h"
 #include "ToolWnd.h"
 #include "KeybWnd.h"
+#include "WM_USER_messages.h"
 
 //static char debug_buf[4096]; 
 
@@ -24,36 +25,53 @@ bool Fixation::Fix(POINT p)
 	{
 	// Сначала все мышиные с увеличением
 	case BKB_MODE_LCLICK: // Щелчок левой кнопкой мыши
-	case BKB_MODE_LCLICK_PLUS: // Щелчок левой кнопкой мыши
+	case BKB_MODE_LCLICK_PLUS: // Повторяющийся щелчок левой кнопкой мыши
 	case BKB_MODE_RCLICK: // Щелчок правой кнопкой мыши
+	//case BKB_MODE_RCLICK_PLUS: // Повторяющийся щелчок правой кнопкой мыши
 	case BKB_MODE_DOUBLECLICK: // Двойной щелчок
 	case BKB_MODE_DRAG: // Ну, дрег
 
 		// Если окно уже показано, получить координаты на экране в этом окне
 		// Переключение режима с открытым окном Magnify невозможно
-		if(BKBMagnifyWnd::IsVisible())
+		if(BKBMagnifyWnd::IsVisible()||BKBToolWnd::tool_modifier[3]) // 3-й параметр меню - работать без зума
 		{
-			if(BKBMagnifyWnd::FixPoint(&p)) // попали в окно, координаты точки уточнены при увеличении
+			bool bresult=false;
+			if(BKBMagnifyWnd::IsVisible()) bresult=BKBMagnifyWnd::FixPoint(&p); // попали в окно, координаты точки уточнены при увеличении
+			else bresult=!BKBToolWnd::IsItYours(&p, &BKB_Mode); // продолжаем, только если без зума не попали в тулбар
+
+			if(bresult)
 			{
 				switch (BKB_Mode) // О! Опять!
 				{
 					case BKB_MODE_LCLICK: // Щелчок левой кнопкой мыши
 						LeftClick(p);
-						BKBToolWnd::Reset(&BKB_Mode); // один раз только ловим клик-то
+						BKBToolWnd::Reset(&BKB_Mode); // один раз только ловим клик-то, когда нет повтора
+						//if(!BKBToolWnd::tool_modifier[0]) BKBToolWnd::Reset(&BKB_Mode); // один раз только ловим клик-то, когда нет повтора
 						break;
 
 					case BKB_MODE_LCLICK_PLUS: // Повторяющийся щелчок левой кнопкой мыши
 						LeftClick(p);
-						break;
+						break; 
 
 					case BKB_MODE_RCLICK: // Щелчок правой кнопкой мыши
 						RightClick(p);
-						BKBToolWnd::Reset(&BKB_Mode); // один раз только ловим клик-то
+						// Теперь после правого клика автоматически включается левый
+						BKBToolWnd::current_tool=0;
+						BKB_Mode=BKB_MODE_LCLICK;
+						// Пусть окно перерисует стандартная оконная процедура
+						PostMessage(BKBToolWnd::GetHwnd(), WM_USER_INVALRECT, 0, 0);
+						//BKBToolWnd::Reset(&BKB_Mode); // один раз только ловим клик-то, когда нет повтора
+						//if(!BKBToolWnd::tool_modifier[0]) BKBToolWnd::Reset(&BKB_Mode); // один раз только ловим клик-то, когда нет повтора
 						break;
+
+					/*case BKB_MODE_RCLICK_PLUS: // Повторяющийся щелчок правой кнопкой мыши
+						RightClick(p);
+						break; */
 
 					case BKB_MODE_DOUBLECLICK: // Двойной щелчок
 						DoubleClick(p);
-						BKBToolWnd::Reset(&BKB_Mode); // один раз только ловим клик-то
+						BKBToolWnd::Reset(&BKB_Mode);
+						//if(!BKBToolWnd::tool_modifier[0]) BKBToolWnd::Reset(&BKB_Mode); // один раз только ловим клик-то, когда нет повтора
 						break;
 
 					case BKB_MODE_DRAG: // Ну, дрег
@@ -107,7 +125,7 @@ bool Fixation::Fix(POINT p)
 //==============================================================================================
 // Имитирует нажатие и отпускание левой кнопки мыши
 //==============================================================================================
-void Fixation::LeftClick(POINT p)
+void Fixation::LeftClick(POINT p, bool skip_modifier_press, bool skip_modifier_unpress)
 {
 	// Содрано из интернета
 	double XSCALEFACTOR = 65535.0 / (GetSystemMetrics(SM_CXSCREEN) - 1);
@@ -122,6 +140,8 @@ void Fixation::LeftClick(POINT p)
 	//screenx=GetSystemMetrics(SM_CXSCREEN);
 	//sprintf(debug_buf,"xs:%d ys:%d x:%d y:%d",xs,ys,x,y);
 	//MessageBox(NULL,debug_buf,"debug",MB_OK);
+
+	if(!skip_modifier_press) ClickModifiers(true); // Вдруг нужно добавить Ctrl, Shift, Alt?
 
 	INPUT input[3]={0};
 
@@ -154,6 +174,8 @@ void Fixation::LeftClick(POINT p)
 		
 	// Имитирует нажатие и отпускание левой кнопки мыши
 	SendInput(3,input,sizeof(INPUT));
+
+	if(!skip_modifier_unpress) ClickModifiers(false); // Вдруг нужно отпустить Ctrl, Shift, Alt?
 }
 
 //==============================================================================================
@@ -164,6 +186,8 @@ void Fixation::RightClick(POINT p)
 	// Содрано из интернета
 	double XSCALEFACTOR = 65535.0 / (GetSystemMetrics(SM_CXSCREEN) - 1);
     double YSCALEFACTOR = 65535.0 / (GetSystemMetrics(SM_CYSCREEN) - 1);
+
+	ClickModifiers(true); // Вдруг нужно добавить Ctrl, Shift, Alt?
 
 	INPUT input[3]={0};
 
@@ -196,6 +220,8 @@ void Fixation::RightClick(POINT p)
 		
 	// Имитирует нажатие и отпускание правой кнопки мыши
 	SendInput(3,input,sizeof(INPUT));
+
+	ClickModifiers(false); // Вдруг нужно отпустить Ctrl, Shift, Alt?
 }
 
 //==============================================================================================
@@ -203,9 +229,9 @@ void Fixation::RightClick(POINT p)
 //==============================================================================================
 void Fixation::DoubleClick(POINT p)
 {
-	LeftClick(p);
+	LeftClick(p,false,true); // Не отпускаем Ctrl и т.д.
 	Sleep(80);
-	LeftClick(p);
+	LeftClick(p,true,false); // Не нажимаем повторно Ctrl и т.д.
 }
 
 
@@ -306,4 +332,32 @@ void Fixation::Scroll(uint64_t timelag, int direction)
 	input.mi.dwExtraInfo=0;
 
 	SendInput(1,&input,sizeof(INPUT));
+}
+
+//===========================================================================
+// спец-клавиши Ctrl, Shift, Alt  до (press=true) и после (press=false) клика
+//===========================================================================
+void Fixation::ClickModifiers(bool press)
+{
+	INPUT input={0};
+	input.type=INPUT_KEYBOARD;
+	if(!press) input.ki.dwFlags = KEYEVENTF_KEYUP ;
+
+	// Спец-клавиши
+	if(BKBToolWnd::tool_modifier[1]) // 1 - это + Shift
+	{
+		input.ki.wVk=VK_SHIFT;
+		SendInput(1,&input,sizeof(INPUT));		
+	}
+	if(BKBToolWnd::tool_modifier[0]) // 0 - это + Ctrl
+	{
+		input.ki.wVk=VK_CONTROL;
+		SendInput(1,&input,sizeof(INPUT));		
+	}
+	if(BKBToolWnd::tool_modifier[2]) // 2 - это + Alt
+	{
+		input.ki.wVk=VK_MENU;
+		SendInput(1,&input,sizeof(INPUT));		
+	}
+
 }

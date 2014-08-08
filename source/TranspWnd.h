@@ -5,7 +5,7 @@
 class BKBTranspWnd
 {
 public:
-	static void Init();
+	static void Init(HWND master_hwnd);
 	static void Move(int x, int y);
 	static void ToTop(){ SetActiveWindow(Trhwnd); BringWindowToTop(Trhwnd); }
 	static void Show();

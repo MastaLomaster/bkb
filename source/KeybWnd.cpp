@@ -111,7 +111,7 @@ void BKBKeybWnd::OnTimer()
 //================================================================
 // Инициализация 
 //================================================================
-void BKBKeybWnd::Init()
+void BKBKeybWnd::Init(HWND master_hwnd)
 {
 	ATOM aresult; // Для всяких кодов возврата
 	
@@ -157,7 +157,9 @@ void BKBKeybWnd::Init()
     //WS_VISIBLE|WS_POPUP,
 	WS_POPUP,
 	0,screen_y-1-(INT)(cell_height*rows),screen_x,(INT)(cell_height*rows), 
-    0, 0, BKBInst, 0L );
+    //0, 
+	master_hwnd, // Чтобы в таскбаре и при альт-табе не появлялись лишние окна
+	0, BKBInst, 0L );
 
 	if(NULL==Kbhwnd)
 	{

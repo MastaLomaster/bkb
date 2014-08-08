@@ -6,16 +6,19 @@
 class BKBToolWnd
 {
 public: 
-	static void Init();
+	static HWND Init();
 	static bool IsItYours(POINT *pnt, BKB_MODE *bm);
 	static void OnPaint(HDC hdc=0);
 	static void Reset(BKB_MODE *bm);
 	static void ScrollCursor(POINT *p);
 	static HWND GetHwnd(){return Tlhwnd;};
+
+	static bool tool_modifier[4];
+	static int current_tool;
 protected:
+	static TCHAR *tool_modifier_name[4];
 	static HWND Tlhwnd;
 	static int screen_x, screen_y;
-	static int current_tool;
 	static bool left_side;
 };
 

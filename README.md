@@ -103,7 +103,7 @@ The "Eye Tribe Server" program must be running. Also you need to calibrate the d
 There is a click sound when you press the keyboard buttons. If you don't like the sound, place a WAV-file with the desired sound into the working directory of the program and name it "click.wav".
 
 ###Basic work principles
-After program started and a supported device is selected, you may see the toolbar on the right side. If you ise an eye tracker, the transparent window with the cursor will be shown, it will follow your eyes movements. When using an [air]mouse, the regular cursor is used. To select a tool fixate your eyes on the tool button.
+After program started and a supported device is selected, you may see the toolbar on the right side. If you use an eye tracker, the transparent window with the cursor will be shown, it will follow your eyes movements. When using an [air]mouse, the regular cursor is used. To select a tool fixate your eyes on the tool button.
 
 Take a look at these videos to understand the modes of operation:
 

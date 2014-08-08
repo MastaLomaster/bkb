@@ -3,15 +3,23 @@
 #include <stdio.h>
 #include "Smooth.h"
 
+// При выставленном BKB_MOVING_AVERAGE используется тупой алгоритм скользящего среднего
+// При сброшенном BKB_MOVING_AVERAGE - рекурсивный фильтр НЧ, как в "PONTUS OLSSON/Real-time and Offline Filters for Eye Tracking"
+
+#define BKB_MOVING_AVERAGE 1
+int G_alpha_for_filtering=25;
+static POINT last_point={0,0};
+
 #define BKB_NUM_SMOOTH_POINTS 12
 // Массив для сглаживания последних точек
-static POINT spoints[2][BKB_NUM_SMOOTH_POINTS]={};
+static POINT spoints[2][BKB_NUM_SMOOTH_POINTS]={0};
 // Массив последних СГЛАЖЕННЫХ точек
-static POINT processed_points[2][BKB_NUM_SMOOTH_POINTS]={};
+static POINT processed_points[2][BKB_NUM_SMOOTH_POINTS]={0};
 static int current_point[2]={0,0};
 static double dispersion[2]={1000,1000};
 
 extern int flag_using_airmouse;
+
 
 //==============================================================
 // Сглаживание данных от трекера
@@ -28,14 +36,27 @@ double BKBSmooth(POINT *point, bool eye)
 	{
 		spoints[eye][current_point[eye]]=*point;
 		
-		point->x=0;point->y=0;
-		for(i=0;i<BKB_NUM_SMOOTH_POINTS;i++)
+		// Старый алгоритм - тупое скользящее среднее
+		if(BKB_MOVING_AVERAGE)
 		{
-			point->x+=spoints[eye][i].x;
-			point->y+=spoints[eye][i].y;
+			point->x=0;point->y=0;
+			for(i=0;i<BKB_NUM_SMOOTH_POINTS;i++)
+			{
+				point->x+=spoints[eye][i].x;
+				point->y+=spoints[eye][i].y;
+			}
+			point->x/=BKB_NUM_SMOOTH_POINTS;
+			point->y/=BKB_NUM_SMOOTH_POINTS;
 		}
-		point->x/=BKB_NUM_SMOOTH_POINTS;
-		point->y/=BKB_NUM_SMOOTH_POINTS;
+		else // рекурсивный фильтр НЧ, как в "PONTUS OLSSON/Real-time and Offline Filters for Eye Tracking"
+		{
+			point->x=(LONG)((point->x+G_alpha_for_filtering*last_point.x)/(1.0+G_alpha_for_filtering));
+			point->y=(LONG)((point->y+G_alpha_for_filtering*last_point.y)/(1.0+G_alpha_for_filtering));
+			last_point=*point;
+		}
+
+
+
 	}
 
 	processed_points[eye][current_point[eye]]=*point;

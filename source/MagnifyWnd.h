@@ -4,7 +4,7 @@
 class BKBMagnifyWnd
 {
 public:
-	static void Init();
+	static void Init(HWND master_hwnd);
 	static bool FixPoint(POINT *pnt);
 	static void Reset();
 	static bool IsVisible(){return mgf_visible;};

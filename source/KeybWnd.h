@@ -21,7 +21,7 @@ typedef struct
 class BKBKeybWnd
 {
 public:
-	static void Init();
+	static void Init(HWND master_hwnd);
 	static bool FixPoint(POINT *pnt);
 	static void OnPaint(HDC hdc=0);
 	static bool IsItYours(POINT *p);
