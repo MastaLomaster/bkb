@@ -49,6 +49,7 @@ static BOOL CALLBACK DlgSettingsWndProc(HWND hdwnd,
 			case IDOK: 	//Хорошо!
 				ShowWindow(hdwnd,SW_HIDE);
 				BKBSettings::Screen2Load(hdwnd);
+				BKBSettings::ActualizeLoad();
 				BKBSettings::SaveBKBConfig();
 				return 1; 
 
