@@ -12,6 +12,7 @@ public:
 	static void Reset(BKB_MODE *bm);
 	static void ScrollCursor(POINT *p);
 	static HWND GetHwnd(){return Tlhwnd;};
+	static void SleepCheck(POINT *p);
 
 	static bool tool_modifier[4];
 	static int current_tool;

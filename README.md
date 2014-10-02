@@ -48,10 +48,10 @@ http://youtu.be/rqcN9IZ39_4
 - не работает в полноэкранных приложениях
 - не работает в Metro-интерфейсе Windows 8/8.1, нужно пользоваться старорежимным рабочим столом
 - некоторые программы (созданные до эпохи unicode) неправильно воспринимают символы на русской клавиатуре
-- drag-and-drop не всегда корректно работает, в частности, не перетаскивает иконки на рабочем столе
+- drag-and-drop не всегда корректно работает, в частности, не перетаскивает иконки на рабочем столе на некоторых машинах
 - сбивается положение окон после logout/switch user
-- нельзя настроить время нажатия клавиш клавиатуры и вообще все задержки
-- нельзя щелкнуть мышью, удерживая нажатой клавиши (Ctrl, например)
+- нельзя настроить время нажатия клавиш клавиатуры и вообще все задержки [исправлено]
+- нельзя щелкнуть мышью, удерживая нажатой клавиши (Ctrl, например) [исправлено]
 ну и ещё куча по мелочи...
 
 ###Перевод на другие языки:
@@ -75,7 +75,7 @@ Windows нужны: Ws2_32.lib, winmm.lib,Msimg32.lib
 
 ##English
 
-bkb is a program to control keyboard/mouse with eyes It supports TobiiREX and EyeX eye trackers, The Eye Trybe eye tracker, and any device that can move a mouse cursor (e.g. an airmouse).
+bkb is a program to control keyboard/mouse with eyes. It supports TobiiREX and EyeX eye trackers, The Eye Trybe eye tracker, and any device that can move a mouse cursor (e.g. an airmouse).
 
 ###Installation:
 Just unzip the bkb32c-English.zip to any folder. Make sure that this folder remains the working  directory of the program. Otherwise the program won't load messages.bkb and keyboard.bkb files,  and you'll get Russian interface instead of English one.
@@ -117,10 +117,10 @@ http://youtu.be/rqcN9IZ39_4
 - no easy way to exit the program. One have to close windows in the task bar
 - doesn't work with fullscreen applacations so far
 - doesn't work with the Metro-style interface of Windows 8/8.1, you have to use good old desktop
-- drag-and-drop doesn't work in some cases, for example you cannot move desktop icons
+- drag-and-drop doesn't work in some cases, for example you cannot move desktop icons on some PCs
 - windows moved and doesn't work properly after logout/switch user
-- you cannot define timings (keyboard press, fixations, etc.)
-- impossible to click with a mouse holding the keyboard button pressed (e.g. Ctrl + click)
+- you cannot define timings (keyboard press, fixations, etc.) [fixed]
+- impossible to click with a mouse holding the keyboard button pressed (e.g. Ctrl + click) [fixed]
 - and many more small things....
 
 ###Translate to other languages:

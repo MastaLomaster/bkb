@@ -59,6 +59,14 @@ void BKBTranspWnd::Init(HWND master_hwnd)
 {
 	ATOM aresult; // Для всяких кодов возврата
 	
+
+	// 0.  Для аэромыши вообще его не создаём!
+	if(!flag_show_transp_window)
+	{
+		Trhwnd=0;
+		return;
+	}
+
 	// 1. Регистрация класса окна
 	WNDCLASS wcl={CS_HREDRAW | CS_VREDRAW, BKBTranspWndProc, 0,
 		//sizeof(LONG_PTR), // Сюда пропишем ссылку на объект
@@ -122,7 +130,15 @@ void BKBTranspWnd::Show()
 
 void BKBTranspWnd::Hide()
 {
-	ShowWindow(Trhwnd,SW_HIDE); 
+	if(flag_show_transp_window)
+		ShowWindow(Trhwnd,SW_HIDE); 
 }
 
-	
+void BKBTranspWnd::ToTop()	
+{ 
+	if(flag_show_transp_window)
+	{
+		SetActiveWindow(Trhwnd);
+		BringWindowToTop(Trhwnd); 
+	}
+}

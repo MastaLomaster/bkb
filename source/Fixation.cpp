@@ -1,5 +1,4 @@
 ﻿#include <Windows.h>
-#include <stdint.h> // Это для uint64_t
 #include <stdio.h> // Это для отладки 
 #include "Fixation.h"
 #include "MagnifyWnd.h"
@@ -9,6 +8,8 @@
 
 //static char debug_buf[4096]; 
 
+extern bool skip_mouse_hook; // Не удлиннять движения мыши, если мы их сами запрограммировали
+
 BKB_MODE Fixation::BKB_Mode=BKB_MODE_NONE;
 
 //==============================================================================================
@@ -17,6 +18,7 @@ BKB_MODE Fixation::BKB_Mode=BKB_MODE_NONE;
 //==============================================================================================
 bool Fixation::Fix(POINT p)
 {
+
 	// Это чтобы случайно не переключить режим в середине дрега
 	static bool drag_in_progress=false;
 
@@ -29,6 +31,7 @@ bool Fixation::Fix(POINT p)
 	case BKB_MODE_RCLICK: // Щелчок правой кнопкой мыши
 	//case BKB_MODE_RCLICK_PLUS: // Повторяющийся щелчок правой кнопкой мыши
 	case BKB_MODE_DOUBLECLICK: // Двойной щелчок
+	case BKB_MODE_DOUBLECLICK_PLUS: // Повторяющийся двойной щелчок
 	case BKB_MODE_DRAG: // Ну, дрег
 
 		// Если окно уже показано, получить координаты на экране в этом окне
@@ -56,8 +59,8 @@ bool Fixation::Fix(POINT p)
 					case BKB_MODE_RCLICK: // Щелчок правой кнопкой мыши
 						RightClick(p);
 						// Теперь после правого клика автоматически включается левый
-						BKBToolWnd::current_tool=0;
-						BKB_Mode=BKB_MODE_LCLICK;
+						BKBToolWnd::current_tool=1;
+						BKB_Mode=BKB_MODE_LCLICK_PLUS;
 						// Пусть окно перерисует стандартная оконная процедура
 						PostMessage(BKBToolWnd::GetHwnd(), WM_USER_INVALRECT, 0, 0);
 						//BKBToolWnd::Reset(&BKB_Mode); // один раз только ловим клик-то, когда нет повтора
@@ -72,6 +75,10 @@ bool Fixation::Fix(POINT p)
 						DoubleClick(p);
 						BKBToolWnd::Reset(&BKB_Mode);
 						//if(!BKBToolWnd::tool_modifier[0]) BKBToolWnd::Reset(&BKB_Mode); // один раз только ловим клик-то, когда нет повтора
+						break;
+
+					case BKB_MODE_DOUBLECLICK_PLUS: // Повторяющийся двойной щелчок
+						DoubleClick(p);
 						break;
 
 					case BKB_MODE_DRAG: // Ну, дрег
@@ -105,7 +112,7 @@ bool Fixation::Fix(POINT p)
 
 	case BKB_MODE_KEYBOARD: 
 		// клавиша нажата?
-		if(!BKBKeybWnd::IsItYours(&p))
+		if(!BKBKeybWnd::IsItYours(&p, &BKB_Mode))
 		{
 			// нет, возможно, это переключение режима
 			BKBToolWnd::IsItYours(&p, &BKB_Mode);
@@ -173,7 +180,9 @@ void Fixation::LeftClick(POINT p, bool skip_modifier_press, bool skip_modifier_u
 	input[2].mi.dwExtraInfo=0;
 		
 	// Имитирует нажатие и отпускание левой кнопки мыши
+	skip_mouse_hook=true;
 	SendInput(3,input,sizeof(INPUT));
+	skip_mouse_hook=false;
 
 	if(!skip_modifier_unpress) ClickModifiers(false); // Вдруг нужно отпустить Ctrl, Shift, Alt?
 }
@@ -219,7 +228,9 @@ void Fixation::RightClick(POINT p)
 	input[2].mi.dwExtraInfo=0;
 		
 	// Имитирует нажатие и отпускание правой кнопки мыши
+	skip_mouse_hook=true;
 	SendInput(3,input,sizeof(INPUT));
+	skip_mouse_hook=false;
 
 	ClickModifiers(false); // Вдруг нужно отпустить Ctrl, Shift, Alt?
 }
@@ -300,9 +311,11 @@ bool Fixation::Drag(POINT p)
 
 	// Имитирует нажатие и отпускание правой кнопки мыши
 	//SendInput(4,input,sizeof(INPUT));
+	skip_mouse_hook=true;
 	SendInput(2,&input[0],sizeof(INPUT));
 	Sleep(80);
 	SendInput(2,&input[2],sizeof(INPUT));
+	skip_mouse_hook=false;
 
 	return drag_in_progress;
 
@@ -330,6 +343,7 @@ void Fixation::Scroll(uint64_t timelag, int direction)
 	input.mi.dwFlags=MOUSEEVENTF_WHEEL;
 	input.mi.time=0;
 	input.mi.dwExtraInfo=0;
+
 
 	SendInput(1,&input,sizeof(INPUT));
 }

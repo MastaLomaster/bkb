@@ -127,7 +127,7 @@ BKB_key RefBKBKeybLayouts[135]=
 			// верхний ряд клавиш
 	
 			{leftkbd,0,0,0,0,L"<<сюда",0}, // переход на клавиатуру слева
-			{scancode,VK_TAB,0,0,0,L"TAB",0},
+			{scancode,VK_TAB,0,0,0,L"TAB",L"Настройки"},
 			{unicode,0,0x040,0x040,0,L"@",0},
 			{unicode,0,0x023,0x023,0,L"#",0},
 			{unicode,0,0x024,0x024,0,L"$",0},

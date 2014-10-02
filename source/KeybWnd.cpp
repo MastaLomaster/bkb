@@ -3,8 +3,11 @@
 #include "BKBRepErr.h"
 #include "Click.h"
 #include "WM_USER_messages.h"
+#include "BKBSettings.h"
+#include "ToolWnd.h"
+#include "TranspWnd.h"
 
-//#define BELYAKOV
+
  
 extern int flag_using_airmouse;
 
@@ -38,6 +41,12 @@ int BKBKeybWnd::row_pressed=-1, BKBKeybWnd::column_pressed=-1;
 
 extern HBRUSH dkblue_brush, blue_brush;
 extern HFONT hfont;
+
+#ifdef BELYAKOV
+// раскладки клавиатуры
+LPCTSTR kbd_usenglish=L"00000409", kbd_russian=L"00000419"; 
+HKL hkl_usenglish=0, hkl_russian=0;
+#endif
 
 
 // Оконная процедура 
@@ -146,6 +155,12 @@ void BKBKeybWnd::Init(HWND master_hwnd)
 	screen_y=GetSystemMetrics(SM_CYSCREEN);
 	cell_width=screen_x/(float)columns;
 
+#ifdef BELYAKOV
+	// приготовим заранее идентификаторы клавиатур
+	hkl_usenglish=LoadKeyboardLayout(kbd_usenglish, 0);
+	hkl_russian=LoadKeyboardLayout(kbd_russian, 0);
+#endif
+
 	//start_y=screen_y-(int)(cell_size*3);
 	if(cell_width*rows<screen_y*0.45f) cell_height=cell_width; // Удалось уложиться в 0.45 высоты экрана при квадратных кнопках
 	else cell_height=0.45f*screen_y/rows; // Приплюснем кнопки, чтобы не перекрыть более 0.45 экрана
@@ -167,6 +182,7 @@ void BKBKeybWnd::Init(HWND master_hwnd)
 	}
 
 	// ShowWindow(Kbhwnd,SW_SHOWNORMAL);
+	ShowWindow(Kbhwnd,SW_HIDE);
 }
 
 //================================================================
@@ -268,34 +284,7 @@ void BKBKeybWnd::OnPaint(HDC hdc)
 		}
 
 		// 3. Пишем буквы
-		// 3.1. Системным фонтом - то, что длиннее одного символа
-		for(j=0;j<rows;j++)
-			for(i=0;i<columns;i++)
-			{
-				key=layout[current_pane*rows*columns+j*columns+i]; //BKBKeybLayouts[current_pane][j][i];
-				if(undefined==key.bkb_keytype) continue;
-
-				if(NULL!=key.label) // проверка, что там не NULL
-				if(wcslen(key.label)>1)
-				{
-					if(fn==key.bkb_keytype) SetTextColor(memdc1,RGB(255,155,155)); // Кнопку Fn подкрашиваем
-					TextOut(memdc1,int(cell_width*0.2+i*cell_width) , int(cell_height/3+j*cell_height),
-						key.label,wcslen(key.label));
-					if(fn==key.bkb_keytype) SetTextColor(memdc1,RGB(255,255,255)); 
-				}
-				
-				// Если есть Fn-клавиша, написать её в правом нижнем углу красным цветом
-				if(NULL!=key.fn_label)
-				{
-					SetTextColor(memdc1,RGB(255,155,155));
-					//TextOut(memdc1,int(cell_width*0.4+i*cell_width) , int(cell_height/3+j*cell_height), key.label,wcslen(key.label));
-					TextOut(memdc1,int(cell_width*0.4+i*cell_width) , int(cell_height*0.8+j*cell_height),key.fn_label,wcslen(key.fn_label));
-					
-					SetTextColor(memdc1,RGB(255,255,255)); // Верни цвет на белый
-				}
-			}
-				
-		// 3.2. Своим фонтом - из одного символа
+		// 3.1. Своим фонтом - из одного символа
 		old_font=(HFONT)SelectObject(memdc1, hfont);
 
 		for(j=0;j<rows;j++)
@@ -306,13 +295,44 @@ void BKBKeybWnd::OnPaint(HDC hdc)
 
 				if(NULL!=key.label) // проверка, что там не NULL
 				if(1==wcslen(key.label))
-				TextOut(memdc1,int(cell_width*0.4+i*cell_width) , int(cell_height/3+j*cell_height),
+				TextOut(memdc1,int(cell_width*0.4+i*cell_width) , int(cell_height/3.1+j*cell_height),
 					key.label,wcslen(key.label));
 			}
 	
 		// Возвращаем старый фонт
 		SelectObject(memdc1, old_font);
 
+		// 3.2. Системным фонтом - то, что длиннее одного символа
+		for(j=0;j<rows;j++)
+			for(i=0;i<columns;i++)
+			{
+				key=layout[current_pane*rows*columns+j*columns+i]; //BKBKeybLayouts[current_pane][j][i];
+				if(undefined==key.bkb_keytype) continue;
+
+				if(NULL!=key.label) // проверка, что там не NULL
+				if(wcslen(key.label)>1)
+				{
+					if(fn==key.bkb_keytype) SetTextColor(memdc1,RGB(255,155,155)); // Кнопку Fn подкрашиваем
+					TextOut(memdc1,int(cell_width*0.2+i*cell_width) , int(cell_height/3.1+j*cell_height),
+						key.label,wcslen(key.label));
+					if(fn==key.bkb_keytype) SetTextColor(memdc1,RGB(255,255,255)); 
+				}
+				
+				// Если есть Fn-клавиша, написать её в [правом] левом нижнем углу красным цветом
+				if(NULL!=key.fn_label)
+				{
+					SetTextColor(memdc1,RGB(255,155,155));
+					//TextOut(memdc1,int(cell_width*0.4+i*cell_width) , int(cell_height/3+j*cell_height), key.label,wcslen(key.label));
+#ifdef BELYAKOV
+					TextOut(memdc1,int(cell_width*0.03+i*cell_width) , int(cell_height*0.79+j*cell_height),key.fn_label,wcslen(key.fn_label));
+#else
+					TextOut(memdc1,int(cell_width*0.1+i*cell_width) , int(cell_height*0.79+j*cell_height),key.fn_label,wcslen(key.fn_label));
+#endif
+					SetTextColor(memdc1,RGB(255,255,255)); // Верни цвет на белый
+				}
+			}
+				
+		
 		// ЗДЕСЬ НЕ НУЖЕН break !!! После нулевого шага всегда идёт первый!!!
 
 	case 1:
@@ -432,7 +452,7 @@ void BKBKeybWnd::ProgressBarReset()
 //===========================================================================
 // Произошла фиксация, возможно на клавиатуре
 //===========================================================================
-bool BKBKeybWnd::IsItYours(POINT *p)
+bool BKBKeybWnd::IsItYours(POINT *p, BKB_MODE *bm)
 {
 	INPUT input[2]={0},shift_input={0},ctrl_input={0},alt_input={0};
 
@@ -448,9 +468,19 @@ bool BKBKeybWnd::IsItYours(POINT *p)
 		// Функциональные (Fn) клавиши
 		if(Fn_pressed)
 		{
-			if(key_pressed.bkb_fn_vscancode) // Есть, что нажать
+			// во внешних файлах клавиатур загрузка строки Fn происходит, только когда стоит bkb_fn_scancode
+			if((key_pressed.bkb_fn_vscancode)&&(0x09!=key_pressed.bkb_vscancode)) // Есть, что нажать
 			{
 				ScanCodeButton(key_pressed.bkb_fn_vscancode);
+			}
+			else if(0x09==key_pressed.bkb_vscancode) // Fn+TAB==Settings Dialogue
+			{
+				BKBKeybWnd::DeActivate();	// деактивировать клавиатуру, сбросить режим, перерисовать Toolbar
+				BKBToolWnd::current_tool=-1;
+				*bm=BKB_MODE_NONE;
+				BKBTranspWnd::Show(); // Показать стрелку
+				PostMessage(BKBToolWnd::GetHwnd(), WM_USER_INVALRECT, 0, 0);
+				BKBSettings::SettingsDialogue();
 			}
 			Fn_pressed=false; // Сбрасываем нажатую клавишу Fn, даже если не было, что нажать
 		}
@@ -620,6 +650,14 @@ void BKBKeybWnd::ScanCodeButton(WORD scancode)
 	INPUT input={0};
 	input.type=INPUT_KEYBOARD;
 
+	// 15.09.2014 При нажатии на PrntScrn прятать клавиатуру
+	if(VK_SNAPSHOT==scancode)
+	{
+		//ShowWindow(Kbhwnd,SW_HIDE);
+		ShowWindow(Kbhwnd,SW_MINIMIZE);
+		Sleep(300);
+	}
+
 	// Спец-клавиши
 	if(shift_pressed)
 	{
@@ -640,6 +678,8 @@ void BKBKeybWnd::ScanCodeButton(WORD scancode)
 		SendInput(1,&input,sizeof(INPUT));		
 	}
 
+
+
 	// Сама нажатая кнопка
 	// Нажатие кнопки
 	input.ki.dwFlags =  0;
@@ -653,6 +693,7 @@ void BKBKeybWnd::ScanCodeButton(WORD scancode)
 	input.ki.dwFlags = KEYEVENTF_KEYUP ;
 	SendInput(1,&input,sizeof(INPUT));		
 	
+
 	// Спец-клавиши
 	if(shift_pressed)
 	{
@@ -689,6 +730,14 @@ void BKBKeybWnd::ScanCodeButton(WORD scancode)
 		alt_pressed=false; // отпускаем Alt
 	}
 	
+	// 15.09.2014 При нажатии на PrntScrn прятать клавиатуру
+	if(VK_SNAPSHOT==scancode) 
+	{
+		Sleep(300);
+		ShowWindow(Kbhwnd,SW_RESTORE);
+		//ShowWindow(Kbhwnd,SW_SHOWNORMAL);
+	}
+
 	//if(redraw_reqired) InvalidateRect(Kbhwnd,NULL,TRUE); // перерисовать клавиатуру
 }
 
@@ -805,6 +854,17 @@ void BKBKeybWnd::OnTopDown()
 void BKBKeybWnd::PopulateCtrlAltShiftFn()
 {
 	if(!layout) return;
+
+#ifdef BELYAKOV
+	// переключаем раскладку для клавиатуры у Белякова
+	// код свистнут из форума vingrad
+	if(0==current_pane)
+		PostMessage(GetForegroundWindow(),WM_INPUTLANGCHANGEREQUEST, 0, (LPARAM)hkl_russian);
+		//ActivateKeyboardLayout(hkl_russian, KLF_SETFORPROCESS);
+	else
+		PostMessage(GetForegroundWindow(),WM_INPUTLANGCHANGEREQUEST, 0, (LPARAM)hkl_usenglish);
+		//ActivateKeyboardLayout(hkl_usenglish, KLF_SETFORPROCESS);
+#endif
 
 	int i,j;
 

@@ -98,8 +98,8 @@ bool BKBMagnifyWnd::FixPoint(POINT *pnt)
 	if(mgf_visible) // Увеличительное окно открыто
 	{
 		// прячем окно в любом случае
-		mgf_visible=false;
-		ShowWindow(Mghwnd,SW_HIDE);
+		//mgf_visible=false;
+		//ShowWindow(Mghwnd,SW_HIDE);
 
 		// а попали ли мы в открытое окно?
 		POINT local_point=*pnt;
@@ -109,6 +109,11 @@ bool BKBMagnifyWnd::FixPoint(POINT *pnt)
 		p1=local_point;
 		ScreenToClient(Mghwnd,&local_point); // Координаты в клиентском окне
 		p2=local_point;
+
+		// прячем окно в любом случае
+		mgf_visible=false;
+		ShowWindow(Mghwnd,SW_HIDE);
+
 		if((local_point.x>=0)&&(local_point.x<x_size)&&
 			(local_point.y>=0)&&(local_point.y<y_size))
 		{

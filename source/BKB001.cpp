@@ -10,6 +10,7 @@
 #include "BKBgdi.h"
 #include "TET.h"
 #include "Click.h"
+#include "BKBSettings.h"
 
 // Прототип WndProc решил в .h не включать
 LRESULT CALLBACK WndProc(HWND,UINT,WPARAM,LPARAM);
@@ -36,6 +37,8 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 	// Если есть другой язык - загружаем его
 	Internat::LoadMessages();
 	BKBKeybWnd::Load(); // Если есть клавиатура - загружаем её
+	BKBSettings::OpenBKBConfig(); // Пробуем прочитать параметры
+	BKBSettings::ActualizeLoad(); // Прочитанные параметры считаем верными и пускаем их в бой
 
 	// Что будем использовать?
 	flag_using_airmouse=StartupDialog();

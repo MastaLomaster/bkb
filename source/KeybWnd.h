@@ -1,6 +1,8 @@
 ﻿#ifndef __BKB_KEYBWND
 #define __BKB_KEYBWND
 
+#include "Fixation.h"
+
 // Типы клавиш на клавиатуре
 typedef enum {undefined=0,scancode,unicode,shift,control,alt,leftkbd,rightkbd,fn,top_down
 	} BKB_KEY_TYPE;
@@ -24,7 +26,7 @@ public:
 	static void Init(HWND master_hwnd);
 	static bool FixPoint(POINT *pnt);
 	static void OnPaint(HDC hdc=0);
-	static bool IsItYours(POINT *p);
+	static bool IsItYours(POINT *p, BKB_MODE *bm);
 	static bool WhiteSpot(POINT *p);
 	static bool ProgressBar(POINT *p, int fixation_count, int _percentage); // Возвращает false, если соскочили с клавиши (для аэромыши)
 	static void ProgressBarReset();
