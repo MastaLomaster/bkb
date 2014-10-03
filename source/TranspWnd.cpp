@@ -2,6 +2,7 @@
 #include "TranspWnd.h"
 #include "BKBRepErr.h"
 #include "WM_USER_messages.h"
+#include "ToolWnd.h"
 
 
 static const TCHAR *wnd_class_name=L"BKBTransp";
@@ -140,5 +141,11 @@ void BKBTranspWnd::ToTop()
 	{
 		SetActiveWindow(Trhwnd);
 		BringWindowToTop(Trhwnd); 
+	}
+	else
+	{
+		// Из-за отсутствия этого панель задач перекрывала панель инструментов 
+		SetActiveWindow(BKBToolWnd::GetHwnd());
+		BringWindowToTop(BKBToolWnd::GetHwnd()); 
 	}
 }
