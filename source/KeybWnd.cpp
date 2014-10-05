@@ -919,15 +919,16 @@ void BKBKeybWnd::PopulateCtrlAltShiftFn()
 //===============================================================================================================
 void BKBKeybWnd::Place()
 {
-	POINT p,s;
+	POINT p;
 	
 	// 05.10.2014 - борьба с деградацией размера клавиатуры
-	cell_width=screen_x/(float)columns;
+	if(gBKB_FullSizeKBD) cell_width=screen_x/(float)columns;
+	else  cell_width=(screen_x-gBKB_TOOLBOX_WIDTH)/(float)columns;
 
 	if(cell_width*rows<screen_y*0.45f) cell_height=cell_width; // Удалось уложиться в 0.45 высоты экрана при квадратных кнопках
 	else cell_height=0.45f*screen_y/rows; // Приплюснем кнопки, чтобы не перекрыть более 0.45 экрана
 
-	s.y=cell_height*rows;
+	height=cell_height*rows;
 	// \05.10.2014
 
 	if(bottom_side) p.y=screen_y-1-height; else p.y=0;
@@ -935,15 +936,15 @@ void BKBKeybWnd::Place()
 	if(gBKB_FullSizeKBD)
 	{
 		p.x=0;
-		s.x=screen_x;
+		width=screen_x;
 	}
 	else
 	{
 		if(BKBToolWnd::LeftSide()) p.x=gBKB_TOOLBOX_WIDTH; else p.x=0;
-		s.x=screen_x-gBKB_TOOLBOX_WIDTH;
+		width=screen_x-gBKB_TOOLBOX_WIDTH;
 	}
 
 	
 
-	SetWindowPos(Kbhwnd,HWND_TOPMOST,p.x,p.y,s.x,s.y,0);
+	SetWindowPos(Kbhwnd,HWND_TOPMOST,p.x,p.y,width,height,0);
 }
