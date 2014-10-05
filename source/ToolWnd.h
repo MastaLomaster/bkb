@@ -16,6 +16,7 @@ public:
 
 	static bool tool_modifier[4];
 	static int current_tool;
+	static bool LeftSide() {return left_side;}
 protected:
 	static TCHAR *tool_modifier_name[4];
 	static HWND Tlhwnd;

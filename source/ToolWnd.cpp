@@ -10,7 +10,7 @@
 #include "WM_USER_messages.h"
 
 
-#define BKB_TOOLBOX_WIDTH 128
+int gBKB_TOOLBOX_WIDTH=128;
 #define BKB_SLEEP_COUNT 3
 
 
@@ -177,7 +177,7 @@ HWND BKBToolWnd::Init()
 	NULL, //TEXT(KBWindowName),
     //WS_VISIBLE|WS_POPUP,
 	WS_POPUP,
-	screen_x-BKB_TOOLBOX_WIDTH,0,BKB_TOOLBOX_WIDTH,screen_y, 
+	screen_x-gBKB_TOOLBOX_WIDTH,0,gBKB_TOOLBOX_WIDTH,screen_y, 
     0, 0, BKBInst, 0L );
 
 	if(NULL==Tlhwnd)
@@ -216,7 +216,7 @@ void BKBToolWnd::OnPaint(HDC hdc)
 	// 1. Сначала подсветим рабочий инструмент
 	if(current_tool>=0)
 	{
-		RECT rect={0,current_tool*tool_height,BKB_TOOLBOX_WIDTH,(current_tool+1)*tool_height};
+		RECT rect={0,current_tool*tool_height,gBKB_TOOLBOX_WIDTH,(current_tool+1)*tool_height};
 		FillRect(hdc,&rect,blue_brush);
 
 		// подсветим модификаторы
@@ -240,7 +240,7 @@ void BKBToolWnd::OnPaint(HDC hdc)
 	for(i=0;i<BKB_NUM_TOOLS;i++)
 	{
 		MoveToEx(hdc,0,i*tool_height,NULL);
-		LineTo(hdc,BKB_TOOLBOX_WIDTH-1,i*tool_height);
+		LineTo(hdc,gBKB_TOOLBOX_WIDTH-1,i*tool_height);
 		
 	/*// Для первых четырёх пишем модификаторы вместо следующих четырёх инструментов
 		if((current_tool>=0)&&(current_tool<=3)&&(i>current_tool)&&(i<=current_tool+4)) TextOut(hdc,25,60+i*tool_height,BKBToolWnd::tool_modifier_name[i-current_tool-1],wcslen(BKBToolWnd::tool_modifier_name[i-current_tool-1]));
@@ -262,8 +262,8 @@ void BKBToolWnd::OnPaint(HDC hdc)
 	{
 		RECT rect;
 		
-		rect.left=(LONG)(BKB_TOOLBOX_WIDTH/10);
-		rect.right=(LONG)(rect.left+(BKB_SLEEP_COUNT-bkb_sleep_count)*90/BKB_SLEEP_COUNT*BKB_TOOLBOX_WIDTH/100);
+		rect.left=(LONG)(gBKB_TOOLBOX_WIDTH/10);
+		rect.right=(LONG)(rect.left+(BKB_SLEEP_COUNT-bkb_sleep_count)*90/BKB_SLEEP_COUNT*gBKB_TOOLBOX_WIDTH/100);
 		rect.top=(LONG)(tool_height/20+tool_height*(BKB_NUM_TOOLS-1));
 		rect.bottom=(LONG)(rect.top+tool_height/20); 
 
@@ -284,7 +284,7 @@ bool BKBToolWnd::IsItYours(POINT *pnt, BKB_MODE *bm)
 	// Попала ли точка фиксации в границы окна?
 	// Ещё не включать режим резерв (потом)
 //!!! Поправить для многомониторной конфигурации!!!
-	if((left_side&&(pnt->x<BKB_TOOLBOX_WIDTH)) || !left_side&&(pnt->x>screen_x-BKB_TOOLBOX_WIDTH))
+	if((left_side&&(pnt->x<gBKB_TOOLBOX_WIDTH)) || !left_side&&(pnt->x>screen_x-gBKB_TOOLBOX_WIDTH))
 	{
 		// попала, определяем номер инструмента
 		int tool_candidate=pnt->y/(screen_y/BKB_NUM_TOOLS);
@@ -367,14 +367,15 @@ bool BKBToolWnd::IsItYours(POINT *pnt, BKB_MODE *bm)
 			if(left_side)
 			{
 				left_side=false;
-				MoveWindow(Tlhwnd, screen_x-BKB_TOOLBOX_WIDTH,0,BKB_TOOLBOX_WIDTH,screen_y,TRUE);
+				MoveWindow(Tlhwnd, screen_x-gBKB_TOOLBOX_WIDTH,0,gBKB_TOOLBOX_WIDTH,screen_y,TRUE);
 			}
 			else
 			{
 				left_side=true;
-				MoveWindow(Tlhwnd, 0,0,BKB_TOOLBOX_WIDTH,screen_y,TRUE);
+				MoveWindow(Tlhwnd, 0,0,gBKB_TOOLBOX_WIDTH,screen_y,TRUE);
 
 			}
+			BKBKeybWnd::Place();
 			return true; // В частности, не выводит увеличительное стекло; режим не меняется
 		}
 
@@ -455,7 +456,7 @@ void BKBToolWnd::ScrollCursor(POINT *p)
 {
 	static bool mouse_inside_toolbar=true, last_mouse_inside_toolbar=true; // Для скрытия второго курсора при перемещении за область тулбара
 	
-	if((left_side&&(p->x<BKB_TOOLBOX_WIDTH)) || !left_side&&(p->x>screen_x-BKB_TOOLBOX_WIDTH))
+	if((left_side&&(p->x<gBKB_TOOLBOX_WIDTH)) || !left_side&&(p->x>screen_x-gBKB_TOOLBOX_WIDTH))
 	{
 		// Попали в тулбокс, покажите курсор
 		mouse_inside_toolbar=true;
@@ -478,7 +479,7 @@ void BKBToolWnd::SleepCheck(POINT *pnt)
 {
 	if((bkb_sleep_count<BKB_SLEEP_COUNT)&&(bkb_sleep_count>0)) // Засыпаем или просыпаемся, мышь уводить с кнопки нельзя
 	{
-		if((left_side&&(pnt->x<BKB_TOOLBOX_WIDTH)) || !left_side&&(pnt->x>screen_x-BKB_TOOLBOX_WIDTH)) // Попали ли по ширине?
+		if((left_side&&(pnt->x<gBKB_TOOLBOX_WIDTH)) || !left_side&&(pnt->x>screen_x-gBKB_TOOLBOX_WIDTH)) // Попали ли по ширине?
 		{
 			// попала, определяем номер инструмента
 			int tool_candidate=pnt->y/(screen_y/BKB_NUM_TOOLS);

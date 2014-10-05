@@ -38,6 +38,9 @@ public:
 	static POINT whitespot_point;
 	static void OnTopDown();
 	static void Load();
+	// Скорректировать положение клавиатуры (вдруг изменились настройки полный/неполный размер или положение тулбара)
+	static void Place();
+
 protected:
 	static void ScanCodeButton(WORD scancode);
 	static void PopulateCtrlAltShiftFn(); // В переключенной раскладке находим клавиши Ctrl, Alt, Shift, Fn

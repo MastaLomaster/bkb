@@ -8,7 +8,9 @@
 #include "TranspWnd.h"
 
 
- 
+int gBKB_FullSizeKBD = 0; // Флаг того, что клавиатура занимает всю ширину экрана
+
+extern int gBKB_TOOLBOX_WIDTH; 
 extern int flag_using_airmouse;
 
 // Раскладка клавиатур задана в файле KeybLayouts.cpp
@@ -115,6 +117,7 @@ void BKBKeybWnd::OnTimer()
 		row_pressed=-1; column_pressed=-1;
 		redraw_state=0;
 		InvalidateRect(Kbhwnd,NULL,TRUE); // Это единственное место, где InvalidateRect может быть вызван, так как поток - свой.
+		// (Так было раньше, теперь всё из своего потока)
 }
 
 //================================================================
@@ -123,6 +126,7 @@ void BKBKeybWnd::OnTimer()
 void BKBKeybWnd::Init(HWND master_hwnd)
 {
 	ATOM aresult; // Для всяких кодов возврата
+	
 	
 	// 1. Регистрация класса окна
 	WNDCLASS wcl={CS_HREDRAW | CS_VREDRAW, BKBKeybWndProc, 0,
@@ -151,15 +155,22 @@ void BKBKeybWnd::Init(HWND master_hwnd)
 		return;
 	}
 
-	screen_x=GetSystemMetrics(SM_CXSCREEN);
-	screen_y=GetSystemMetrics(SM_CYSCREEN);
-	cell_width=screen_x/(float)columns;
-
 #ifdef BELYAKOV
 	// приготовим заранее идентификаторы клавиатур
 	hkl_usenglish=LoadKeyboardLayout(kbd_usenglish, 0);
 	hkl_russian=LoadKeyboardLayout(kbd_russian, 0);
 #endif
+
+
+	screen_x=GetSystemMetrics(SM_CXSCREEN);
+	screen_y=GetSystemMetrics(SM_CYSCREEN);
+
+	// Теперь клавиатура может занимать не всю ширину экрана
+	if(gBKB_FullSizeKBD) width=screen_x;
+	else width=screen_x-gBKB_TOOLBOX_WIDTH;
+
+	cell_width=width/(float)columns;
+
 
 	//start_y=screen_y-(int)(cell_size*3);
 	if(cell_width*rows<screen_y*0.45f) cell_height=cell_width; // Удалось уложиться в 0.45 высоты экрана при квадратных кнопках
@@ -171,7 +182,8 @@ void BKBKeybWnd::Init(HWND master_hwnd)
 	NULL, //TEXT(KBWindowName),
     //WS_VISIBLE|WS_POPUP,
 	WS_POPUP,
-	0,screen_y-1-(INT)(cell_height*rows),screen_x,(INT)(cell_height*rows), 
+	//0,screen_y-1-(INT)(cell_height*rows),screen_x,(INT)(cell_height*rows), 
+	0,screen_y-1-(INT)(cell_height*rows),width,(INT)(cell_height*rows), 
     //0, 
 	master_hwnd, // Чтобы в таскбаре и при альт-табе не появлялись лишние окна
 	0, BKBInst, 0L );
@@ -295,7 +307,7 @@ void BKBKeybWnd::OnPaint(HDC hdc)
 
 				if(NULL!=key.label) // проверка, что там не NULL
 				if(1==wcslen(key.label))
-				TextOut(memdc1,int(cell_width*0.4+i*cell_width) , int(cell_height/3.1+j*cell_height),
+				TextOut(memdc1,int(cell_width*0.4+i*cell_width) , int(cell_height/3.3+j*cell_height),
 					key.label,wcslen(key.label));
 			}
 	
@@ -313,7 +325,7 @@ void BKBKeybWnd::OnPaint(HDC hdc)
 				if(wcslen(key.label)>1)
 				{
 					if(fn==key.bkb_keytype) SetTextColor(memdc1,RGB(255,155,155)); // Кнопку Fn подкрашиваем
-					TextOut(memdc1,int(cell_width*0.2+i*cell_width) , int(cell_height/3.1+j*cell_height),
+					TextOut(memdc1,int(cell_width*0.2+i*cell_width) , int(cell_height/3.3+j*cell_height),
 						key.label,wcslen(key.label));
 					if(fn==key.bkb_keytype) SetTextColor(memdc1,RGB(255,255,255)); 
 				}
@@ -324,7 +336,7 @@ void BKBKeybWnd::OnPaint(HDC hdc)
 					SetTextColor(memdc1,RGB(255,155,155));
 					//TextOut(memdc1,int(cell_width*0.4+i*cell_width) , int(cell_height/3+j*cell_height), key.label,wcslen(key.label));
 #ifdef BELYAKOV
-					TextOut(memdc1,int(cell_width*0.03+i*cell_width) , int(cell_height*0.79+j*cell_height),key.fn_label,wcslen(key.fn_label));
+					TextOut(memdc1,int(cell_width*0.03+i*cell_width) , int(cell_height*0.75+j*cell_height),key.fn_label,wcslen(key.fn_label));
 #else
 					TextOut(memdc1,int(cell_width*0.1+i*cell_width) , int(cell_height*0.79+j*cell_height),key.fn_label,wcslen(key.fn_label));
 #endif
@@ -741,10 +753,11 @@ void BKBKeybWnd::ScanCodeButton(WORD scancode)
 	//if(redraw_reqired) InvalidateRect(Kbhwnd,NULL,TRUE); // перерисовать клавиатуру
 }
 
-//===================================================================
+//===========================================================================================================
 // Меняем размеры окна (фактически, один раз при создании окна)
+// 03.10.2014 А вот и враки! теперь сможем ужимать его при выборе опции "не перекрывать панель инструментов"
 // Пересоздает все memdc и hbm
-//===================================================================
+//===========================================================================================================
 void BKBKeybWnd::OnSize(HWND hwnd, int _width, int _height)
 {
 	HDC hdc=GetDC(hwnd);
@@ -833,19 +846,9 @@ void BKBKeybWnd::CreateWhiteSpot(HWND hwnd)
 //============================================================================================
 void BKBKeybWnd::OnTopDown()
 {
-	POINT p;
+	if(bottom_side) bottom_side=false; else bottom_side=true;
 
-	if(bottom_side)
-	{
-		bottom_side=false;
-		p.x=0; p.y=0;
-	}
-	else
-	{
-		bottom_side=true;
-		p.x=0; p.y=screen_y-1-height;
-	}
-	SetWindowPos(Kbhwnd,HWND_TOPMOST,p.x,p.y,0,0,SWP_NOSIZE);
+	Place();
 }
 
 //============================================================================================
@@ -909,4 +912,38 @@ void BKBKeybWnd::PopulateCtrlAltShiftFn()
 		if(-1==ctrl_row) ctrl_pressed=false;
 		if(-1==alt_row)  alt_pressed=false; 
 		if(-1==fn_row) Fn_pressed=false; 
+}
+
+//===============================================================================================================
+//  Показывать клавиатуру в полном или урезанном размере, если в урезанном - сдвинуть в зависимость от тулбара
+//===============================================================================================================
+void BKBKeybWnd::Place()
+{
+	POINT p,s;
+	
+	// 05.10.2014 - борьба с деградацией размера клавиатуры
+	cell_width=screen_x/(float)columns;
+
+	if(cell_width*rows<screen_y*0.45f) cell_height=cell_width; // Удалось уложиться в 0.45 высоты экрана при квадратных кнопках
+	else cell_height=0.45f*screen_y/rows; // Приплюснем кнопки, чтобы не перекрыть более 0.45 экрана
+
+	s.y=cell_height*rows;
+	// \05.10.2014
+
+	if(bottom_side) p.y=screen_y-1-height; else p.y=0;
+
+	if(gBKB_FullSizeKBD)
+	{
+		p.x=0;
+		s.x=screen_x;
+	}
+	else
+	{
+		if(BKBToolWnd::LeftSide()) p.x=gBKB_TOOLBOX_WIDTH; else p.x=0;
+		s.x=screen_x-gBKB_TOOLBOX_WIDTH;
+	}
+
+	
+
+	SetWindowPos(Kbhwnd,HWND_TOPMOST,p.x,p.y,s.x,s.y,0);
 }
