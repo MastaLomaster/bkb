@@ -115,6 +115,7 @@ bool Fixation::Fix(POINT p)
 		if(!BKBKeybWnd::IsItYours(&p, &BKB_Mode))
 		{
 			// нет, возможно, это переключение режима
+			// здесь продумать, как увеличить время фиксации...
 			BKBToolWnd::IsItYours(&p, &BKB_Mode);
 		}
 		break;

@@ -11,9 +11,27 @@
 
 #define DISPERSION_LIMIT 100.0 // Для отслеживания фиксаций
 #define DISPERSION_HIGH_LIMIT 300.0 // Для отслеживания быстрых перемещений
-int FIXATION_LIMIT=30; // Сколько последовательных точек с низкой дисперсией считать фиксацией
-//#define FIXATION_LIMIT 45 // Сколько последовательных точек с низкой дисперсией считать фиксацией
-int POSTFIXATION_SKIP=30; // сколько точек пропустить после фиксации, чтобы начать считать новую фиксацию
+int FIXATION_LIMIT=30; // Сколько последовательных точек с низкой дисперсией считать фиксацией (для клавиатуры)
+int NOTKBD_FIXATION_LIMIT=30; // Сколько последовательных точек с низкой дисперсией считать фиксацией (не для клавиатуры)
+int POSTFIXATION_SKIP=30; // сколько точек пропустить после фиксации, чтобы начать считать новую фиксацию (для клавиатуры)
+int NOTKBD_POSTFIXATION_SKIP=30; // сколько точек пропустить после фиксации, чтобы начать считать новую фиксацию (не для клавиатуры)
+
+
+static bool mouse_inside_keyboard=false, last_mouse_inside_keyboard=false; // Для скрытия второго курсора при перемещении в область клавиатуры
+// Время фиксации (и паузы между фиксациями) зависит от того, используем ли мы клавиатуру или нет
+static int funcFIXATION_LIMIT()
+{
+	if((BKB_MODE_KEYBOARD==Fixation::CurrentMode())&&(true==mouse_inside_keyboard)) return FIXATION_LIMIT;
+	else return NOTKBD_FIXATION_LIMIT;
+}
+
+static int funcPOSTFIXATION_SKIP()
+{
+	if((BKB_MODE_KEYBOARD==Fixation::CurrentMode())&&(true==mouse_inside_keyboard)) return POSTFIXATION_SKIP;
+	else return NOTKBD_POSTFIXATION_SKIP;
+}
+
+
 #define CURSOR_SMOOTHING 7; // Направление движения курсора меняется только раз в CURSOR_SMOOTHING отсчетов
 
 extern int screenX, screenY;
@@ -82,7 +100,7 @@ void on_gaze_data_main_thread()
 	static int cursor_linear_move_counter=CURSOR_SMOOTHING; // Столько отсчетов курсор будет двигаться линейно 
 	static double cursor_speed_x=0.0, cursor_speed_y=0.0; 
 	static uint64_t last_timestamp=0;
-	static bool mouse_inside_keyboard=false, last_mouse_inside_keyboard=false; // Для скрытия второго курсора при перемещении в область клавиатуры
+	
 	
 		// Для проверки рисуем точку на экране
 	// Но только если отследили оба глаза!!
@@ -210,9 +228,7 @@ void on_gaze_data_main_thread()
 				{
 					// Показывать прогресс нажатия на клавиатуре
 					POINT point_screen=point;
-					//ClientToScreen(BKBhwnd,&point_screen); ОТОВИЗМ
-					//BKBKeybWnd::ProgressBar(&point_screen,fixation_count,100*fixation_count/FIXATION_LIMIT);
-					if(!BKBKeybWnd::ProgressBar(&point_screen,fixation_count,100*fixation_count/FIXATION_LIMIT))
+					if(!BKBKeybWnd::ProgressBar(&point_screen,fixation_count,100*fixation_count/funcFIXATION_LIMIT()))
 					{
 						fixation_count=0; // копили-копили, ан нет, сорвалось
 						BKBKeybWnd::ProgressBarReset();
@@ -231,24 +247,18 @@ void on_gaze_data_main_thread()
 		}
 		// Замечена попытка фиксации взгляда
 		// Фиксация увеличивается вдвое при работе без зума
-		if((fixation_count>=FIXATION_LIMIT*2)||((fixation_count>=FIXATION_LIMIT)&&(!BKBToolWnd::tool_modifier[3]))) 
+		if((fixation_count>=funcFIXATION_LIMIT()*2)||((fixation_count>=funcFIXATION_LIMIT())&&(!BKBToolWnd::tool_modifier[3]))) 
 		{
 			fixation_count=0; // первым делом сбросим эту переменную
-			skip_count=POSTFIXATION_SKIP;
+			skip_count=funcPOSTFIXATION_SKIP();
 			if(BKBToolWnd::tool_modifier[3]) skip_count*=2; // Фиксация увеличивается вдвое при работе без зума
 
 			// Далее обрабатываем фиксацию в зависимости от текущего режима.
 			Fixation::Fix(screen_cursor_point);
 			BKBTranspWnd::ToTop(); // После фиксации могут всплыть окна более близкие в z-order'e
 		}
-
-
-		
 	}
 	//else OutputDebugString(L"ONE EYE\n\r");
-
-
-	
 		
 	TGD_is_processing=0; // Без этого новые данные не поступят !
 }

@@ -5,7 +5,7 @@ HPEN red_pen, green_pen, dkyellow_pen; // перь€ и кисти дл€ рисовани€
 HBRUSH dkblue_brush, dkblue_brush2, blue_brush;
 HFONT hfont;
 
-int screenX, screenY;
+int screenX, screenY, mouscreenX, mouscreenY;
 
 double screen_scale=1.0;
 
@@ -35,6 +35,10 @@ void BKBgdiInit()
 	EnumDisplaySettings (NULL, ENUM_CURRENT_SETTINGS, &dm);
 
 	screen_scale=((double)screenX)/dm.dmPelsWidth;
+
+	// ¬ windows 8 при HighDPI координаты курсора отличаютс€ от координат точки на экране
+	mouscreenX=dm.dmPelsWidth;
+	mouscreenY=dm.dmPelsHeight;
 }
 
 void BKBgdiHalt()

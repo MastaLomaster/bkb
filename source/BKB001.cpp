@@ -61,7 +61,7 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 		break;
 	}
 
-	// Кисти-фонты
+	// Кисти-фонты, screen_scale
 	BKBgdiInit();
 	// Звуки
 	BKBClick::Init();

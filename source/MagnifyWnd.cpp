@@ -17,7 +17,7 @@ static const TCHAR *wnd_class_name=L"BKBMagnify";
 
 bool  BKBMagnifyWnd::mgf_visible=false; // Признак того, что окно сейчас висит на экране
 HWND  BKBMagnifyWnd::Mghwnd;
-int BKBMagnifyWnd::x_size, BKBMagnifyWnd::y_size;
+int BKBMagnifyWnd::x_size, BKBMagnifyWnd::y_size, BKBMagnifyWnd::size_amendment;
 int BKBMagnifyWnd::screen_x, BKBMagnifyWnd::screen_y;
 int BKBMagnifyWnd::midpoint_x, BKBMagnifyWnd::midpoint_y;
 
@@ -36,7 +36,9 @@ LRESULT CALLBACK BKBMagnifyWndProc(HWND hwnd,
 void BKBMagnifyWnd::Init(HWND master_hwnd)
 {
 	ATOM aresult; // Для всяких кодов возврата
-	
+	RECT rect;
+	rect.top=0; rect.left=0; rect.right=MAGNIFY_WINDOW_SIZE; rect.bottom=MAGNIFY_WINDOW_SIZE;
+
 	// 1. Регистрация класса окна
 	WNDCLASS wcl={CS_HREDRAW | CS_VREDRAW, BKBMagnifyWndProc, 0,
 		//sizeof(LONG_PTR), // Сюда пропишем ссылку на объект
@@ -60,13 +62,18 @@ void BKBMagnifyWnd::Init(HWND master_hwnd)
 		return;
 	}
 
+	// Из-за рамки размер окна будет больше, чем 400x400
+	AdjustWindowRectEx(&rect, WS_POPUP, false, WS_EX_TOPMOST|WS_EX_CLIENTEDGE);
+	
 	Mghwnd=CreateWindowEx(
 	WS_EX_TOPMOST|WS_EX_CLIENTEDGE,
 	wnd_class_name,
 	NULL, //TEXT(KBWindowName),
     //WS_VISIBLE|WS_POPUP,
 	WS_POPUP,
-	100,700,MAGNIFY_WINDOW_SIZE,MAGNIFY_WINDOW_SIZE, 
+	100,700,
+	rect.right-rect.left, rect.bottom-rect.top,
+	//MAGNIFY_WINDOW_SIZE,MAGNIFY_WINDOW_SIZE, 
     //0,
 	master_hwnd, // Чтобы в таскбаре и при альт-табе не появлялись лишние окна
 	0, BKBInst, 0L );
@@ -77,11 +84,12 @@ void BKBMagnifyWnd::Init(HWND master_hwnd)
 	}
 
 
-	// Определяем размер пользовательской области окна
-	RECT rect;
-	GetClientRect(Mghwnd,&rect);
-	x_size=rect.right;
-	y_size=rect.bottom;
+	// Определяем размер пользовательской области окна (отовизм)
+	RECT rect2;
+	GetClientRect(Mghwnd,&rect2);
+	x_size=rect2.right;
+	y_size=rect2.bottom;
+	size_amendment=rect.left; // рамка окна отъедает пиксели (у меня 2 штуки с каждого края)
 
 	screen_x=GetSystemMetrics(SM_CXSCREEN);
 	screen_y=GetSystemMetrics(SM_CYSCREEN);
@@ -150,8 +158,8 @@ bool BKBMagnifyWnd::FixPoint(POINT *pnt)
 		if(midpoint_y>screen_y-MAGNIFY_WINDOW_SIZE/MAGNIFY_FACTOR/2) midpoint_y=screen_y-MAGNIFY_WINDOW_SIZE/MAGNIFY_FACTOR/2;
 */
 		// Двигаем окно
-		int x_pos=midpoint_x-MAGNIFY_WINDOW_SIZE/2;
-		int y_pos=midpoint_y-MAGNIFY_WINDOW_SIZE/2;
+		int x_pos=midpoint_x-MAGNIFY_WINDOW_SIZE/2+size_amendment;
+		int y_pos=midpoint_y-MAGNIFY_WINDOW_SIZE/2+size_amendment;
 
 /*		// Окно не должно выезжать за экран
 		if(x_pos<0) x_pos=0;
@@ -160,6 +168,7 @@ bool BKBMagnifyWnd::FixPoint(POINT *pnt)
 		if(y_pos<0) y_pos=0;
 		if(y_pos>screen_y-MAGNIFY_WINDOW_SIZE) y_pos=screen_y-MAGNIFY_WINDOW_SIZE;
 */		
+		// Реально окно несколько больше (у меня на 4 пиксела!), потом исправить это!!!
 		MoveWindow(Mghwnd,x_pos,y_pos,MAGNIFY_WINDOW_SIZE,MAGNIFY_WINDOW_SIZE, FALSE); // Последний параметр проверить
 
 		// Делаем увеличенную копию фрагмента экрана

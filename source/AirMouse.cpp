@@ -13,7 +13,7 @@ int g_BKB_MOUSE_X_MULTIPLIER=20, g_BKB_MOUSE_Y_MULTIPLIER=30; // усилите�
 // Прототип callback-функции из TobiiREX.cpp
 void on_gaze_data(const tobiigaze_gaze_data* gazedata, void *user_data);
 
-extern int screenX, screenY;
+extern int screenX, screenY, mouscreenX, mouscreenY;
 
 // Прототип перехватчика мыши (описан ниже)
 LRESULT  CALLBACK HookProc(int disabled,WPARAM wParam,LPARAM lParam) ;
@@ -28,8 +28,8 @@ static LONG last_x,last_y;
 //============================================================================
 int BKBAirMouse::Init(HWND hwnd)
 {
-	screenX=GetSystemMetrics(SM_CXSCREEN);
-	screenY=GetSystemMetrics(SM_CYSCREEN);
+	//screenX=GetSystemMetrics(SM_CXSCREEN);
+	//screenY=GetSystemMetrics(SM_CYSCREEN);
 
 	SetTimer(hwnd,1,25,NULL);
 
@@ -92,6 +92,8 @@ void BKBAirMouse::OnTimer()
 		BKBToolWnd::SleepCheck(&p);
 #endif
 		gd.tracking_status = TOBIIGAZE_TRACKING_STATUS_BOTH_EYES_TRACKED;
+		//gd.left.gaze_point_on_display_normalized.x=p.x/(double)screenX;
+		//gd.left.gaze_point_on_display_normalized.y=p.y/(double)screenY;
 		gd.left.gaze_point_on_display_normalized.x=p.x/(double)screenX;
 		gd.left.gaze_point_on_display_normalized.y=p.y/(double)screenY;
 
@@ -151,7 +153,7 @@ LRESULT  CALLBACK HookProc(int disabled,WPARAM wParam,LPARAM lParam)
 							//last_x=pMouseStruct->pt.x+input.mi.dx; last_y=pMouseStruct->pt.y+input.mi.dy;
 							
 							// Вынесли перед SendInput, хотя могли бы вообще убрать
-							last_x=pMouseStruct->pt.x; last_y=pMouseStruct->pt.y;
+							//last_x=pMouseStruct->pt.x; last_y=pMouseStruct->pt.y;
 							SendInput(1,&input,sizeof(INPUT));
 
 							skip_mouse_hook=false;
@@ -165,8 +167,10 @@ LRESULT  CALLBACK HookProc(int disabled,WPARAM wParam,LPARAM lParam)
 					last_x=pMouseStruct->pt.x; last_y=pMouseStruct->pt.y;
 					hook_initialized=true;
 					if(last_x<0) last_x=0; if(last_y<0) last_y=0;
-					if(last_x>screenX) last_x=screenX-1;
-					if(last_y>screenX) last_y=screenX-1;
+					//if(last_x>screenX) last_x=screenX-1;
+					//if(last_y>screenX) last_y=screenX-1; // Вот тут баг какой был, а я и не замечал! y и x!
+					if(last_x>mouscreenX) last_x=mouscreenX-1;
+					if(last_y>mouscreenY) last_y=mouscreenY-1;
 					break;
 			}
 		}

@@ -11,7 +11,7 @@ public:
 protected:
 	static bool mgf_visible;
 	static HWND Mghwnd;
-	static int x_size, y_size;
+	static int x_size, y_size, size_amendment;
 	static int screen_x, screen_y;
 	static int midpoint_x, midpoint_y;
 };

@@ -25,7 +25,10 @@ extern int g_BKB_MOUSE_X_MULTIPLIER, g_BKB_MOUSE_Y_MULTIPLIER; // Определ
 const int BKB_FIXATIONS=5;
 BKBIntChar dlg_btnfixation[BKB_FIXATIONS]={{L"10",10,IDC_RADIO_FIXATION1},{L"15",15,IDC_RADIO_FIXATION2},{L"20",20,IDC_RADIO_FIXATION3},{L"25",25,IDC_RADIO_FIXATION4},{L"30",30,IDC_RADIO_FIXATION5}};
 BKBIntChar dlg_postfixation[BKB_FIXATIONS]={{L"10",10,IDC_RADIO_POSTFIXATION1},{L"15",15,IDC_RADIO_POSTFIXATION2},{L"20",20,IDC_RADIO_POSTFIXATION3},{L"25",25,IDC_RADIO_POSTFIXATION4},{L"30",30,IDC_RADIO_POSTFIXATION5}};
-int dlg_current_btnfixation=4, dlg_current_postfixation=4;
+BKBIntChar dlg_nokbdfixation[BKB_FIXATIONS]={{L"10",10,IDC_RADIO_NKBD_FIXATION1},{L"15",15,IDC_RADIO_NKBD_FIXATION2},{L"20",20,IDC_RADIO_NKBD_FIXATION3},{L"25",25,IDC_RADIO_NKBD_FIXATION4},{L"30",30,IDC_RADIO_NKBD_FIXATION5}};
+BKBIntChar dlg_nokbdpostfixation[BKB_FIXATIONS]={{L"10",10,IDC_RADIO_NKBD_POSTFIXATION1},{L"15",15,IDC_RADIO_NKBD_POSTFIXATION2},{L"20",20,IDC_RADIO_NKBD_POSTFIXATION3},{L"25",25,IDC_RADIO_NKBD_POSTFIXATION4},{L"30",30,IDC_RADIO_NKBD_POSTFIXATION5}};
+int dlg_current_btnfixation=4, dlg_current_postfixation=4,dlg_current_nokbdfixation=4, dlg_current_nokbdpostfixation=4;
+
 
 const int BKB_YESNO=2;
 BKBIntChar dlg_kbd_fullscreen[BKB_YESNO]={{L"Нет",0,IDC_RADIO_KBDFS1},{L"Да",1,IDC_RADIO_KBDFS2}}; 
@@ -33,6 +36,9 @@ int dlg_current_kbd_fullscreen=1;
 
 extern int FIXATION_LIMIT; // Сколько последовательных точек с низкой дисперсией считать фиксацией
 extern int POSTFIXATION_SKIP; // сколько точек пропустить после фиксации, чтобы начать считать новую фиксацию
+extern int NOTKBD_FIXATION_LIMIT; // Сколько последовательных точек с низкой дисперсией считать фиксацией (не для клавиатуры)
+extern int NOTKBD_POSTFIXATION_SKIP;
+
 extern int gBKB_FullSizeKBD; // Флаг того, что клавиатура занимает всю ширину экрана
 
 //===================================================================
@@ -129,8 +135,15 @@ void BKBSettings::PrepareDialogue(HWND hdwnd)
 	}
 
 	if(Internat::Message(46,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_TIMINGS, WM_SETTEXT, 0L, (LPARAM)Internat::Message(46,0)); // Время задано в количестве отсчетов устройства (обычно 30 отсчетов в секунду)
-	if(Internat::Message(47,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_FIXATION_LIMIT, WM_SETTEXT, 0L, (LPARAM)Internat::Message(47,0));// Время нажатия на кнопки 
-	if(Internat::Message(48,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_POSTFIXATION_SKIP, WM_SETTEXT, 0L, (LPARAM)Internat::Message(48,0));// Пауза между нажатиями
+	if(Internat::Message(47,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_FIXATION_LIMIT, WM_SETTEXT, 0L, (LPARAM)Internat::Message(47,0));// Время нажатия на кнопки клавиатуры
+	if(Internat::Message(48,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_POSTFIXATION_SKIP, WM_SETTEXT, 0L, (LPARAM)Internat::Message(48,0));// Пауза между нажатиями на кнопки клавиатуры
+
+	if(Internat::Message(55,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_NKBD_FIXATION_LIMIT, WM_SETTEXT, 0L, (LPARAM)Internat::Message(55,0));// Время фиксации на других элементах
+	if(Internat::Message(56,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_NKBD_POSTFIXATION_SKIP, WM_SETTEXT, 0L, (LPARAM)Internat::Message(56,0));// Пауза между нажатиями на кнопки клавиатуры
+
+	if(Internat::Message(57,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_KBDFS, WM_SETTEXT, 0L, (LPARAM)Internat::Message(57,0));// Клавиатура во всю ширину экрана
+	if(Internat::Message(58,0)) SendDlgItemMessage(hdwnd,IDC_RADIO_KBDFS1, WM_SETTEXT, 0L, (LPARAM)Internat::Message(58,0));// Нет
+	if(Internat::Message(59,0)) SendDlgItemMessage(hdwnd,IDC_RADIO_KBDFS2, WM_SETTEXT, 0L, (LPARAM)Internat::Message(59,0));// Да
 
 	if(Internat::Message(49,0)) SendDlgItemMessage(hdwnd,IDOK, WM_SETTEXT, 0L, (LPARAM)Internat::Message(49,0));// Сохранить
 	if(Internat::Message(50,0)) SendDlgItemMessage(hdwnd,IDCANCEL, WM_SETTEXT, 0L, (LPARAM)Internat::Message(50,0));// Отмена
@@ -162,10 +175,15 @@ void BKBSettings::ShowLoad(HWND hdwnd)
 	{
 		SendDlgItemMessage(hdwnd, dlg_btnfixation[i].button, BM_SETCHECK, BST_UNCHECKED, 0);
 		SendDlgItemMessage(hdwnd, dlg_postfixation[i].button, BM_SETCHECK, BST_UNCHECKED, 0);
+		SendDlgItemMessage(hdwnd, dlg_nokbdfixation[i].button, BM_SETCHECK, BST_UNCHECKED, 0);
+		SendDlgItemMessage(hdwnd, dlg_nokbdpostfixation[i].button, BM_SETCHECK, BST_UNCHECKED, 0);
 	}
 	// 1.2 Нажать те, что надо
 	SendDlgItemMessage(hdwnd, dlg_btnfixation[dlg_current_btnfixation].button, BM_SETCHECK, BST_CHECKED, 0);
 	SendDlgItemMessage(hdwnd, dlg_postfixation[dlg_current_postfixation].button, BM_SETCHECK, BST_CHECKED, 0);
+	SendDlgItemMessage(hdwnd, dlg_nokbdfixation[dlg_current_nokbdfixation].button, BM_SETCHECK, BST_CHECKED, 0);
+	SendDlgItemMessage(hdwnd, dlg_nokbdpostfixation[dlg_current_nokbdpostfixation].button, BM_SETCHECK, BST_CHECKED, 0);
+
 
 	// 3. Клавиатура на полный экран
 	for(i=0;i<BKB_YESNO;i++)
@@ -186,6 +204,9 @@ void BKBSettings::ActualizeLoad()
 
 	FIXATION_LIMIT=dlg_btnfixation[dlg_current_btnfixation].value;
 	POSTFIXATION_SKIP=dlg_postfixation[dlg_current_postfixation].value;
+
+	NOTKBD_FIXATION_LIMIT=dlg_nokbdfixation[dlg_current_nokbdfixation].value;
+	NOTKBD_POSTFIXATION_SKIP=dlg_nokbdpostfixation[dlg_current_nokbdpostfixation].value;
 
 	gBKB_FullSizeKBD=dlg_kbd_fullscreen[dlg_current_kbd_fullscreen].value;
 }
@@ -219,9 +240,15 @@ void BKBSettings::Screen2Load(HWND hdwnd)
 
 		if(BST_CHECKED==SendDlgItemMessage(hdwnd, dlg_postfixation[i].button, BM_GETCHECK, 0, 0))
 			dlg_current_postfixation=i;
+
+		if(BST_CHECKED==SendDlgItemMessage(hdwnd, dlg_nokbdfixation[i].button, BM_GETCHECK, 0, 0))
+			dlg_current_nokbdfixation=i;
+
+		if(BST_CHECKED==SendDlgItemMessage(hdwnd, dlg_nokbdpostfixation[i].button, BM_GETCHECK, 0, 0))
+			dlg_current_nokbdpostfixation=i;
 	}
 
-	// 3. Временные задержки
+	// 3. Клавиатура на полный экран
 	for(i=0;i<BKB_YESNO;i++)
 	{
 
@@ -241,7 +268,7 @@ typedef struct
 	int max_index;
 } T_save_struct;
 
-#define NUM_SAVE_LINES 5
+#define NUM_SAVE_LINES 7
 
 static T_save_struct save_struct[NUM_SAVE_LINES]=
 {
@@ -249,6 +276,8 @@ static T_save_struct save_struct[NUM_SAVE_LINES]=
 	{"MouseYMultiplier",&dlg_current_mouse_y_multiplier,dlg_mouse_y_multiplier, BKB_MOUSE_MULTIPLIERS},
 	{"FixationLimit",&dlg_current_btnfixation,dlg_btnfixation, BKB_FIXATIONS},
 	{"PostFixationSkip",&dlg_current_postfixation,dlg_postfixation, BKB_FIXATIONS},
+	{"NotKbdFixationLimit",&dlg_current_nokbdfixation,dlg_nokbdfixation, BKB_FIXATIONS},
+	{"NotKbdPostFixationSkip",&dlg_current_nokbdpostfixation,dlg_nokbdpostfixation, BKB_FIXATIONS},
 	{"KBDFullScreen",&dlg_current_kbd_fullscreen,dlg_kbd_fullscreen, BKB_YESNO}
 };
 
