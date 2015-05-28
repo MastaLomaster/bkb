@@ -10,7 +10,12 @@
 #include "WM_USER_messages.h"
 
 
-int gBKB_TOOLBOX_WIDTH=128;
+//int gBKB_TOOLBOX_WIDTH=128;
+
+int gBKB_TOOLBOX_WIDTH=256;
+int gBKB_TOOLBOX_BUTTONS=4;
+extern bool gBKB_SHOW_CLICK_MODS;
+
 #define BKB_SLEEP_COUNT 3
 
 
@@ -27,6 +32,7 @@ typedef struct
 #define BKB_NUM_TOOLS 10
 ToolWndConfig tool_config[BKB_NUM_TOOLS]=
 {
+	{L"КЛАВИШИ",17,0,BKB_MODE_KEYBOARD},
 	{L"ЛЕВЫЙ",12,1,BKB_MODE_LCLICK},
 	{L"ЛЕВЫЙ,..",34,1,BKB_MODE_LCLICK_PLUS},
 	{L"ПРАВЫЙ",13,1,BKB_MODE_RCLICK},
@@ -34,31 +40,44 @@ ToolWndConfig tool_config[BKB_NUM_TOOLS]=
 	{L"ДВОЙНОЙ,..",37,1,BKB_MODE_DOUBLECLICK_PLUS},
 	{L"ДРЕГ",15,0,BKB_MODE_DRAG},
 	{L"СКРОЛЛ",16,0,BKB_MODE_SCROLL},
-	{L"КЛАВИШИ",17,0,BKB_MODE_KEYBOARD},
+	//{L"КЛАВИШИ",17,0,BKB_MODE_KEYBOARD},
 	{L"Туда-Сюда",18,0,BKB_MODE_SWAP},
 	{L"Спать",19,0,BKB_MODE_SLEEP}
 };
 #else
+
 #define BKB_NUM_TOOLS 9
 ToolWndConfig tool_config[BKB_NUM_TOOLS]=
 {
+	{L"КЛАВИШИ",17,0,BKB_MODE_KEYBOARD},
 	{L"ЛЕВЫЙ",12,1,BKB_MODE_LCLICK},
 	{L"ЛЕВЫЙ,..",34,1,BKB_MODE_LCLICK_PLUS},
 	{L"ПРАВЫЙ",13,1,BKB_MODE_RCLICK},
 	{L"ДВОЙНОЙ",14,1,BKB_MODE_DOUBLECLICK},
 	{L"ДРЕГ",15,0,BKB_MODE_DRAG},
 	{L"СКРОЛЛ",16,0,BKB_MODE_SCROLL},
-	{L"КЛАВИШИ",17,0,BKB_MODE_KEYBOARD},
+	// {L"КЛАВИШИ",17,0,BKB_MODE_KEYBOARD},
 	{L"Туда-Сюда",18,0,BKB_MODE_SWAP},
-	{L"РЕЗЕРВ",19,0,BKB_MODE_NONE}
+	{L"РЕЗЕРВ",19,0,BKB_MODE_NONE} 
 };
 
+/*
+#define BKB_NUM_TOOLS 4
+ToolWndConfig tool_config[BKB_NUM_TOOLS]=
+{
+	{L"ЛЕВЫЙ",12,1,BKB_MODE_LCLICK},
+	{L"ЛЕВЫЙ,..",34,1,BKB_MODE_LCLICK_PLUS},
+	{L"КЛАВИШИ",17,0,BKB_MODE_KEYBOARD},
+	{L"Туда-Сюда",18,0,BKB_MODE_SWAP}
+}; */
 #endif // BELYAKOV
 
 extern HINSTANCE BKBInst;
 extern HBRUSH dkblue_brush, dkblue_brush2, blue_brush;
-extern int flag_using_airmouse;
-void on_gaze_data_main_thread(); // определена в TobiiREX.cpp
+extern int tracking_device;
+extern int screenX, screenY;
+
+void on_gaze_data_main_thread(); // определена в OnGazeData.cpp
 
 
 static const TCHAR *wnd_class_name=L"BKBTool";
@@ -70,14 +89,21 @@ static const TCHAR *wnd_class_name=L"BKBTool";
 bool BKBToolWnd::tool_modifier[4]={false,false,false,false};
 TCHAR *BKBToolWnd::tool_modifier_name[4]={L"+ Ctrl",L"+ Shift",L"+ Alt",L"Без Зума"};
 
-int BKBToolWnd::screen_x, BKBToolWnd::screen_y;
 HWND  BKBToolWnd::Tlhwnd=0;
 int BKBToolWnd::current_tool=-1;
+int BKBToolWnd::offset=0; //какой инструмент виден первым в прокрутке
+int BKBToolWnd::height=0;
 bool BKBToolWnd::left_side=false;
 
 static int bkb_sleep_count=BKB_SLEEP_COUNT; // Количество фиксаций для вывода из состояния сна
 static int transparency=60, last_transparency=60;
 
+static TCHAR *button_exit=L"ВЫХОД";
+static TCHAR *button_cancel=L"ОТМЕНА";
+static TCHAR *button_backspace=L"Backspace";
+static TCHAR *label_repeating=L"(повторяющийся)"; // message #35
+
+POINT BKBToolWnd::place_point={0,0};
 //================================================================================================================
 // Оконная процедура 
 //================================================================================================================
@@ -95,7 +121,7 @@ LRESULT CALLBACK BKBToolWndProc(HWND hwnd,
 	case WM_CREATE:
 		SetLayeredWindowAttributes(hwnd,NULL,255*60/100,LWA_ALPHA);
 		last_transparency=60;
-		if(2==flag_using_airmouse) BKBAirMouse::Init(hwnd);
+		if(2==tracking_device) BKBAirMouse::Init(hwnd);
 		break;
 
 	case WM_PAINT:
@@ -107,7 +133,7 @@ LRESULT CALLBACK BKBToolWndProc(HWND hwnd,
 		break;
 
 	case WM_DESTROY:	// Завершение программы
-		if(2==flag_using_airmouse) BKBAirMouse::Halt(hwnd);
+		if(2==tracking_device) BKBAirMouse::Halt(hwnd);
 		else	BKBTobiiREX::Halt();
 		PostQuitMessage(0);
 		break;
@@ -135,6 +161,8 @@ HWND BKBToolWnd::Init()
 	ATOM aresult; // Для всяких кодов возврата
 	int i;
 	
+	gBKB_TOOLBOX_WIDTH=screenY/gBKB_TOOLBOX_BUTTONS;
+
 	// 0. Заполняем названия инструментов иностранным языком
 	for(i=0;i<BKB_NUM_TOOLS;i++)
 	{
@@ -144,7 +172,9 @@ HWND BKBToolWnd::Init()
 	// tool_names[3]=Internat::Message(35,L"ПРАВЫЙ,..");
 	//tool_modifier_name[0]=Internat::Message(35,L"ПОВТОР");
 	tool_modifier_name[3]=Internat::Message(36,L"БЕЗ ЗУМА");
-
+	button_exit=Internat::Message(60,L"ВЫХОД");
+	button_cancel=Internat::Message(61,L"ОТМЕНА");
+	
 	// 1. Регистрация класса окна
 	WNDCLASS wcl={CS_HREDRAW | CS_VREDRAW, BKBToolWndProc, 0,
 		//sizeof(LONG_PTR), // Сюда пропишем ссылку на объект
@@ -168,8 +198,6 @@ HWND BKBToolWnd::Init()
 		return 0;
 	}
 
-	screen_x=GetSystemMetrics(SM_CXSCREEN);
-	screen_y=GetSystemMetrics(SM_CYSCREEN);
 
 	Tlhwnd=CreateWindowEx(
 	WS_EX_LAYERED | WS_EX_TOPMOST| WS_EX_CLIENTEDGE,
@@ -177,7 +205,7 @@ HWND BKBToolWnd::Init()
 	NULL, //TEXT(KBWindowName),
     //WS_VISIBLE|WS_POPUP,
 	WS_POPUP,
-	screen_x-gBKB_TOOLBOX_WIDTH,0,gBKB_TOOLBOX_WIDTH,screen_y, 
+	screenX-gBKB_TOOLBOX_WIDTH,0,gBKB_TOOLBOX_WIDTH,screenY, 
     0, 0, BKBInst, 0L );
 
 	if(NULL==Tlhwnd)
@@ -185,19 +213,95 @@ HWND BKBToolWnd::Init()
 		BKBReportError(__WIDEFILE__,L"CreateWindow",__LINE__);
 	}
 
+	Place();
 	ShowWindow(Tlhwnd,SW_SHOWNORMAL);
+	
 
 	return Tlhwnd;
 }
 
+//==========================================================================================
+// Вспомогательные функции, преобразуют позицию на экране в номер тула и наоборот
+//==========================================================================================
+int BKBToolWnd::PositionFromTool(int tool_num)
+{
+	bool show_arrows;
+	int position;
+
+	if((tool_num<0)||(offset<0)||(tool_num<offset)) return -1;
+
+	if(BKB_NUM_TOOLS<=gBKB_TOOLBOX_BUTTONS) show_arrows=false;
+	else show_arrows=true;
+
+	position=tool_num-offset;
+	if(show_arrows) position+=1;
+
+	if((position>=gBKB_TOOLBOX_BUTTONS)||(show_arrows&&(position>=gBKB_TOOLBOX_BUTTONS-1)))
+		return -1;
+
+	else return position;
+
+}
+
+int BKBToolWnd::ToolFromPosition(int position)
+{
+	bool show_arrows;
+	int tool_num;
+
+	if(BKB_NUM_TOOLS<=gBKB_TOOLBOX_BUTTONS) show_arrows=false;
+	else show_arrows=true;
+
+	// Валидны только позиции между стрелками перемотки
+	if((true==show_arrows)&&((0>=position)||(gBKB_TOOLBOX_BUTTONS-1<=position))) return -1;
+	if((false==show_arrows)&&((0>position)||(gBKB_TOOLBOX_BUTTONS<=position))) return -1; 
+
+	tool_num=position+offset;
+	if(show_arrows) tool_num-=1;
+
+	if((tool_num<0)||(tool_num>=BKB_NUM_TOOLS))
+		return -1;
+
+	else return tool_num;
+
+}
+
+// Функции, рисующие стрелки (потом сделать другие примитивы)
+static void DrawUpArrow(HDC hdc,int x, int y)
+{
+	MoveToEx(hdc,x-35,y,NULL);
+	LineTo(hdc,x,y-50);
+	LineTo(hdc,x+35,y);
+	LineTo(hdc,x+20,y);
+	LineTo(hdc,x+20,y+50);
+	LineTo(hdc,x-20,y+50);
+	LineTo(hdc,x-20,y);
+	LineTo(hdc,x-35,y);
+}
+
+static void DrawDownArrow(HDC hdc,int x, int y)
+{
+	MoveToEx(hdc,x-35,y,NULL);
+	LineTo(hdc,x,y+50);
+	LineTo(hdc,x+35,y);
+	LineTo(hdc,x+20,y);
+	LineTo(hdc,x+20,y-50);
+	LineTo(hdc,x-20,y-50);
+	LineTo(hdc,x-20,y);
+	LineTo(hdc,x-35,y);
+}
 //================================================================
 // Рисуем окно (Из WM_PAINT или сами)
 //================================================================
 void BKBToolWnd::OnPaint(HDC hdc)
 {
-	int i;
+	int i,position;
 	bool release_dc=false;
-	LONG tool_height=screen_y/BKB_NUM_TOOLS;
+	//LONG tool_height=screenY/BKB_NUM_TOOLS;
+	LONG tool_height=gBKB_TOOLBOX_WIDTH;
+	bool show_arrows;
+
+	if(BKB_NUM_TOOLS<=gBKB_TOOLBOX_BUTTONS) show_arrows=false;
+	else show_arrows=true;
 
 	// Возможно, кто-то захотел изменить прозрачность, например, BKB_MODE_SLEEP
 	if(transparency!=last_transparency)
@@ -212,64 +316,105 @@ void BKBToolWnd::OnPaint(HDC hdc)
 		hdc=GetDC(Tlhwnd);
 	}
 
-	// Собственно, рисование
-	// 1. Сначала подсветим рабочий инструмент
-	if(current_tool>=0)
-	{
-		RECT rect={0,current_tool*tool_height,gBKB_TOOLBOX_WIDTH,(current_tool+1)*tool_height};
-		FillRect(hdc,&rect,blue_brush);
-
-		// подсветим модификаторы
-		if(tool_config[current_tool].flag_modifiers)
-		{
-			for(i=0;i<4;i++)
-			{
-				rect.top+=tool_height; rect.bottom+=tool_height; // на один прямоугольник ниже
-				if(tool_modifier[i]) FillRect(hdc,&rect,blue_brush);
-				else FillRect(hdc,&rect,dkblue_brush2);
-			}
-		}
-	}
-
-	// цвета подправим
+   // цвета подправим
 	SetTextColor(hdc,RGB(255,255,255));
 	SetBkColor(hdc,RGB(45,62,90));
 	SelectObject(hdc,GetStockObject(WHITE_PEN));
 
-	
-	for(i=0;i<BKB_NUM_TOOLS;i++)
+	// Собственно, рисование
+	// Новый раздел - в режиме клавиатуры рисуем только две кнопки
+	// Сначала проверяем, уж не клавиатура ли выбрана? В этом слкчае вырожденное окно получаем
+// !!! Сюда добавить прорисовку sleep_mode
+	if(BKB_MODE_KEYBOARD==Fixation::CurrentMode())
 	{
-		MoveToEx(hdc,0,i*tool_height,NULL);
-		LineTo(hdc,gBKB_TOOLBOX_WIDTH-1,i*tool_height);
-		
-	/*// Для первых четырёх пишем модификаторы вместо следующих четырёх инструментов
-		if((current_tool>=0)&&(current_tool<=3)&&(i>current_tool)&&(i<=current_tool+4)) TextOut(hdc,25,60+i*tool_height,BKBToolWnd::tool_modifier_name[i-current_tool-1],wcslen(BKBToolWnd::tool_modifier_name[i-current_tool-1]));
-		else TextOut(hdc,25,60+i*tool_height,tool_names[i],wcslen(tool_names[i]));
-		*/
-
-		// Если у текущего инструмента есть модификаторы - пишем модификаторы вместо следующих четырёх инструментов
-		if(current_tool>=0)
+		// Первая кнопка меняет название в зависимости от шага
+		if(1==BKBKeybWnd::step) TextOut(hdc,25,60,button_cancel,wcslen(button_cancel));
+		else
 		{
-			if(tool_config[current_tool].flag_modifiers&&(i>current_tool)&&(i<=current_tool+4)) TextOut(hdc,25,60+i*tool_height,BKBToolWnd::tool_modifier_name[i-current_tool-1],wcslen(BKBToolWnd::tool_modifier_name[i-current_tool-1]));
-			else TextOut(hdc,25,60+i*tool_height,tool_config[i].tool_name,wcslen(tool_config[i].tool_name));
+			TextOut(hdc,25,60,button_backspace,wcslen(button_backspace));
+			TextOut(hdc,25,60+tool_height,button_exit,wcslen(button_exit));
+			// Ещё чертим линию
+			MoveToEx(hdc,0,tool_height,NULL);
+			LineTo(hdc,gBKB_TOOLBOX_WIDTH-1,tool_height);
 		}
-		else TextOut(hdc,25,60+i*tool_height,tool_config[i].tool_name,wcslen(tool_config[i].tool_name));
-		
 	}
-
-	// Progress-bar засыпания-просыпания
-	if((bkb_sleep_count<BKB_SLEEP_COUNT)&&(bkb_sleep_count>0))
+	else // Нет, не клавиатура
 	{
-		RECT rect;
+		// 1. Сначала подсветим рабочий инструмент
+		if(current_tool>=0)
+		{ 
+			position=PositionFromTool(current_tool);
+			if(position>=0)
+			{
+				RECT rect={0,position*tool_height,gBKB_TOOLBOX_WIDTH,(position+1)*tool_height};
+				FillRect(hdc,&rect,blue_brush);
+			}
+			// подсветим модификаторы
+			if(gBKB_SHOW_CLICK_MODS)
+			if(tool_config[current_tool].flag_modifiers)
+			{
+				int pos_modif;
+				for(i=0;i<4;i++)
+				{
+					pos_modif=PositionFromTool(current_tool+1+i);
+					if(pos_modif>=0)
+					{
+						RECT rect={0,pos_modif*tool_height,gBKB_TOOLBOX_WIDTH,(pos_modif+1)*tool_height};
+						if(tool_modifier[i]) FillRect(hdc,&rect,blue_brush);
+						else FillRect(hdc,&rect,dkblue_brush2);
+					}
+				}
+			}
+			
+		}
+
+
+		// Чертим линии
+		for(i=0;i<gBKB_TOOLBOX_BUTTONS;i++)
+		{
+			MoveToEx(hdc,0,i*tool_height,NULL);
+			LineTo(hdc,gBKB_TOOLBOX_WIDTH-1,i*tool_height);
+		}
+	
+		int pos_i;
+		for(i=0;i<BKB_NUM_TOOLS;i++)
+		{
+			pos_i=PositionFromTool(i);
+			if(pos_i<0) continue;
+
+			// Если у текущего инструмента есть модификаторы - пишем модификаторы вместо следующих четырёх инструментов
+			if(current_tool>=0) 
+			{
+				if(tool_config[current_tool].flag_modifiers&&(i>current_tool)&&(i<=current_tool+4)&&(gBKB_SHOW_CLICK_MODS)) 
+					TextOut(hdc,25,60+pos_i*tool_height,BKBToolWnd::tool_modifier_name[i-current_tool-1],wcslen(BKBToolWnd::tool_modifier_name[i-current_tool-1]));
+				else TextOut(hdc,25,60+pos_i*tool_height,tool_config[i].tool_name,wcslen(tool_config[i].tool_name));
+			}
+			else TextOut(hdc,25,60+pos_i*tool_height,tool_config[i].tool_name,wcslen(tool_config[i].tool_name));
 		
-		rect.left=(LONG)(gBKB_TOOLBOX_WIDTH/10);
-		rect.right=(LONG)(rect.left+(BKB_SLEEP_COUNT-bkb_sleep_count)*90/BKB_SLEEP_COUNT*gBKB_TOOLBOX_WIDTH/100);
-		rect.top=(LONG)(tool_height/20+tool_height*(BKB_NUM_TOOLS-1));
-		rect.bottom=(LONG)(rect.top+tool_height/20); 
+		}
 
-		FillRect(hdc,&rect,blue_brush);
+		// Рисуем стрелки
+		if(show_arrows)
+		{
+			DrawUpArrow(hdc,gBKB_TOOLBOX_WIDTH/2, gBKB_TOOLBOX_WIDTH/2);
+			DrawDownArrow(hdc,gBKB_TOOLBOX_WIDTH/2, height-gBKB_TOOLBOX_WIDTH/2);
+		}
+
+// !!!Это пересмотреть!!!!
+		// Progress-bar засыпания-просыпания
+		if((bkb_sleep_count<BKB_SLEEP_COUNT)&&(bkb_sleep_count>0))
+		{
+			RECT rect;
+		
+			rect.left=(LONG)(gBKB_TOOLBOX_WIDTH/10);
+			rect.right=(LONG)(rect.left+(BKB_SLEEP_COUNT-bkb_sleep_count)*90/BKB_SLEEP_COUNT*gBKB_TOOLBOX_WIDTH/100);
+			rect.top=(LONG)(tool_height/20+tool_height*(BKB_NUM_TOOLS-1));
+			rect.bottom=(LONG)(rect.top+tool_height/20); 
+
+			FillRect(hdc,&rect,blue_brush);
+		}
+
 	}
-
 
 	// Если брал DC - верни его
 	if(release_dc) ReleaseDC(Tlhwnd,hdc);
@@ -279,25 +424,83 @@ void BKBToolWnd::OnPaint(HDC hdc)
 //================================================================
 // Возможно переключение режима
 //================================================================
-bool BKBToolWnd::IsItYours(POINT *pnt, BKB_MODE *bm)
+bool BKBToolWnd::IsItYours(POINT *_pnt, BKB_MODE *bm)
 {
 	// Попала ли точка фиксации в границы окна?
+	POINT pnt=*_pnt;
+	ScreenToClient(Tlhwnd,&pnt);
+	if((pnt.x>=0)&&(pnt.x<gBKB_TOOLBOX_WIDTH)&&(pnt.y>0)&&(pnt.y<height))
 	// Ещё не включать режим резерв (потом)
-//!!! Поправить для многомониторной конфигурации!!!
-	if((left_side&&(pnt->x<gBKB_TOOLBOX_WIDTH)) || !left_side&&(pnt->x>screen_x-gBKB_TOOLBOX_WIDTH))
 	{
-		// попала, определяем номер инструмента
-		int tool_candidate=pnt->y/(screen_y/BKB_NUM_TOOLS);
-		if((tool_candidate<0)||(tool_candidate>=BKB_NUM_TOOLS)) 
+		// Здесь будут спецрежимы - клавиатура и sleep
+		if(BKB_MODE_KEYBOARD==*bm)
 		{
+			if(1==BKBKeybWnd::step) // Это возможно только в gBKB_PINK_RECT_MODE
+			{
+				// Любое попадание в тулбар на шаге 1 означает возврат на шаг 0
+				BKBKeybWnd::step=0;
+				BKBKeybWnd::Place();
+				Place();
+			}
+			else
+			{
+				if(pnt.y<gBKB_TOOLBOX_WIDTH) // Попали в кнопку BackSpace
+				{
+					BKBKeybWnd::BackSpace();
+				}
+				else
+				{
+					// Выходим из режима клавиатуры (слизано из конца этой функции )
+					BKBKeybWnd::DeActivate(); 
+					current_tool=-1;
+					*bm=BKB_MODE_NONE;
+					Place(); // при возврате из режима клавиатуры нужен Place при уже новом значении *bm
+				}
+			}
+
+			return true;
+		}
+
+		// попала, определяем номер инструмента
+		int position=pnt.y/gBKB_TOOLBOX_WIDTH; // Высота и ширина совпадают
+		int tool_candidate=ToolFromPosition(position);
+
+		if(tool_candidate<0)
+		{
+			// не очень помню, зачем это нужно - потом разберусь
 			if((bkb_sleep_count<BKB_SLEEP_COUNT)&&(bkb_sleep_count>0))
 			{
 				bkb_sleep_count=BKB_SLEEP_COUNT; // если были в состоянии сна, но недодержали 5 секунд, они опять перевзводятся
 				PostMessage(Tlhwnd, WM_USER_INVALRECT, 0, 0);
 			}
-			return false; // выше/ниже экрана
+
+			// Попали в окно, а инструмента нет... Возможно - это стрелки!
+			// Скроллинг тулбара
+			if(BKB_NUM_TOOLS>gBKB_TOOLBOX_BUTTONS)
+			{
+				if(0==position) // стрелка вверх, уменьшаем offset
+				{
+					offset-=1;
+					if(offset<0) offset=0;
+					InvalidateRect(Tlhwnd,NULL,TRUE);
+					return true;
+				}
+				else if(position==gBKB_TOOLBOX_BUTTONS-1) 
+				{
+					offset+=1;
+					if(BKB_NUM_TOOLS-offset<gBKB_TOOLBOX_BUTTONS-2) offset=BKB_NUM_TOOLS-gBKB_TOOLBOX_BUTTONS+2;
+					InvalidateRect(Tlhwnd,NULL,TRUE);
+					return true;
+				}
+				
+				return false; // невозможная ситуация, тут бы ошибку напечатать...
+			}
+			else return false;  // невозможная ситуация, тут бы ошибку напечатать...
 		}
 
+		//===================================================================================
+		// Очень много про кнопку сна
+		//===================================================================================
 		// Выключение режима сна
 		if(BKB_MODE_SLEEP==*bm)
 		{
@@ -341,8 +544,15 @@ bool BKBToolWnd::IsItYours(POINT *pnt, BKB_MODE *bm)
 		bkb_sleep_count=BKB_SLEEP_COUNT;
 		PostMessage(Tlhwnd, WM_USER_INVALRECT, 0, 0);
 		
+		//===================================================================================
+		// Конец (Очень многого про кнопку сна)
+		//===================================================================================
+
+
+
+
 		// Добавление контролов и шифтов с альтами к кликам мыши
-		if(current_tool>=0)
+		if((current_tool>=0)&&(gBKB_SHOW_CLICK_MODS))
 			if(tool_config[current_tool].flag_modifiers&&(tool_candidate>current_tool)&&(tool_candidate<=current_tool+4))
 		{
 			// Попали в модификаторы кликов
@@ -356,49 +566,46 @@ bool BKBToolWnd::IsItYours(POINT *pnt, BKB_MODE *bm)
 			return true; // В частности, не выводит увеличительное стекло
 		}
 
-		// пока последний выбрать нельзя
-		// уже можно, просто контролируем, что не вышли за границу
-		//if(tool_candidate>=BKB_NUM_TOOLS-1) return false;
 		
-
 		// Перенести панель инструментов в другую половину экрана - предпоследняя кнопка
 		if(BKB_MODE_SWAP==tool_config[tool_candidate].bkb_mode)
 		{
 			if(left_side)
 			{
 				left_side=false;
-				MoveWindow(Tlhwnd, screen_x-gBKB_TOOLBOX_WIDTH,0,gBKB_TOOLBOX_WIDTH,screen_y,TRUE);
+				//MoveWindow(Tlhwnd, screen_x-gBKB_TOOLBOX_WIDTH,0,gBKB_TOOLBOX_WIDTH,screen_y,TRUE);
+				Place();
 			}
 			else
 			{
 				left_side=true;
-				MoveWindow(Tlhwnd, 0,0,gBKB_TOOLBOX_WIDTH,screen_y,TRUE);
+				//MoveWindow(Tlhwnd, 0,0,gBKB_TOOLBOX_WIDTH,screen_y,TRUE);
+				Place();
 
 			}
 			BKBKeybWnd::Place();
 			return true; // В частности, не выводит увеличительное стекло; режим не меняется
 		}
 
-	
-		
 		// а ещё нельзя включать скролл, когда работает клавиатура (легко промахнуться и нажать его вместо клавиши)
 		// ОТМЕНЕНО
 		//if((BKB_MODE_KEYBOARD==*bm)&&(tool_candidate>=4)) return false; 
 
 		// Специальные действия с клавиатурой
-		if(BKB_MODE_KEYBOARD==*bm)	BKBKeybWnd::DeActivate();	// деактивировать клавиатуру
+		if(BKB_MODE_KEYBOARD==*bm)	{BKBKeybWnd::DeActivate();  }	// деактивировать клавиатуру
 		// если этот инструмент уже был выбран, деактивируем его
 		if(tool_candidate==current_tool)
 		{
 			current_tool=-1;
 			*bm=BKB_MODE_NONE;
+			Place(); // при возврате из режима клавиатуры нужен Place при уже новом значении *bm
 		}
 		else // замена одного инструмента на другой
 		{
 			current_tool=tool_candidate;
 			*bm=tool_config[tool_candidate].bkb_mode;
 			// Специальные действия с клавиатурой
-			if(BKB_MODE_KEYBOARD==*bm) BKBKeybWnd::Activate();	// активировать клавиатуру
+			if(BKB_MODE_KEYBOARD==*bm) {BKBKeybWnd::Activate(); Place(); }	// активировать клавиатуру
 		}
 
 
@@ -417,7 +624,7 @@ bool BKBToolWnd::IsItYours(POINT *pnt, BKB_MODE *bm)
 		//InvalidateRect(Tlhwnd,&rect,TRUE);
 		return true;
 	}
-	else
+	else // не попали - снова контроль включения/выключения сна.
 	{
 		if((bkb_sleep_count<BKB_SLEEP_COUNT)&&(bkb_sleep_count>0))
 		{
@@ -456,7 +663,7 @@ void BKBToolWnd::ScrollCursor(POINT *p)
 {
 	static bool mouse_inside_toolbar=true, last_mouse_inside_toolbar=true; // Для скрытия второго курсора при перемещении за область тулбара
 	
-	if((left_side&&(p->x<gBKB_TOOLBOX_WIDTH)) || !left_side&&(p->x>screen_x-gBKB_TOOLBOX_WIDTH))
+	if((left_side&&(p->x<gBKB_TOOLBOX_WIDTH)) || !left_side&&(p->x>screenX-gBKB_TOOLBOX_WIDTH))
 	{
 		// Попали в тулбокс, покажите курсор
 		mouse_inside_toolbar=true;
@@ -479,10 +686,10 @@ void BKBToolWnd::SleepCheck(POINT *pnt)
 {
 	if((bkb_sleep_count<BKB_SLEEP_COUNT)&&(bkb_sleep_count>0)) // Засыпаем или просыпаемся, мышь уводить с кнопки нельзя
 	{
-		if((left_side&&(pnt->x<gBKB_TOOLBOX_WIDTH)) || !left_side&&(pnt->x>screen_x-gBKB_TOOLBOX_WIDTH)) // Попали ли по ширине?
+		if((left_side&&(pnt->x<gBKB_TOOLBOX_WIDTH)) || !left_side&&(pnt->x>screenX-gBKB_TOOLBOX_WIDTH)) // Попали ли по ширине?
 		{
 			// попала, определяем номер инструмента
-			int tool_candidate=pnt->y/(screen_y/BKB_NUM_TOOLS);
+			int tool_candidate=pnt->y/(screenY/BKB_NUM_TOOLS);
 			if((tool_candidate>=0)&&(tool_candidate<BKB_NUM_TOOLS)) // попали ли по длине?
 			{
 				if(BKB_MODE_SLEEP==tool_config[tool_candidate].bkb_mode) // Попали ли в засыпалку?
@@ -498,4 +705,61 @@ void BKBToolWnd::SleepCheck(POINT *pnt)
 		bkb_sleep_count=BKB_SLEEP_COUNT; // были в состоянии сна, но недодержали 5 секунд, они опять перевзводятся
 		PostMessage(Tlhwnd, WM_USER_INVALRECT, 0, 0);
 	}
+}
+
+//=======================================================================================================================
+// Изменяем форму и положение тулбара в зависимости от режима и правого/левого расположения
+// (а также верхнего/нижнего расположения клавиатуры)
+//=======================================================================================================================
+void BKBToolWnd::Place()
+{
+	//int x=0,y=0;
+
+	// Всякий раз сызнова вычисляем..
+	gBKB_TOOLBOX_WIDTH=screenY/gBKB_TOOLBOX_BUTTONS;
+
+	// Сначала проверяем, уж не клавиши ли выбраны? В этом слкчае вырожденное окно получаем
+	if(BKB_MODE_KEYBOARD==Fixation::CurrentMode())
+	{
+		// 2 или одна кнопка в зависимости от step (шага зумирования клавиатуры)
+		if(0==BKBKeybWnd::step) height=2*gBKB_TOOLBOX_WIDTH; // Две кнопки в шаге 0 клавиатуры
+		else height=gBKB_TOOLBOX_WIDTH; // Одна только кнопка при зумировании 
+
+		if(!BKBKeybWnd::bottom_side) // Клавиатура вверху, переносим тулбар вниз
+			place_point.y=screenY-height;
+	}
+	else // Нет, не клавиатура
+	{
+		height=screenY; // Да, вот так просто.
+	}
+	
+	if(!left_side) place_point.x=screenX-gBKB_TOOLBOX_WIDTH;
+	else place_point.x=0;
+
+	MoveWindow(Tlhwnd, place_point.x,place_point.y,gBKB_TOOLBOX_WIDTH,height,TRUE);
+
+}
+
+static RECT pink_rect;
+//=======================================================================================================================
+// Будем рисовать розовый прямоугольничек на тулбаре
+//=======================================================================================================================
+LPRECT BKBToolWnd::PinkFrame(int _x, int _y)
+{
+	// Попала ли точка в границы окна?
+	POINT pnt={_x,_y};
+	ScreenToClient(Tlhwnd,&pnt);
+	if((pnt.x>=0)&&(pnt.x<gBKB_TOOLBOX_WIDTH)&&(pnt.y>0)&&(pnt.y<height))
+	{
+		// Попала, осталось только найти, в какую ячейку
+		int cell_num=pnt.y/gBKB_TOOLBOX_WIDTH;
+
+		pink_rect.left=place_point.x;
+		pink_rect.right=place_point.x+gBKB_TOOLBOX_WIDTH-1;
+		pink_rect.top=place_point.y+gBKB_TOOLBOX_WIDTH*cell_num;
+		pink_rect.bottom=place_point.y+gBKB_TOOLBOX_WIDTH*(cell_num+1);
+		
+		return &pink_rect;
+	}
+	else return NULL;
 }

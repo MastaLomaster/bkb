@@ -17,11 +17,22 @@ public:
 	static bool tool_modifier[4];
 	static int current_tool;
 	static bool LeftSide() {return left_side;}
+	static void Place();
+
+	// Розовая обводка 
+	static LPRECT PinkFrame(int _x, int _y);
+	static int offset;
+
 protected:
 	static TCHAR *tool_modifier_name[4];
 	static HWND Tlhwnd;
-	static int screen_x, screen_y;
 	static bool left_side;
+	static int height;
+
+	static int PositionFromTool(int tool_num);
+	static int ToolFromPosition(int position);
+
+	static POINT place_point;
 };
 
 #endif

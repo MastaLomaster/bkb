@@ -6,28 +6,31 @@
 #include "BKBSettings.h"
 #include "ToolWnd.h"
 #include "TranspWnd.h"
+#include "BKBProgressWnd.h"
 
+static bool flag_hide_anim=false; // Прятать окно анимации только поcле перерисовки клавиатуры (с запозданием, чтобы не было flickers)
 
 int gBKB_FullSizeKBD = 0; // Флаг того, что клавиатура занимает всю ширину экрана
 
 extern int gBKB_TOOLBOX_WIDTH; 
-extern int flag_using_airmouse;
+extern int tracking_device;
+extern int screenX, screenY; // Определены в BKBgdi
 
 // Раскладка клавиатур задана в файле KeybLayouts.cpp
 
 extern HINSTANCE BKBInst;
 static const TCHAR *wnd_class_name=L"BKBKeyb";
+static const TCHAR *anim_wnd_class_name=L"BKBAnimKeyb";
 
-HWND  BKBKeybWnd::Kbhwnd;
+HWND  BKBKeybWnd::Kbhwnd=0, BKBKeybWnd::AnimHwnd;
 int BKBKeybWnd::current_pane=0;
-int BKBKeybWnd::screen_x, BKBKeybWnd::screen_y; 
-POINT BKBKeybWnd::start_point;
+POINT BKBKeybWnd::start_point, BKBKeybWnd::place_point={0,0};
 bool BKBKeybWnd::fixation_approved=false;
 int BKBKeybWnd::row, BKBKeybWnd::column, BKBKeybWnd::percentage;
 bool BKBKeybWnd::shift_pressed=false, BKBKeybWnd::ctrl_pressed=false,
 	BKBKeybWnd::alt_pressed=false,BKBKeybWnd::caps_lock_pressed=false,
 	BKBKeybWnd::Fn_pressed=false;
-float BKBKeybWnd::cell_width, BKBKeybWnd::cell_height;
+float BKBKeybWnd::cell_width, BKBKeybWnd::cell_height, BKBKeybWnd::cropped_cell_width;
 bool BKBKeybWnd::bottom_side=true;
 int BKBKeybWnd::ctrl_row,BKBKeybWnd::ctrl_column,BKBKeybWnd::alt_row,BKBKeybWnd::alt_column,BKBKeybWnd::shift_row,BKBKeybWnd::shift_column,
 	BKBKeybWnd::fn_row,BKBKeybWnd::fn_column;
@@ -41,8 +44,14 @@ POINT BKBKeybWnd::whitespot_point={-100,-100};
 
 int BKBKeybWnd::row_pressed=-1, BKBKeybWnd::column_pressed=-1;
 
+RECT BKBKeybWnd::pink_rect;
+int BKBKeybWnd::step=0;
+LONG  BKBKeybWnd::anim_width=50,  BKBKeybWnd::anim_height=50;
+
 extern HBRUSH dkblue_brush, blue_brush;
 extern HFONT hfont;
+
+extern bool gBKB_2STEP_KBD_MODE;
 
 #ifdef BELYAKOV
 // раскладки клавиатуры
@@ -74,7 +83,7 @@ LRESULT CALLBACK BKBKeybWndProc(HWND hwnd,
 		// Теперь прячем курсор над окном, его роль выполняет белое пятно
 		// И одновременно показываем 
 #ifdef BELYAKOV
-		if(2!=flag_using_airmouse)
+		if(2!=tracking_device)
 #endif
 		SetCursor(NULL);
 		break;
@@ -87,7 +96,11 @@ LRESULT CALLBACK BKBKeybWndProc(HWND hwnd,
 	case WM_PAINT:
 		PAINTSTRUCT ps;
 		hdc=BeginPaint(hwnd,&ps);
-		BKBKeybWnd::OnPaint(hdc);
+		if(0==BKBKeybWnd::step)
+			BKBKeybWnd::OnPaintStep0(hdc);
+		else 
+			BKBKeybWnd::OnPaintStep1(hdc);
+
 		EndPaint(hwnd,&ps);
 		break;
 
@@ -97,6 +110,58 @@ LRESULT CALLBACK BKBKeybWndProc(HWND hwnd,
 
 	case WM_SIZE:
 		BKBKeybWnd::OnSize(hwnd, LOWORD(lparam), HIWORD(lparam));
+		break;
+
+		// !! Добавить сюда чистку всех memdc при выходе (WM_CLOSE) !!
+	default:
+		return DefWindowProc(hwnd,message,wparam,lparam);
+	}
+
+	return 0; // Обработали, свалились сюда по break
+}
+
+//=====================================================
+// Оконная процедура для окна анимации
+//=====================================================
+LRESULT CALLBACK BKBAnimKeybWndProc(HWND hwnd,
+						UINT message,
+						WPARAM wparam,
+						LPARAM lparam)
+{
+	HDC hdc;
+	RECT tmpRECT={10,10,50,50};
+
+	switch (message)
+	{
+
+	//case WM_SIZE:
+	case WM_MOVE:
+		hdc=GetDC(hwnd);
+	//FillRect(hdc,&tmpRECT,blue_brush);
+	BKBKeybWnd::OnAnimPaint(hdc);
+		ReleaseDC(hwnd,hdc);
+		break;
+/*
+		
+		
+
+	case WM_WINDOWPOSCHANGED:
+		// так мы убиваем WM_SIZE и WM_MOVE
+		break;
+*/
+	case WM_PAINT:
+		PAINTSTRUCT ps;
+		hdc=BeginPaint(hwnd,&ps);
+		
+		
+		
+
+		//MoveToEx(hdc,10,10,NULL);
+		//LineTo(hdc,50,50);
+
+		//BKBKeybWnd::OnAnimPaint(hdc);
+
+		EndPaint(hwnd,&ps);
 		break;
 
 		// !! Добавить сюда чистку всех memdc при выходе (WM_CLOSE) !!
@@ -140,7 +205,7 @@ void BKBKeybWnd::Init(HWND master_hwnd)
 		NULL,
 #endif
 		// Фон красится теперь в memdc1
-        //dkblue_brush,
+        // dkblue_brush,
 		0,
 		NULL,
 		wnd_class_name
@@ -161,32 +226,33 @@ void BKBKeybWnd::Init(HWND master_hwnd)
 	hkl_russian=LoadKeyboardLayout(kbd_russian, 0);
 #endif
 
-
-	screen_x=GetSystemMetrics(SM_CXSCREEN);
-	screen_y=GetSystemMetrics(SM_CYSCREEN);
-
 	// Теперь клавиатура может занимать не всю ширину экрана
-	if(gBKB_FullSizeKBD) width=screen_x;
-	else width=screen_x-gBKB_TOOLBOX_WIDTH;
+	if(gBKB_FullSizeKBD) width=screenX;
+	else width=screenX-gBKB_TOOLBOX_WIDTH;
 
 	cell_width=width/(float)columns;
 
 
 	//start_y=screen_y-(int)(cell_size*3);
-	if(cell_width*rows<screen_y*0.45f) cell_height=cell_width; // Удалось уложиться в 0.45 высоты экрана при квадратных кнопках
-	else cell_height=0.45f*screen_y/rows; // Приплюснем кнопки, чтобы не перекрыть более 0.45 экрана
+	if(cell_width*rows<screenY*0.45f) cell_height=cell_width; // Удалось уложиться в 0.45 высоты экрана при квадратных кнопках
+	else cell_height=0.45f*screenY/rows; // Приплюснем кнопки, чтобы не перекрыть более 0.45 экрана
 
 	Kbhwnd=CreateWindowEx(
-	WS_EX_TOPMOST|WS_EX_CLIENTEDGE,
+	WS_EX_TOPMOST,
+	//WS_EX_TOPMOST|WS_EX_CLIENTEDGE,
 	wnd_class_name,
 	NULL, //TEXT(KBWindowName),
     //WS_VISIBLE|WS_POPUP,
 	WS_POPUP,
 	//0,screen_y-1-(INT)(cell_height*rows),screen_x,(INT)(cell_height*rows), 
-	0,screen_y-1-(INT)(cell_height*rows),width,(INT)(cell_height*rows), 
+	0,screenY-1-(INT)(cell_height*rows),width,(INT)(cell_height*rows), 
     //0, 
 	master_hwnd, // Чтобы в таскбаре и при альт-табе не появлялись лишние окна
 	0, BKBInst, 0L );
+
+	// Это для BKBProgressWnd
+	place_point.x=0;
+	place_point.y=screenY-1-(INT)(cell_height*rows);
 
 	if(NULL==Kbhwnd)
 	{
@@ -195,12 +261,61 @@ void BKBKeybWnd::Init(HWND master_hwnd)
 
 	// ShowWindow(Kbhwnd,SW_SHOWNORMAL);
 	ShowWindow(Kbhwnd,SW_HIDE);
+
+	//=============================================================
+	// Теперь ещё и окно анимации добавилось
+	//=============================================================
+
+	// 1. Регистрация класса окна
+	//WNDCLASS anim_wcl={CS_HREDRAW | CS_VREDRAW, BKBAnimKeybWndProc, 0,
+	WNDCLASS anim_wcl={0, BKBAnimKeybWndProc, 0,
+		0,
+		BKBInst,
+		LoadIcon( NULL, IDI_APPLICATION),
+#ifdef BELYAKOV
+        LoadCursor(NULL, IDC_ARROW), 
+#else
+		NULL,
+#endif
+		// От фона - только flickering
+        // dkblue_brush,
+		 0,
+		NULL,
+		anim_wnd_class_name
+	};
+
+	aresult=::RegisterClass(&anim_wcl); 
+
+
+	if (aresult==0)
+	{
+		BKBReportError(__WIDEFILE__,L"RegisterClass (",__LINE__);
+		return;
+	}
+
+
+	AnimHwnd=CreateWindowEx(
+	WS_EX_TOPMOST,
+	anim_wnd_class_name,
+	NULL, //TEXT(KBWindowName),
+    //WS_VISIBLE|WS_POPUP,
+	WS_POPUP,
+	CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+	master_hwnd, // Чтобы в таскбаре и при альт-табе не появлялись лишние окна
+	0, BKBInst, 0L );
+
+	if(NULL==AnimHwnd)
+	{
+		BKBReportError(__WIDEFILE__,L"CreateWindow",__LINE__);
+	}
+	
+	ShowWindow(AnimHwnd,SW_HIDE);
 }
 
 //================================================================
 // Рисуем окно (Из WM_PAINT или сами)
 //================================================================
-void BKBKeybWnd::OnPaint(HDC hdc)
+void BKBKeybWnd::OnPaintStep0(HDC hdc)
 {
 	bool release_dc=false;
 	LONG local_redraw_state;
@@ -236,6 +351,8 @@ void BKBKeybWnd::OnPaint(HDC hdc)
 	RECT fill_r={0,0,width,height};
 	RECT rect_pressed={int(column_pressed*cell_width),int(row_pressed*cell_height),int((column_pressed+1)*cell_width),int((row_pressed+1)*cell_height)};
 
+	// Для отладки
+	//local_redraw_state=0;
 	
 	switch(local_redraw_state)
 	{
@@ -365,7 +482,7 @@ void BKBKeybWnd::OnPaint(HDC hdc)
 
 		// В режиме аэромыши для Белякова это отключить
 #ifdef BELYAKOV
-		if(2!=flag_using_airmouse)
+		if(2!=tracking_device)
 #endif
 		{
 			// Теперь рисуем белое пятно
@@ -390,6 +507,210 @@ void BKBKeybWnd::OnPaint(HDC hdc)
 
 }
 
+//=====================================================================================================================================
+// Когда рисуем клавиатуру в два прохода
+//=====================================================================================================================================
+void BKBKeybWnd::OnPaintStep1(HDC hdc)
+{
+	bool release_dc=false;
+	LONG local_redraw_state;
+	BKB_key key;
+
+	// Сейчас будем АТОМАРНО считывать и сбрасывать redraw_state;
+	local_redraw_state=InterlockedCompareExchange(&redraw_state,2,0);
+	if(0!=local_redraw_state) // Замены не произошло, пробуем проверить 1
+	{
+		local_redraw_state=InterlockedCompareExchange(&redraw_state,2,1);
+		// Если и тут ничего не вышло, ничего страшного
+		// Либо там была двойка, либо значение успело поменяться между двумя InterlockedCompareExchange
+		// Если успело поменяться, то придёт ещё один WM_PAINT, и мы его всё равно отловим
+		// Просто лишний раз выполним BitBlt в шаге 2. Никто не пострадает.
+		// Вообще-то 0 на 1 поменяться не может в принципе. Потому что тоже через Interlocked... единица выставляется
+		// Короче, всё работает.
+		if(1!=local_redraw_state) local_redraw_state=2;
+	}
+	
+
+	if(0==hdc)
+	{
+		release_dc=true;
+		hdc=GetDC(Kbhwnd);
+	}
+
+	HFONT old_font;
+
+	SetTextColor(memdc1,RGB(255,255,255));
+	SetBkColor(memdc1,RGB(45,62,90));
+	//SetBkMode(memdc1,TRANSPARENT);
+
+	RECT fill_r={0,0,width,height};
+	
+	//RECT rect_pressed={int(column_pressed*cell_width),int(row_pressed*cell_height),int((column_pressed+1)*cell_width),int((row_pressed+1)*cell_height)};
+
+	// Для отладки
+	//local_redraw_state=0;
+
+	switch(local_redraw_state)
+	{
+	case 0: // Перерисовываем всё с самой глубины
+		FillRect(memdc1,&fill_r,dkblue_brush);
+		// Нажатой клавиши нет в step==1
+/*		// Подсвечиваем нажатую клавишу
+		if(column_pressed!=-1)
+		{
+			//RECT rect_pressed={int(column_pressed*cell_size),int(row_pressed*cell_size),int((column_pressed+1)*cell_size),int((row_pressed+1)*cell_size)};
+			FillRect(memdc1,&rect_pressed,blue_brush);
+		}
+*/
+		// Собственно, рисование
+/*		// 1. Сначала подсветим нажатые  спец. клавиши
+		if(shift_pressed&&shift_row!=-1)
+		{
+			RECT rect={int(shift_column*cell_width),int(shift_row*cell_height),int((shift_column+1)*cell_width),int((shift_row+1)*cell_height)};
+			FillRect(memdc1,&rect,blue_brush);
+			if(caps_lock_pressed)	TextOut(memdc1,int(shift_column*cell_width+cell_width/3), int(shift_row*cell_height+cell_height*0.8),L"CAPS",4);
+		}
+
+		if(ctrl_pressed&&ctrl_row!=-1)
+		{
+			RECT rect={int(ctrl_column*cell_width),int(ctrl_row*cell_height),int((ctrl_column+1)*cell_width),int((ctrl_row+1)*cell_height)};
+			FillRect(memdc1,&rect,blue_brush);
+		}
+		if(alt_pressed&&alt_row!=-1)
+		{
+			//RECT rect={int(14*cell_width),int(cell_height),int(15*cell_width),int(2*cell_height)};
+			RECT rect={int(alt_column*cell_width),int(alt_row*cell_height),int((alt_column+1)*cell_width),int((alt_row+1)*cell_height)};
+			FillRect(memdc1,&rect,blue_brush);
+		}
+		if(Fn_pressed&&fn_row!=-1)
+		{
+			RECT rect={int(fn_column*cell_width),int(fn_row*cell_height),int((fn_column+1)*cell_width),int((fn_row+1)*cell_height)};
+			//RECT rect={0,int(cell_height),int(cell_width),int(2*cell_height)};
+			FillRect(memdc1,&rect,blue_brush);
+		}
+*/
+		// 2. Расчерчиваем линии
+		SelectObject(memdc1,GetStockObject(WHITE_PEN));
+		int i,j;
+
+		// 2.1. Горизонтальные
+		for(j=1;j<cropped_rows;j++)
+		{
+			MoveToEx(memdc1,0,int(j*cropped_cell_width),NULL);
+			LineTo(memdc1,width-1,int(j*cropped_cell_width));
+		}
+
+		// 2.2. Вертикальные
+		for(i=1;i<cropped_columns;i++)
+		{
+			MoveToEx(memdc1,int(cropped_cell_width*i),0,NULL);
+			LineTo(memdc1,int(cropped_cell_width*i),height);
+			
+			//TextOut(hdc,35,60+i*screen_y/BKB_NUM_TOOLS,tool_names[i],(int)strlen(tool_names[i]));
+		}
+
+		// 3. Пишем буквы
+		// 3.1. Своим фонтом - из одного символа
+		old_font=(HFONT)SelectObject(memdc1, hfont);
+
+		for(j=0;j<cropped_rows;j++)
+			for(i=0;i<cropped_columns;i++)
+			{
+				key=layout[current_pane*rows*columns+(j+cropped_row)*columns+i+cropped_column]; //BKBKeybLayouts[current_pane][j][i];
+				if(undefined==key.bkb_keytype) continue;
+
+				if(NULL!=key.label) // проверка, что там не NULL
+				if(1==wcslen(key.label))
+				TextOut(memdc1,int(cropped_cell_width*0.4+i*cropped_cell_width) , int(cropped_cell_width/3.3+j*cropped_cell_width),
+					key.label,wcslen(key.label));
+			}
+	
+		// Возвращаем старый фонт
+		SelectObject(memdc1, old_font);
+
+		// 3.2. Системным фонтом - то, что длиннее одного символа
+		for(j=0;j<cropped_rows;j++)
+			for(i=0;i<cropped_columns;i++)
+			{
+				key=layout[current_pane*rows*columns+(j+cropped_row)*columns+i+cropped_column]; //BKBKeybLayouts[current_pane][j][i];
+				if(undefined==key.bkb_keytype) continue;
+
+				if(NULL!=key.label) // проверка, что там не NULL
+				if(wcslen(key.label)>1)
+				{
+					if(fn==key.bkb_keytype) SetTextColor(memdc1,RGB(255,155,155)); // Кнопку Fn подкрашиваем
+					TextOut(memdc1,int(cropped_cell_width*0.2+i*cropped_cell_width) , int(cropped_cell_width/3.3+j*cropped_cell_width),
+						key.label,wcslen(key.label));
+					if(fn==key.bkb_keytype) SetTextColor(memdc1,RGB(255,255,255)); 
+				}
+				
+				// Если есть Fn-клавиша, написать её в [правом] левом нижнем углу красным цветом
+				if(NULL!=key.fn_label)
+				{
+					SetTextColor(memdc1,RGB(255,155,155));
+					//TextOut(memdc1,int(cell_width*0.4+i*cell_width) , int(cell_height/3+j*cell_height), key.label,wcslen(key.label));
+#ifdef BELYAKOV
+					TextOut(memdc1,int(cropped_cell_width*0.03+i*cropped_cell_width) , int(cropped_cell_width*0.75+j*cropped_cell_width),key.fn_label,wcslen(key.fn_label));
+#else
+					TextOut(memdc1,int(cropped_cell_width*0.1+i*cropped_cell_width) , int(cropped_cell_width*0.79+j*cropped_cell_width),key.fn_label,wcslen(key.fn_label));
+#endif
+					SetTextColor(memdc1,RGB(255,255,255)); // Верни цвет на белый
+				}
+			}
+				
+		
+		// ЗДЕСЬ НЕ НУЖЕН break !!! После нулевого шага всегда идёт первый!!!
+
+	case 1:
+		BitBlt(memdc2,0,0,width,height,memdc1,0,0,SRCCOPY);
+
+		// При step 1 никаких progress-bar нет
+		/*
+		// Возможно, рисовать Progress Bar
+		if(fixation_approved)
+		{
+			RECT rect;
+		
+			rect.left=(LONG)(cell_width/20+column*cell_width);
+			rect.right=(LONG)(rect.left+percentage*cell_width*90/100/100);
+			rect.top=(LONG)(cell_height/20+cell_height*row);
+			rect.bottom=(LONG)(rect.top+cell_height/20); 
+
+			FillRect(memdc2,&rect,blue_brush);
+		}
+		*/
+		// В режиме аэромыши для Белякова это отключить
+#ifdef BELYAKOV
+		if(2!=tracking_device)
+#endif
+		{
+			// Теперь рисуем белое пятно
+			BLENDFUNCTION bfn;
+			bfn.BlendOp = AC_SRC_OVER;
+			bfn.BlendFlags = 0;
+			bfn.SourceConstantAlpha = 255;
+			bfn.AlphaFormat = AC_SRC_ALPHA;
+
+			//AlphaBlend(memdc2, 0, 0, 100, 64, BufferDC, 0, 0, 100, 64, bfn);
+			AlphaBlend(memdc2,whitespot_point.x-50,whitespot_point.y-50,100,100,whitespot_dc,0,0,100,100,bfn);
+		}
+
+		// ЗДЕСЬ НЕ НУЖЕН break !!! После первого шага всегда идёт второй!!!
+	case 2:
+		BitBlt(hdc,0,0,width,height,memdc2,0,0,SRCCOPY);
+		break;
+	}
+
+	if(flag_hide_anim)
+	{
+		ShowWindow(AnimHwnd,SW_HIDE);
+		flag_hide_anim=false;
+	}
+
+	// Если брал DC - верни его
+	if(release_dc) ReleaseDC(Kbhwnd,hdc);
+
+}
 
 //===========================================================================
 // Похоже, что хотят нажать на кнопку, рисовать прогресс нажатия
@@ -409,7 +730,9 @@ bool BKBKeybWnd::ProgressBar(POINT *p, int fixation_count, int _percentage)
 			row=(int)(start_point.y/cell_height);
 			if(row>rows-1) row=rows-1;
 			column=(int)(start_point.x/cell_width);
-			if(column>columns-1) columns=columns-1;
+			if(column>columns-1) column=columns-1;
+			// Здесь была охренительная ошибка! Как это вообще работало...
+			// if(column>columns-1) columns=columns-1;
 		}
 		else fixation_approved=false;
 	}
@@ -464,10 +787,60 @@ void BKBKeybWnd::ProgressBarReset()
 //===========================================================================
 // Произошла фиксация, возможно на клавиатуре
 //===========================================================================
+extern bool flag_Pink_approved;
+DWORD BKBKeybWnd::animation_start_time;
+bool BKBKeybWnd::animation_started;
+
 bool BKBKeybWnd::IsItYours(POINT *p, BKB_MODE *bm)
 {
 	INPUT input[2]={0},shift_input={0},ctrl_input={0},alt_input={0};
+	
+	bool result;
+	POINT p_tmp=*p;
+	ScreenToClient(Kbhwnd,&p_tmp); // Пришлось переместить в начало, потому что в середине меняется геометрия окна
+	if((p_tmp.y>=0)&&(p_tmp.y<height)&&(p_tmp.x>=0)&&(p_tmp.x<width)) result=true;// Попали внутрь окна
+	else result=false; // но не возвращаемся немендленно. Ибо при розовом прямоугольнике валидная область БОЛЬШЕ, чем размер окна
 
+	// Нововведение - нажатие может означать переход на следующий шаг
+	if(gBKB_2STEP_KBD_MODE)
+	{
+		// Попадание нужно контролировать:
+		// 1. на шаге 0 = попадание в последний розовый прямоугольник
+		// 2. на шаге 1 = попадание в клавиатуру
+
+		if(0==step)
+		{
+			// А попали ли мы вообще в клавиатуру (творчески расширенную)?
+			if((p->x<extended_rect.left)||(p->x>extended_rect.right)||(p->y<extended_rect.top)||(p->y>extended_rect.bottom))
+			return false;
+
+			//step=1;
+			//redraw_state=0; // перерисовать клавиатуру с самого начала
+			//Place();
+			//InvalidateRect(Kbhwnd,NULL,FALSE); 
+
+			// Теперь вместо этого убираем клавиатуру и начинаем анимацию
+			animation_start_time=timeGetTime();
+			animation_started=true;
+			Animate();
+	
+			ShowWindow(AnimHwnd,SW_SHOWNORMAL);
+			//ShowWindow(Kbhwnd, SW_HIDE);
+			BKBProgressWnd::Hide();
+
+			return true;
+		}
+		else
+		{
+			if(!result) return false; // В окно не попали
+
+			column=cropped_column+step1_element_column;
+			row=cropped_row+step1_element_row;
+			fixation_approved=true;
+		}
+	}
+
+	// Далее - старый код, когда ещё не было Pink (с маленькой вставкой)
 	if(fixation_approved)
 	{
 		// Сбросить Progress Bar
@@ -491,7 +864,8 @@ bool BKBKeybWnd::IsItYours(POINT *p, BKB_MODE *bm)
 				BKBToolWnd::current_tool=-1;
 				*bm=BKB_MODE_NONE;
 				BKBTranspWnd::Show(); // Показать стрелку
-				PostMessage(BKBToolWnd::GetHwnd(), WM_USER_INVALRECT, 0, 0);
+				//PostMessage(BKBToolWnd::GetHwnd(), WM_USER_INVALRECT, 0, 0);
+				BKBToolWnd::Place();
 				BKBSettings::SettingsDialogue();
 			}
 			Fn_pressed=false; // Сбрасываем нажатую клавишу Fn, даже если не было, что нажать
@@ -590,18 +964,25 @@ bool BKBKeybWnd::IsItYours(POINT *p, BKB_MODE *bm)
 		SetTimer(Kbhwnd,4,500,0); // полсекунды
 		// Теперь ВСЕГДА перерисовываем клавиатуру после ЛЮБОГО нажатия
 		redraw_state=0;
+
+		// Для двухфазного нажатия - придаём клавиатуре обычный вид
+		if(gBKB_2STEP_KBD_MODE)
+		{
+			step=0;
+			Place();
+			BKBToolWnd::Place(); // ToolBar также меняет форму
+		}
+
 		// Из другого потока нельзя вызывать InvalidateRect
 		PostMessage(Kbhwnd, WM_USER_INVALRECT, 0, 0);
 		//InvalidateRect(Kbhwnd,NULL,FALSE); // перерисовать клавиатуру с самого начала
 		//OutputDebugString("row_pressed\n");
+
+		return true;
 	} //fixation approved
 
 	// Возвращаем всегда, относится ли это нажатие к нам, даже если кнопку не нажали
-	POINT p_tmp=*p;
-	ScreenToClient(Kbhwnd,&p_tmp);
-	if((p_tmp.y>=0)&&(p_tmp.y<height)&&(p_tmp.x>=0)&&(p_tmp.x<width)) return true;// Попали внутрь окна
-	//if(p->y>=start_y) 	return true;
-	else return false;
+	return result;
 }
 
 //===========================================================================
@@ -609,6 +990,10 @@ bool BKBKeybWnd::IsItYours(POINT *p, BKB_MODE *bm)
 //===========================================================================
 bool BKBKeybWnd::WhiteSpot(POINT *p)
 {
+	// для отладки
+	if(animation_started) 
+		return true;
+
 	// Не, всё не так. Надо проверить, может надо стереть пятно, которое было раньше
 	//if(p->y<start_y-50) return; // Белое пятно не заехало на клавиатуру
 
@@ -637,6 +1022,7 @@ bool BKBKeybWnd::WhiteSpot(POINT *p)
 //===========================================================================
 void BKBKeybWnd::Activate()
 {
+	step=0; // перестрахуемся
 	PopulateCtrlAltShiftFn(); // Вообще-то это нужно только при первой активации... Ну да ладно.
 	ShowWindow(Kbhwnd,SW_SHOWNORMAL);
 	fixation_approved=false;
@@ -647,6 +1033,7 @@ void BKBKeybWnd::Activate()
 //===========================================================================
 void BKBKeybWnd::DeActivate()
 {
+	step=0; // перестрахуемся
 	ShowWindow(Kbhwnd,SW_HIDE);
 	ProgressBarReset();
 }
@@ -788,6 +1175,7 @@ void BKBKeybWnd::OnSize(HWND hwnd, int _width, int _height)
 	ReleaseDC(hwnd,hdc);
 
 	redraw_state=0; // Требуется пересовка всех слоёв
+	InvalidateRect(Kbhwnd,NULL,TRUE); 
 }
 
 //===================================================================
@@ -919,32 +1307,316 @@ void BKBKeybWnd::PopulateCtrlAltShiftFn()
 //===============================================================================================================
 void BKBKeybWnd::Place()
 {
-	POINT p;
+	// Теперь запоминаем place_point, он потребуется для BKBProgressWnd
 	
-	// 05.10.2014 - борьба с деградацией размера клавиатуры
-	if(gBKB_FullSizeKBD) cell_width=screen_x/(float)columns;
-	else  cell_width=(screen_x-gBKB_TOOLBOX_WIDTH)/(float)columns;
-
-	if(cell_width*rows<screen_y*0.45f) cell_height=cell_width; // Удалось уложиться в 0.45 высоты экрана при квадратных кнопках
-	else cell_height=0.45f*screen_y/rows; // Приплюснем кнопки, чтобы не перекрыть более 0.45 экрана
-
-	height=cell_height*rows;
-	// \05.10.2014
-
-	if(bottom_side) p.y=screen_y-1-height; else p.y=0;
-
-	if(gBKB_FullSizeKBD)
+	if(0==step)
 	{
-		p.x=0;
-		width=screen_x;
+		// 05.10.2014 - борьба с деградацией размера клавиатуры
+		if(gBKB_FullSizeKBD) cell_width=screenX/(float)columns;
+		else  cell_width=(screenX-gBKB_TOOLBOX_WIDTH)/(float)columns;
+
+		if(cell_width*rows<screenY*0.45f) cell_height=cell_width; // Удалось уложиться в 0.45 высоты экрана при квадратных кнопках
+		else cell_height=0.45f*screenY/rows; // Приплюснем кнопки, чтобы не перекрыть более 0.45 экрана
+
+		height=cell_height*rows;
+		// \05.10.2014
+
+		if(bottom_side) place_point.y=screenY-1-height; else place_point.y=0;
+
+		if(gBKB_FullSizeKBD)
+		{
+			place_point.x=0;
+			width=screenX;
+		}
+		else
+		{
+			if(BKBToolWnd::LeftSide()) place_point.x=gBKB_TOOLBOX_WIDTH; else place_point.x=0;
+			width=screenX-gBKB_TOOLBOX_WIDTH;
+		}
 	}
-	else
+	else // 1==step
 	{
-		if(BKBToolWnd::LeftSide()) p.x=gBKB_TOOLBOX_WIDTH; else p.x=0;
-		width=screen_x-gBKB_TOOLBOX_WIDTH;
+		// Терерь при зуме клавиатуры она никогда не наезжает на тулбар (23/5/2015)
+		//if(gBKB_FullSizeKBD) cropped_cell_width=screenX/4.0f;
+		//else  cropped_cell_width=(screenX-gBKB_TOOLBOX_WIDTH)/4.0f;
+		cropped_cell_width=(screenX-gBKB_TOOLBOX_WIDTH)/4.0f;
+
+		height=cropped_cell_width*cropped_rows;
+
+		if(bottom_side) place_point.y=screenY-1-height; else place_point.y=0;
+
+		// Терерь при зуме клавиатуры она никогда не наезжает на тулбар (23/5/2015)
+		//if(gBKB_FullSizeKBD)
+		//{
+		//	place_point.x=0;
+		//	width=screenX;
+		//}
+		//else
+		{
+			if(BKBToolWnd::LeftSide()) place_point.x=gBKB_TOOLBOX_WIDTH; else place_point.x=0;
+			width=screenX-gBKB_TOOLBOX_WIDTH;
+		}
+
+		if (cropped_columns!=4) // менее 4 клавиш в строке обрубка клавиатуры
+		{
+			place_point.x+=(4-cropped_columns)*cropped_cell_width;
+			width-=(4-cropped_columns)*cropped_cell_width;
+		}
 	}
+
+	redraw_state=0;
+	if(Kbhwnd)
+		SetWindowPos(Kbhwnd,HWND_TOPMOST,place_point.x,place_point.y,width,height,0);
+	
+}
+
+//================================================================================================================
+// Розовая обводка нескольких клавиш, когла клавиша нажимается в два захода
+//================================================================================================================
+RECT BKBKeybWnd::extended_rect; // Прямоугольник, возможно с большей высотой, чем клавиатура, взгляд на который считается попаданием в клавиатуру
+RECT BKBKeybWnd::element_rect; // Прямоугольник, который будет увеличен до целой клавиатуры на следующем шаге
+
+int BKBKeybWnd::element_rows,BKBKeybWnd::element_columns, BKBKeybWnd::element_row, BKBKeybWnd::element_column; // element - это кусок клавиатуры 4x2 клавиши
+int BKBKeybWnd::cropped_rows,BKBKeybWnd::cropped_columns, BKBKeybWnd::cropped_row, BKBKeybWnd::cropped_column; // кусок клавиатуры внутри элемента
+int BKBKeybWnd::step1_element_row, BKBKeybWnd::step1_element_column;
+
+// и прямоугольник элемента
+LPRECT BKBKeybWnd::PinkFrame(int _x, int _y)
+{
+	if(0==step)
+	{
+		// 1. Определить количество элементов
+		element_rows=(rows+1)/2;
+		element_columns=(columns+3)/4;
+
+		// 2. Находим прямоугольник, куда можно смотреть
+		extended_rect.left=place_point.x;
+		extended_rect.right=place_point.x+width-1;
+		if(bottom_side)
+		{
+			extended_rect.bottom=screenY-1;
+			extended_rect.top=screenY-cell_height*2.0f*element_rows-1;
+		}
+		else
+		{
+			extended_rect.bottom=cell_height*2.0f*element_rows-1;
+			extended_rect.top=0;
+		}
+
+		// А попали ли мы вообще в клавиатуру (творчески расширенную)?
+		if((_x<extended_rect.left)||(_x>extended_rect.right)||(_y<extended_rect.top)||(_y>extended_rect.bottom))
+			return NULL;
+
+		// 3. Находим прямоугольник для подсветки
+		element_column=(_x-extended_rect.left)/(4.0f*cell_width);
+		element_row=(_y-extended_rect.top)/(2.0f*cell_height);
+
+		element_rect.left=extended_rect.left+element_column*4.0f*cell_width;
+		element_rect.right=extended_rect.left+(element_column+1)*4.0f*cell_width-1;
+
+		element_rect.top=extended_rect.top+element_row*2.0f*cell_height;
+		element_rect.bottom=extended_rect.top+(element_row+1)*2.0f*cell_height-1;
+
+		// Последний жлемент по горизонтали может быть обрезком из 3 и менее клавиш...
+		if(element_rect.right>extended_rect.right) element_rect.right=extended_rect.right;
+
+		// В принципе, это надо подсчитывать только перед увеличением элемента, но здесь удобнее (читабельнее)
+		// В раскладке клавиатуры этот прямоугольник будет соответствовать вот таким позициям:
+		cropped_row=element_row*2;
+		cropped_rows=2;
+		
+		// Но если количество строк нечётное:
+		if(element_rows!=rows*2)
+		{
+			if(bottom_side) // Нулевой элемент начинается в пустоте
+			{
+				cropped_row=element_row*2-1;
+				if(-1==cropped_row) {cropped_row=0; cropped_rows=1;}
+			}
+			else // последний элемент состоит из одной строки
+			{
+				if(element_row==element_rows-1) cropped_rows=1;
+			}
+		}
+		
+		// Если количество клавиш в строке обрезанного элемента меньше 4:
+		cropped_column=element_column*4;
+		cropped_columns=4;
+		if(columns<(element_column+1)*4) cropped_columns=columns-4*element_column;
+
+		return &element_rect;
+	} // 0==step
+	else // Рисование прямоугольника на шаге 1
+	{
+		// 1. Находим прямоугольник, куда можно смотреть
+		extended_rect.left=place_point.x;
+		extended_rect.right=place_point.x+width-1;
+		extended_rect.top=place_point.y;
+		extended_rect.bottom=place_point.y+height-1;
+		
+
+		// А попали ли мы вообще в клавиатуру (творчески расширенную)?
+		if((_x<extended_rect.left)||(_x>extended_rect.right)||(_y<extended_rect.top)||(_y>extended_rect.bottom))
+			return NULL;
+
+		// 3. Находим прямоугольник для подсветки
+		step1_element_column=(_x-extended_rect.left)/cropped_cell_width;
+		step1_element_row=(_y-extended_rect.top)/cropped_cell_width;
+
+		element_rect.left=extended_rect.left+step1_element_column*cropped_cell_width;
+		element_rect.right=extended_rect.left+(step1_element_column+1)*cropped_cell_width-1;
+
+		element_rect.top=extended_rect.top+step1_element_row*cropped_cell_width;
+		element_rect.bottom=extended_rect.top+(step1_element_row+1)*cropped_cell_width;
+				
+		return &element_rect;
+	}
+}
+
+//=================================================================
+// Здесь мы рисуем разрастание куска клавиатуры на весь экран
+//=================================================================
+// Пока будет расти целую секунду
+#define BKB_ANIMATION_TIME 500
+bool BKBKeybWnd::Animate()
+{
+	if(!animation_started) return false;
 
 	
+	// Временно отключаем...
+	step=1;
+	redraw_state=0; // перерисовать клавиатуру с самого начала
+	Place();
+	BKBToolWnd::Place(); // ToolBar также меняет форму
 
-	SetWindowPos(Kbhwnd,HWND_TOPMOST,p.x,p.y,width,height,0);
+	flag_hide_anim=true;
+	animation_started=false;
+		return false;
+
+
+	// Для медленной отладки
+	/* static int slowdown=0;
+	if(slowdown<5) {slowdown+=1; return true;}
+	slowdown=0; */
+	
+
+	float percentage=(timeGetTime()-animation_start_time)*100.0f/BKB_ANIMATION_TIME;
+	if((percentage>=100.0f)||(percentage<0.0f)) // percentage < 0 - это подстраховка от переполнения
+	{
+		//Попробуем почистить за собой перед изменением размера
+		// Только это и спасло от бликующих символов раскладки при переключении!
+		RECT fill_r={0,0,width,height};
+		HDC hdc=GetDC(Kbhwnd);
+		FillRect(hdc,&fill_r,dkblue_brush);
+		ReleaseDC(Kbhwnd,hdc); 
+		
+		step=1;
+		redraw_state=0; // перерисовать клавиатуру с самого начала
+		Place();
+		
+		// !!! Спрятать только после прорисовки клавиатуры на новом месте!
+		// ShowWindow(AnimHwnd,SW_HIDE);
+		flag_hide_anim=true;
+
+
+
+		animation_started=false;
+		return false; // Можете продолжать, как обычно. Анимация закончилась.
+	}
+
+	// Собственно рисование
+	LONG anim_x_initial=place_point.x+cropped_column*cell_width;
+	LONG anim_y_initial=place_point.y+cropped_row*cell_height;
+	LONG anim_width_initial=cropped_columns*cell_width;
+	LONG anim_height_initial=cropped_rows*cell_height;
+
+	LONG anim_x_final,anim_y_final,anim_width_final,anim_height_final;
+
+	// Содрано из Place(). К сожалению, пока вызвать его не можем, ибо старое окно убирается только после показа над ним анимированного.
+	{
+		if(gBKB_FullSizeKBD) cropped_cell_width=screenX/4.0f;
+		else  cropped_cell_width=(screenX-gBKB_TOOLBOX_WIDTH)/4.0f;
+
+		anim_height_final=cropped_cell_width*cropped_rows;
+
+		if(bottom_side) anim_y_final=screenY-1-anim_height_final; else anim_y_final=0;
+
+		if(gBKB_FullSizeKBD)
+		{
+			anim_x_final=0;
+			anim_width_final=screenX;
+		}
+		else
+		{
+			if(BKBToolWnd::LeftSide()) anim_x_final=gBKB_TOOLBOX_WIDTH; else anim_x_final=0;
+			anim_width_final=screenX-gBKB_TOOLBOX_WIDTH;
+		}
+
+		if (cropped_columns!=4) // менее 4 клавиш в строке обрубка клавиатуры
+		{
+			anim_x_final+=(4-cropped_columns)*cropped_cell_width;
+			anim_width_final-=(4-cropped_columns)*cropped_cell_width;
+		}
+	}
+
+	LONG anim_x=anim_x_initial+percentage*(anim_x_final-anim_x_initial)/100.0f;
+	LONG anim_y=anim_y_initial+percentage*(anim_y_final-anim_y_initial)/100.0f;
+	anim_width=anim_width_initial+percentage*(anim_width_final-anim_width_initial)/100.0f;
+	anim_height=anim_height_initial+percentage*(anim_height_final-anim_height_initial)/100.0f;
+	
+	
+	// HDC hdc2=GetDC(AnimHwnd);
+	//RECT fill_r2;
+	//GetClientRect(AnimHwnd,&fill_r2);
+	//FillRect(hdc2,&fill_r2,dkblue_brush);
+
+	//MoveWindow(AnimHwnd,anim_x,anim_y,anim_width,anim_height,TRUE);
+	//SetWindowPos(AnimHwnd,HWND_TOPMOST,anim_x,anim_y,anim_width,anim_height,SWP_NOCOPYBITS | SWP_NOREDRAW);
+	SetWindowPos(AnimHwnd,HWND_TOPMOST,anim_x,anim_y,anim_width_final,anim_height_final,SWP_NOCOPYBITS | SWP_NOREDRAW);
+	//MoveWindow(AnimHwnd,anim_x,anim_y,anim_width,anim_height,FALSE);
+	
+	/*
+	HDC hdc2=GetDC(AnimHwnd);
+	OnAnimPaint(hdc2);
+	ReleaseDC(AnimHwnd,hdc2);
+	*/
+
+	return true;
+}
+
+//======================================================================
+// Увеличение элемента клавиатуры
+//======================================================================
+void BKBKeybWnd::OnAnimPaint(HDC hdc)
+{
+	StretchBlt(hdc,0,0, anim_width,anim_height,
+		memdc1, cell_width*cropped_column, cell_height*cropped_row,
+		cell_width*cropped_columns, cell_height*cropped_rows,
+		SRCCOPY);
+}
+
+//======================================================================
+// Увеличение элемента клавиатуры
+// Урезанная ScanCodeButton - не жмёт никакие шифты и контролы
+//======================================================================
+void BKBKeybWnd::BackSpace()
+{
+	INPUT input={0};
+	input.type=INPUT_KEYBOARD;
+
+	// Нажатие кнопки
+	input.ki.dwFlags =  0;
+	input.ki.wVk=VK_BACK;
+	SendInput(1,&input,sizeof(INPUT));		
+	
+	// Попробуем внести задержку в 0.08 секунды
+	Sleep(80);
+
+	// Отпускание кнопки
+	input.ki.dwFlags = KEYEVENTF_KEYUP ;
+	SendInput(1,&input,sizeof(INPUT));	
+
+	// Тут тоже будем издавать звук
+	if(S_OK!=PlaySound( TEXT("click.wav"), NULL, SND_FILENAME|SND_ASYNC|SND_NODEFAULT ))
+		BKBClick::Play();
 }

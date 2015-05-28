@@ -11,6 +11,7 @@
 extern HINSTANCE	BKBInst;
 
 HWND BKBSettings::settings_hwnd=0;
+HWND BKBSettings::parent_hwnd=0;
 
 static char char_buf[4096];
 static TCHAR tchar_buf[4096]; // Для сообщений об ошибках
@@ -22,17 +23,30 @@ BKBIntChar dlg_mouse_y_multiplier[BKB_MOUSE_MULTIPLIERS]={{L"не усилива
 int dlg_current_mouse_x_multiplier=0, dlg_current_mouse_y_multiplier=0;
 extern int g_BKB_MOUSE_X_MULTIPLIER, g_BKB_MOUSE_Y_MULTIPLIER; // Определены в AirMouse.cpp
 
-const int BKB_FIXATIONS=5;
-BKBIntChar dlg_btnfixation[BKB_FIXATIONS]={{L"10",10,IDC_RADIO_FIXATION1},{L"15",15,IDC_RADIO_FIXATION2},{L"20",20,IDC_RADIO_FIXATION3},{L"25",25,IDC_RADIO_FIXATION4},{L"30",30,IDC_RADIO_FIXATION5}};
-BKBIntChar dlg_postfixation[BKB_FIXATIONS]={{L"10",10,IDC_RADIO_POSTFIXATION1},{L"15",15,IDC_RADIO_POSTFIXATION2},{L"20",20,IDC_RADIO_POSTFIXATION3},{L"25",25,IDC_RADIO_POSTFIXATION4},{L"30",30,IDC_RADIO_POSTFIXATION5}};
-BKBIntChar dlg_nokbdfixation[BKB_FIXATIONS]={{L"10",10,IDC_RADIO_NKBD_FIXATION1},{L"15",15,IDC_RADIO_NKBD_FIXATION2},{L"20",20,IDC_RADIO_NKBD_FIXATION3},{L"25",25,IDC_RADIO_NKBD_FIXATION4},{L"30",30,IDC_RADIO_NKBD_FIXATION5}};
-BKBIntChar dlg_nokbdpostfixation[BKB_FIXATIONS]={{L"10",10,IDC_RADIO_NKBD_POSTFIXATION1},{L"15",15,IDC_RADIO_NKBD_POSTFIXATION2},{L"20",20,IDC_RADIO_NKBD_POSTFIXATION3},{L"25",25,IDC_RADIO_NKBD_POSTFIXATION4},{L"30",30,IDC_RADIO_NKBD_POSTFIXATION5}};
+const int BKB_FIXATIONS=9;
+BKBIntChar dlg_btnfixation[BKB_FIXATIONS]={{L"10",10,IDC_RADIO_FIXATION1},{L"15",15,IDC_RADIO_FIXATION2},{L"20",20,IDC_RADIO_FIXATION3},{L"25",25,IDC_RADIO_FIXATION4},{L"30",30,IDC_RADIO_FIXATION5},{L"45",45,IDC_RADIO_FIXATION6},{L"60",60,IDC_RADIO_FIXATION7},{L"90",90,IDC_RADIO_FIXATION8},{L"120",120,IDC_RADIO_FIXATION9}};
+BKBIntChar dlg_postfixation[BKB_FIXATIONS]={{L"10",10,IDC_RADIO_POSTFIXATION1},{L"15",15,IDC_RADIO_POSTFIXATION2},{L"20",20,IDC_RADIO_POSTFIXATION3},{L"25",25,IDC_RADIO_POSTFIXATION4},{L"30",30,IDC_RADIO_POSTFIXATION5},{L"45",45,IDC_RADIO_POSTFIXATION6},{L"60",60,IDC_RADIO_POSTFIXATION7},{L"90",90,IDC_RADIO_POSTFIXATION8},{L"120",120,IDC_RADIO_POSTFIXATION9}};
+BKBIntChar dlg_nokbdfixation[BKB_FIXATIONS]={{L"10",10,IDC_RADIO_NKBD_FIXATION1},{L"15",15,IDC_RADIO_NKBD_FIXATION2},{L"20",20,IDC_RADIO_NKBD_FIXATION3},{L"25",25,IDC_RADIO_NKBD_FIXATION4},{L"30",30,IDC_RADIO_NKBD_FIXATION5},{L"45",45,IDC_RADIO_NKBD_FIXATION6},{L"60",60,IDC_RADIO_NKBD_FIXATION7},{L"90",90,IDC_RADIO_NKBD_FIXATION8},{L"120",120,IDC_RADIO_NKBD_FIXATION9}};
+BKBIntChar dlg_nokbdpostfixation[BKB_FIXATIONS]={{L"10",10,IDC_RADIO_NKBD_POSTFIXATION1},{L"15",15,IDC_RADIO_NKBD_POSTFIXATION2},{L"20",20,IDC_RADIO_NKBD_POSTFIXATION3},{L"25",25,IDC_RADIO_NKBD_POSTFIXATION4},{L"30",30,IDC_RADIO_NKBD_POSTFIXATION5},{L"45",45,IDC_RADIO_NKBD_POSTFIXATION6},{L"60",60,IDC_RADIO_NKBD_POSTFIXATION7},{L"90",90,IDC_RADIO_NKBD_POSTFIXATION8},{L"120",120,IDC_RADIO_NKBD_POSTFIXATION9}};
 int dlg_current_btnfixation=4, dlg_current_postfixation=4,dlg_current_nokbdfixation=4, dlg_current_nokbdpostfixation=4;
 
+const int BKB_SET_TOOLBARCELLS=6;
+BKBIntChar dlg_toolbarcells[BKB_SET_TOOLBARCELLS]={{L"4",4,IDC_RADIO_TOOLBAR4}, {L"5",5,IDC_RADIO_TOOLBAR5}, {L"6",6,IDC_RADIO_TOOLBAR6}, {L"7",7,IDC_RADIO_TOOLBAR7}, {L"8",8,IDC_RADIO_TOOLBAR8}, {L"9",9,IDC_RADIO_TOOLBAR9}};
+int dlg_current_toolbarcells=1;
 
 const int BKB_YESNO=2;
 BKBIntChar dlg_kbd_fullscreen[BKB_YESNO]={{L"Нет",0,IDC_RADIO_KBDFS1},{L"Да",1,IDC_RADIO_KBDFS2}}; 
+BKBIntChar dlg_kbd_2step[BKB_YESNO]={{L"Нет",0,IDC_RADIO_KBD_2STEPS_NO},{L"Да",1,IDC_RADIO_KBD_2STEPS_YES}}; 
+BKBIntChar dlg_show_clickmods[BKB_YESNO]={{L"Нет",0,IDC_RADIO_CLICKMOD_NO},{L"Да",1,IDC_RADIO_CLICKMOD_YES}}; 
+
 int dlg_current_kbd_fullscreen=1;
+int dlg_current_kbd_2step=1;
+int dlg_current_show_clickmods=0;
+
+const int BKB_SET_MBUTTONFIX=3;
+BKBIntChar dlg_mbuttonfix[BKB_SET_MBUTTONFIX]={{L"только фиксация",0,IDC_RADIO_MBUTTONFIX1}, {L"и мышь, и фиксация",1,IDC_RADIO_MBUTTONFIX2}, {L"только мышь",2,IDC_RADIO_MBUTTONFIX3}};
+int dlg_current_mbuttonfix=1;
+
 
 extern int FIXATION_LIMIT; // Сколько последовательных точек с низкой дисперсией считать фиксацией
 extern int POSTFIXATION_SKIP; // сколько точек пропустить после фиксации, чтобы начать считать новую фиксацию
@@ -40,6 +54,10 @@ extern int NOTKBD_FIXATION_LIMIT; // Сколько последовательн
 extern int NOTKBD_POSTFIXATION_SKIP;
 
 extern int gBKB_FullSizeKBD; // Флаг того, что клавиатура занимает всю ширину экрана
+extern bool gBKB_2STEP_KBD_MODE; // Флаг того, что клавиши нажимаются в два приёма
+bool gBKB_SHOW_CLICK_MODS=false; // Флаг того, что нужно показывать модификаторы клика (+Ctrl, +Shift, ...)
+extern int gBKB_TOOLBOX_BUTTONS; // Количество видимых кнопок на панели инструментов
+int gBKB_MBUTTONFIX=1;
 
 //===================================================================
 // Диалог настроек
@@ -56,16 +74,22 @@ static BOOL CALLBACK DlgSettingsWndProc(HWND hdwnd,
 		switch (LOWORD(wparam))
 			{
 			case IDCANCEL: // Не случилось, 
-				ShowWindow(hdwnd,SW_HIDE);
+				if(BKBSettings::parent_hwnd) EndDialog(hdwnd,0); // диалог был вызван в начале программы
+				ShowWindow(hdwnd,SW_HIDE); // диалог был вызван во время исполнения программы
 				return 1;
 	
 			case IDOK: 	//Хорошо!
-				ShowWindow(hdwnd,SW_HIDE);
+				//ShowWindow(hdwnd,SW_HIDE);
 				BKBSettings::Screen2Load(hdwnd);
 				BKBSettings::ActualizeLoad();
 				BKBSettings::SaveBKBConfig();
 				// Переделать клавиатуру при изменившихся параметрах
 				BKBKeybWnd::Place();
+				// А также ToolBar
+				BKBToolWnd::offset=0; // пока-что насильно перематываем в начало
+				BKBToolWnd::Place();
+				if(BKBSettings::parent_hwnd) EndDialog(hdwnd,0); // диалог был вызван в начале программы
+				ShowWindow(hdwnd,SW_HIDE); // диалог был вызван во время исполнения программы
 				return 1; 
 
 			} // switch WM_COMMAND
@@ -100,11 +124,21 @@ return 0;
 //===========================================================================
 // Вызов диалога настроек
 //===========================================================================
-void BKBSettings::SettingsDialogue()
+void BKBSettings::SettingsDialogue(HWND _parent_hwnd)
 {
+	parent_hwnd=_parent_hwnd;
+
+	// Вызов диалога в начале работы программы, ждём его завершения
+	if(parent_hwnd)
+	{
+		DialogBox(BKBInst,MAKEINTRESOURCE(IDD_SETTINGS), parent_hwnd,(DLGPROC)DlgSettingsWndProc);
+		return;
+	}
+
+	// Вызов диалога при работе программы
 	if(!settings_hwnd)
 	{
-		settings_hwnd=CreateDialog(BKBInst, MAKEINTRESOURCE(IDD_SETTINGS), BKBToolWnd::GetHwnd(), DlgSettingsWndProc);
+		settings_hwnd=CreateDialog(BKBInst, MAKEINTRESOURCE(IDD_SETTINGS), parent_hwnd , DlgSettingsWndProc);
 		ShowWindow(settings_hwnd, SW_SHOW);
 	}
 	else
@@ -142,11 +176,45 @@ void BKBSettings::PrepareDialogue(HWND hdwnd)
 	if(Internat::Message(56,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_NKBD_POSTFIXATION_SKIP, WM_SETTEXT, 0L, (LPARAM)Internat::Message(56,0));// Пауза между нажатиями на кнопки клавиатуры
 
 	if(Internat::Message(57,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_KBDFS, WM_SETTEXT, 0L, (LPARAM)Internat::Message(57,0));// Клавиатура во всю ширину экрана
-	if(Internat::Message(58,0)) SendDlgItemMessage(hdwnd,IDC_RADIO_KBDFS1, WM_SETTEXT, 0L, (LPARAM)Internat::Message(58,0));// Нет
-	if(Internat::Message(59,0)) SendDlgItemMessage(hdwnd,IDC_RADIO_KBDFS2, WM_SETTEXT, 0L, (LPARAM)Internat::Message(59,0));// Да
+	if(Internat::Message(58,0)) // Нет
+	{
+		SendDlgItemMessage(hdwnd,IDC_RADIO_KBDFS1, WM_SETTEXT, 0L, (LPARAM)Internat::Message(58,0));// Нет
+		SendDlgItemMessage(hdwnd,IDC_RADIO_KBD_2STEPS_NO, WM_SETTEXT, 0L, (LPARAM)Internat::Message(58,0));// Нет
+		SendDlgItemMessage(hdwnd,IDC_RADIO_CLICKMOD_NO, WM_SETTEXT, 0L, (LPARAM)Internat::Message(58,0));// Нет
+	}
+	if(Internat::Message(59,0))
+	{
+		SendDlgItemMessage(hdwnd,IDC_RADIO_KBDFS2, WM_SETTEXT, 0L, (LPARAM)Internat::Message(59,0));// Да
+		SendDlgItemMessage(hdwnd,IDC_RADIO_KBD_2STEPS_YES, WM_SETTEXT, 0L, (LPARAM)Internat::Message(59,0));// Да
+		SendDlgItemMessage(hdwnd,IDC_RADIO_CLICKMOD_YES, WM_SETTEXT, 0L, (LPARAM)Internat::Message(59,0));// Да
+	}
 
 	if(Internat::Message(49,0)) SendDlgItemMessage(hdwnd,IDOK, WM_SETTEXT, 0L, (LPARAM)Internat::Message(49,0));// Сохранить
 	if(Internat::Message(50,0)) SendDlgItemMessage(hdwnd,IDCANCEL, WM_SETTEXT, 0L, (LPARAM)Internat::Message(50,0));// Отмена
+
+	if(Internat::Message(63,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_TOOLBAR_NUM, WM_SETTEXT, 0L, (LPARAM)Internat::Message(63,0));// Кнопок в панели инструментов
+	if(Internat::Message(64,0)) // сек.
+	{
+		SendDlgItemMessage(hdwnd,IDC_STATIC_SEC1, WM_SETTEXT, 0L, (LPARAM)Internat::Message(64,0));// сек.
+		SendDlgItemMessage(hdwnd,IDC_STATIC_SEC2, WM_SETTEXT, 0L, (LPARAM)Internat::Message(64,0));// сек.
+		SendDlgItemMessage(hdwnd,IDC_STATIC_SEC3, WM_SETTEXT, 0L, (LPARAM)Internat::Message(64,0));// сек.
+		SendDlgItemMessage(hdwnd,IDC_STATIC_SEC4, WM_SETTEXT, 0L, (LPARAM)Internat::Message(64,0));// сек.
+		SendDlgItemMessage(hdwnd,IDC_STATIC_SEC5, WM_SETTEXT, 0L, (LPARAM)Internat::Message(64,0));// сек.
+		SendDlgItemMessage(hdwnd,IDC_STATIC_SEC6, WM_SETTEXT, 0L, (LPARAM)Internat::Message(64,0));// сек.
+	}
+	if(Internat::Message(65,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_30FPS_TRACKER, WM_SETTEXT, 0L, (LPARAM)Internat::Message(65,0));// Трекер с 30 отсчетами в секунду
+	if(Internat::Message(66,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_60FPS_TRACKER, WM_SETTEXT, 0L, (LPARAM)Internat::Message(66,0));// Трекер с 60 отсчетами в секунду
+
+	if(Internat::Message(67,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_KBD_2STEPS, WM_SETTEXT, 0L, (LPARAM)Internat::Message(67,0));// Клавиатура двумя шагами
+	if(Internat::Message(68,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_CLICKMOD, WM_SETTEXT, 0L, (LPARAM)Internat::Message(68,0));// Модификаторы кликов (+Ctrl,..)
+
+	if(Internat::Message(69,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_MBUTTON, WM_SETTEXT, 0L, (LPARAM)Internat::Message(69,0));// Модификаторы кликов (+Ctrl,..)
+
+	if(Internat::Message(70,0)) SendDlgItemMessage(hdwnd,IDC_RADIO_MBUTTONFIX1, WM_SETTEXT, 0L, (LPARAM)Internat::Message(70,0));// Только фиксация
+	if(Internat::Message(71,0)) SendDlgItemMessage(hdwnd,IDC_RADIO_MBUTTONFIX2, WM_SETTEXT, 0L, (LPARAM)Internat::Message(71,0));// Только фиксация
+	if(Internat::Message(72,0)) SendDlgItemMessage(hdwnd,IDC_RADIO_MBUTTONFIX3, WM_SETTEXT, 0L, (LPARAM)Internat::Message(72,0));// Только фиксация
+	
+	
 }
 
 //=======================================================================================
@@ -185,14 +253,34 @@ void BKBSettings::ShowLoad(HWND hdwnd)
 	SendDlgItemMessage(hdwnd, dlg_nokbdpostfixation[dlg_current_nokbdpostfixation].button, BM_SETCHECK, BST_CHECKED, 0);
 
 
-	// 3. Клавиатура на полный экран
+	// 3. Клавиатура на полный экран / в два нажатия / показывать "+Ctrl"
 	for(i=0;i<BKB_YESNO;i++)
 	{
 		SendDlgItemMessage(hdwnd, dlg_kbd_fullscreen[i].button, BM_SETCHECK, BST_UNCHECKED, 0);
+		SendDlgItemMessage(hdwnd, dlg_kbd_2step[i].button, BM_SETCHECK, BST_UNCHECKED, 0);
+		SendDlgItemMessage(hdwnd, dlg_show_clickmods[i].button, BM_SETCHECK, BST_UNCHECKED, 0);
+		
 	}
 	SendDlgItemMessage(hdwnd, dlg_kbd_fullscreen[dlg_current_kbd_fullscreen].button, BM_SETCHECK, BST_CHECKED, 0);
+	SendDlgItemMessage(hdwnd, dlg_kbd_2step[dlg_current_kbd_2step].button, BM_SETCHECK, BST_CHECKED, 0);
+	SendDlgItemMessage(hdwnd, dlg_show_clickmods[dlg_current_show_clickmods].button, BM_SETCHECK, BST_CHECKED, 0);
 
+	// 4. Количество кнопок на тулбаре
+	for(i=0;i<BKB_SET_TOOLBARCELLS;i++)
+	{
+		SendDlgItemMessage(hdwnd, dlg_toolbarcells[i].button, BM_SETCHECK, BST_UNCHECKED, 0);
+	}
+	SendDlgItemMessage(hdwnd, dlg_toolbarcells[dlg_current_toolbarcells].button, BM_SETCHECK, BST_CHECKED, 0);
+
+	// 5. Фиксация средней кнопкой мыши
+	for(i=0;i<BKB_SET_MBUTTONFIX;i++)
+	{
+		SendDlgItemMessage(hdwnd, dlg_mbuttonfix[i].button, BM_SETCHECK, BST_UNCHECKED, 0);
+	}
+	SendDlgItemMessage(hdwnd, dlg_mbuttonfix[dlg_current_mbuttonfix].button, BM_SETCHECK, BST_CHECKED, 0);
 }
+
+
 
 //=======================================================================================
 // Актуализировать загруженнные значения в реальные переменные программы
@@ -209,7 +297,12 @@ void BKBSettings::ActualizeLoad()
 	NOTKBD_POSTFIXATION_SKIP=dlg_nokbdpostfixation[dlg_current_nokbdpostfixation].value;
 
 	gBKB_FullSizeKBD=dlg_kbd_fullscreen[dlg_current_kbd_fullscreen].value;
+	gBKB_2STEP_KBD_MODE=(bool)(dlg_kbd_2step[dlg_current_kbd_2step].value);
+	gBKB_SHOW_CLICK_MODS=(bool)(dlg_show_clickmods[dlg_current_show_clickmods].value);
+	gBKB_TOOLBOX_BUTTONS=dlg_toolbarcells[dlg_current_toolbarcells].value;
+	gBKB_MBUTTONFIX=dlg_mbuttonfix[dlg_current_mbuttonfix].value;
 }
+
 
 //===============================================================================================
 // Копирует из полей диалога в реальные переменные
@@ -248,14 +341,36 @@ void BKBSettings::Screen2Load(HWND hdwnd)
 			dlg_current_nokbdpostfixation=i;
 	}
 
-	// 3. Клавиатура на полный экран
+	// 3. Клавиатура на полный экран / 2 шага клавиатуры / +Ctrl
 	for(i=0;i<BKB_YESNO;i++)
 	{
 
 		if(BST_CHECKED==SendDlgItemMessage(hdwnd, dlg_kbd_fullscreen[i].button, BM_GETCHECK, 0, 0))
 			dlg_current_kbd_fullscreen=i;
+
+		if(BST_CHECKED==SendDlgItemMessage(hdwnd, dlg_kbd_2step[i].button, BM_GETCHECK, 0, 0))
+			dlg_current_kbd_2step=i;
+		
+		if(BST_CHECKED==SendDlgItemMessage(hdwnd, dlg_show_clickmods[i].button, BM_GETCHECK, 0, 0))
+			dlg_current_show_clickmods=i;
 	}
+
+	// 4. Количество кнопок на тулбаре
+	for(i=0;i<BKB_SET_TOOLBARCELLS;i++)
+	{
+		if(BST_CHECKED==SendDlgItemMessage(hdwnd, dlg_toolbarcells[i].button, BM_GETCHECK, 0, 0))
+			dlg_current_toolbarcells=i;
+	}
+
+	// 5. Фиксация средней кнопкой мыши
+	for(i=0;i<BKB_SET_MBUTTONFIX;i++)
+	{
+		if(BST_CHECKED==SendDlgItemMessage(hdwnd, dlg_mbuttonfix[i].button, BM_GETCHECK, 0, 0))
+			dlg_current_mbuttonfix=i;
+	}
+
 }
+
 
 //===============================================================================================
 // Читать-писать конфигурацию
@@ -268,7 +383,7 @@ typedef struct
 	int max_index;
 } T_save_struct;
 
-#define NUM_SAVE_LINES 7
+#define NUM_SAVE_LINES 11
 
 static T_save_struct save_struct[NUM_SAVE_LINES]=
 {
@@ -278,8 +393,13 @@ static T_save_struct save_struct[NUM_SAVE_LINES]=
 	{"PostFixationSkip",&dlg_current_postfixation,dlg_postfixation, BKB_FIXATIONS},
 	{"NotKbdFixationLimit",&dlg_current_nokbdfixation,dlg_nokbdfixation, BKB_FIXATIONS},
 	{"NotKbdPostFixationSkip",&dlg_current_nokbdpostfixation,dlg_nokbdpostfixation, BKB_FIXATIONS},
-	{"KBDFullScreen",&dlg_current_kbd_fullscreen,dlg_kbd_fullscreen, BKB_YESNO}
+	{"KBDFullScreen",&dlg_current_kbd_fullscreen,dlg_kbd_fullscreen, BKB_YESNO},
+	{"KBD2STEP",&dlg_current_kbd_2step,dlg_kbd_2step, BKB_YESNO},
+	{"ClickMods",&dlg_current_show_clickmods,dlg_show_clickmods, BKB_YESNO},
+	{"ToolBarCells",&dlg_current_toolbarcells,dlg_toolbarcells, BKB_SET_TOOLBARCELLS },
+	{"MButtonFix",&dlg_current_mbuttonfix,dlg_mbuttonfix, BKB_SET_MBUTTONFIX }
 };
+
 
 //===============================================================================================
 // Сохраняет конфигурацию в файл

@@ -11,6 +11,11 @@
 #include "TET.h"
 #include "Click.h"
 #include "BKBSettings.h"
+#include "BKBHookProc.h"
+#include "BKBProgressWnd.h"
+
+// Для установки хука на мышь
+static HHOOK handle;
 
 // Прототип WndProc решил в .h не включать
 LRESULT CALLBACK WndProc(HWND,UINT,WPARAM,LPARAM);
@@ -18,10 +23,10 @@ LRESULT CALLBACK WndProc(HWND,UINT,WPARAM,LPARAM);
 int StartupDialog();
 
 // Глобальные переменные, которые могут потребоваться везде
-//TCHAR		BKBAppName=L"Клавиатура и мышь для управления глазами : сборка B / Keyboard & Mouse control with the eyes : Release B";
+//TCHAR		BKBAppName=L"Клавиатура и мышь для управления глазами : сборка D / Keyboard & Mouse control with the eyes : Release D";
 HINSTANCE	BKBInst;
 HWND		BKBhwnd;
-int flag_using_airmouse;
+int tracking_device;
 
 // Имя класса окна
 //static const char BKBWindowCName[]="BKB0B"; 
@@ -41,18 +46,18 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 	BKBSettings::ActualizeLoad(); // Прочитанные параметры считаем верными и пускаем их в бой
 
 	// Что будем использовать?
-	flag_using_airmouse=StartupDialog();
+	tracking_device=StartupDialog();
 
-	switch(flag_using_airmouse)
+	switch(tracking_device)
 	{
 	case 0: // Tobii
 		// Инициализируем работу с Tobii REX
 		// Если произошла ошибка, переходим на работу с [аэро]мышью
-		if(BKBTobiiREX::Init()) flag_using_airmouse=1; // пробуем с TheEyeTribe (запоминаем, что гасить в конце)
+		if(BKBTobiiREX::Init()) tracking_device=1; // пробуем с TheEyeTribe (запоминаем, что гасить в конце)
 		else break; // всё прошло успешно
 
 	case 1: // TheEyeTribe
-		if(BKBTET::Init()) flag_using_airmouse=2; // пробуем с TheEyeTribe (запоминаем, что гасить в конце)
+		if(BKBTET::Init()) tracking_device=2; // пробуем с TheEyeTribe (запоминаем, что гасить в конце)
 		else break; // всё прошло успешно
 		
 	case 2: // просто мышь... ничего здесь не делаем
@@ -72,6 +77,13 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 	BKBMagnifyWnd::Init(master_hwnd); // Увеличительное
 	BKBKeybWnd::Init(master_hwnd); // Клавиатура
 	BKBTranspWnd::Init(master_hwnd); // Прозрачное окно
+	BKBProgressWnd::Init(master_hwnd); // Окно прогресса
+
+	// Инициализируем работу хука
+	handle = SetWindowsHookEx(WH_MOUSE_LL, 
+									HookProc2, 
+                                 GetModuleHandle(NULL), 
+                                 NULL);
 
 	//Цикл обработки сообщений
 	while(GetMessage(&msg,NULL,0,0)) 
@@ -81,13 +93,14 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 	}// while !WM_QUIT
 
 	// Чистим за собой
+	UnhookWindowsHookEx(handle);
 
 	// Звуки
 	BKBClick::Halt();
 	// Кисти-фонты
 	BKBgdiHalt();
 
-	switch(flag_using_airmouse)
+	switch(tracking_device)
 	{
 	case 0:
 		BKBTobiiREX::Halt();

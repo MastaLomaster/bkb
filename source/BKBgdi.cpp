@@ -1,7 +1,7 @@
-#include <Windows.h>
+п»ї#include <Windows.h>
 #include "BKBgdi.h"
 
-HPEN red_pen, green_pen, dkyellow_pen; // перья и кисти для рисования
+HPEN red_pen, green_pen, dkyellow_pen, pink_pen; // РїРµСЂСЊСЏ Рё РєРёСЃС‚Рё РґР»СЏ СЂРёСЃРѕРІР°РЅРёСЏ
 HBRUSH dkblue_brush, dkblue_brush2, blue_brush;
 HFONT hfont;
 
@@ -11,10 +11,11 @@ double screen_scale=1.0;
 
 void BKBgdiInit()
 {
-	//  Кисти создаём
+	//  РљРёСЃС‚Рё СЃРѕР·РґР°С‘Рј
 	red_pen=CreatePen(PS_SOLID,1,RGB(255,100,100));
 	green_pen=CreatePen(PS_SOLID,1,RGB(100,255,100));
 	dkyellow_pen=CreatePen(PS_SOLID,1,RGB(227,198,2));
+	pink_pen=CreatePen(PS_SOLID,5,RGB(255,156,255));
 
 	dkblue_brush=CreateSolidBrush(RGB(45,62,90));
 	dkblue_brush2=CreateSolidBrush(RGB(100,72,100));
@@ -25,28 +26,29 @@ void BKBgdiInit()
 		0, 0, 0, 0, L"Arial");
 	
 
-	// Получим разрешение экрана
+	// РџРѕР»СѓС‡РёРј СЂР°Р·СЂРµС€РµРЅРёРµ СЌРєСЂР°РЅР°
 	screenX=GetSystemMetrics(SM_CXSCREEN);
 	screenY=GetSystemMetrics(SM_CYSCREEN);
 
-	// Козлиная система разрешений экрана в windows8.1...
+	// РљРѕР·Р»РёРЅР°СЏ СЃРёСЃС‚РµРјР° СЂР°Р·СЂРµС€РµРЅРёР№ СЌРєСЂР°РЅР° РІ windows8.1...
 	DEVMODE dm;
 	ZeroMemory (&dm, sizeof (dm));
 	EnumDisplaySettings (NULL, ENUM_CURRENT_SETTINGS, &dm);
 
 	screen_scale=((double)screenX)/dm.dmPelsWidth;
 
-	// В windows 8 при HighDPI координаты курсора отличаются от координат точки на экране
+	// Р’ windows 8 РїСЂРё HighDPI РєРѕРѕСЂРґРёРЅР°С‚С‹ РєСѓСЂСЃРѕСЂР° РѕС‚Р»РёС‡Р°СЋС‚СЃСЏ РѕС‚ РєРѕРѕСЂРґРёРЅР°С‚ С‚РѕС‡РєРё РЅР° СЌРєСЂР°РЅРµ
 	mouscreenX=dm.dmPelsWidth;
 	mouscreenY=dm.dmPelsHeight;
 }
 
 void BKBgdiHalt()
 {
-	// удаляем кисти
+	// СѓРґР°Р»СЏРµРј РєРёСЃС‚Рё
 	DeleteObject(red_pen);
 	DeleteObject(dkyellow_pen);
 	DeleteObject(green_pen);
+	DeleteObject(pink_pen);
 
 	DeleteObject(dkblue_brush);
 	DeleteObject(blue_brush);

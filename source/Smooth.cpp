@@ -18,7 +18,7 @@ static POINT processed_points[2][BKB_NUM_SMOOTH_POINTS]={0};
 static int current_point[2]={0,0};
 static double dispersion[2]={1000,1000};
 
-extern int flag_using_airmouse;
+extern int tracking_device;
 
 
 //==============================================================
@@ -32,7 +32,7 @@ double BKBSmooth(POINT *point, bool eye)
 
 	// Сглаживаем BKB_NUM_SMOOTH_POINTS последних точек
 	// Это не нужно для аэромыши
-	if(2!=flag_using_airmouse)
+	if(2!=tracking_device)
 	{
 		spoints[eye][current_point[eye]]=*point;
 		

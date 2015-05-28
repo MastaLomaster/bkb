@@ -37,7 +37,7 @@ void BKBMagnifyWnd::Init(HWND master_hwnd)
 {
 	ATOM aresult; // Для всяких кодов возврата
 	RECT rect;
-	rect.top=0; rect.left=0; rect.right=MAGNIFY_WINDOW_SIZE; rect.bottom=MAGNIFY_WINDOW_SIZE;
+	rect.top=0; rect.left=0; rect.right=MAGNIFY_WINDOW_SIZE-1; rect.bottom=MAGNIFY_WINDOW_SIZE-1;
 
 	// 1. Регистрация класса окна
 	WNDCLASS wcl={CS_HREDRAW | CS_VREDRAW, BKBMagnifyWndProc, 0,
@@ -84,11 +84,11 @@ void BKBMagnifyWnd::Init(HWND master_hwnd)
 	}
 
 
-	// Определяем размер пользовательской области окна (отовизм)
+	// Определяем размер пользовательской области окна (отовизм, и так ясно, что 400x400)
 	RECT rect2;
 	GetClientRect(Mghwnd,&rect2);
-	x_size=rect2.right;
-	y_size=rect2.bottom;
+	x_size=rect2.right-1;
+	y_size=rect2.bottom-1;
 	size_amendment=rect.left; // рамка окна отъедает пиксели (у меня 2 штуки с каждого края)
 
 	screen_x=GetSystemMetrics(SM_CXSCREEN);

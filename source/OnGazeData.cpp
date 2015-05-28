@@ -8,6 +8,8 @@
 #include "ToolWnd.h"
 #include "Internat.h"
 #include "WM_USER_messages.h"
+#include "BKBHookProc.h"
+#include "BKBProgressWnd.h"
 
 #define DISPERSION_LIMIT 100.0 // Для отслеживания фиксаций
 #define DISPERSION_HIGH_LIMIT 300.0 // Для отслеживания быстрых перемещений
@@ -15,7 +17,9 @@ int FIXATION_LIMIT=30; // Сколько последовательных точ
 int NOTKBD_FIXATION_LIMIT=30; // Сколько последовательных точек с низкой дисперсией считать фиксацией (не для клавиатуры)
 int POSTFIXATION_SKIP=30; // сколько точек пропустить после фиксации, чтобы начать считать новую фиксацию (для клавиатуры)
 int NOTKBD_POSTFIXATION_SKIP=30; // сколько точек пропустить после фиксации, чтобы начать считать новую фиксацию (не для клавиатуры)
-
+bool gBKB_2STEP_KBD_MODE=true;
+bool flag_Pink_approved;
+bool flag_Activemouse=false;
 
 static bool mouse_inside_keyboard=false, last_mouse_inside_keyboard=false; // Для скрытия второго курсора при перемещении в область клавиатуры
 // Время фиксации (и паузы между фиксациями) зависит от того, используем ли мы клавиатуру или нет
@@ -35,16 +39,19 @@ static int funcPOSTFIXATION_SKIP()
 #define CURSOR_SMOOTHING 7; // Направление движения курсора меняется только раз в CURSOR_SMOOTHING отсчетов
 
 extern int screenX, screenY;
-
+extern int gBKB_MBUTTONFIX; // Как реагировать на среднюю кнопку мыши
 
 static int fixation_count=0; // количество точек, когда мышь почти не двигается
 static int skip_count=0; // сколько точек осталось пропустить после фиксации, чтобы начать считать новую фиксацию
 
 //extern HWND	BKBhwnd;
-extern int flag_using_airmouse;
+extern int tracking_device;
 
 static tobiigaze_gaze_data TGD_interchange; // Буфер, куда записывается пришедшее значение для передачи в другую очередь
 static volatile long TGD_is_processing=0; // Типа мьютекса для InterlockedCompareExchange
+
+extern DWORD last_mouse_time;
+static DWORD this_time;
 
 //=====================================================================================
 // Функция, возвращающая знак целого числа
@@ -100,6 +107,7 @@ void on_gaze_data_main_thread()
 	static int cursor_linear_move_counter=CURSOR_SMOOTHING; // Столько отсчетов курсор будет двигаться линейно 
 	static double cursor_speed_x=0.0, cursor_speed_y=0.0; 
 	static uint64_t last_timestamp=0;
+	static bool last_flag_Activemouse=false;
 	
 	
 		// Для проверки рисуем точку на экране
@@ -146,7 +154,7 @@ void on_gaze_data_main_thread()
 		//=================================================================================
 		// Теперь о перемещениях курсора
 		// Сглаживание не нужно для аэромыши
-		if((disp1>DISPERSION_HIGH_LIMIT)&&(disp2>DISPERSION_HIGH_LIMIT)||(2==flag_using_airmouse))
+		if((disp1>DISPERSION_HIGH_LIMIT)&&(disp2>DISPERSION_HIGH_LIMIT)||(2==tracking_device))
 		{
 			// Курсор перемещаем быстро
 			//cursor_position=point;
@@ -217,14 +225,54 @@ void on_gaze_data_main_thread()
 			BKBToolWnd::ScrollCursor(&screen_cursor_point);
 		}
 
-		//===============================================================================================
-		// Искать фиксацию, только если уже оправились от предыдущей фиксации, иначе уменьшаем skip_count
-		if(skip_count<=0)
+//=================================================================================
+		// Может, ассистент работает мышью? Тогда не нужно отрабатывать фиксацию
+		if(2!=tracking_device)
 		{
-			if((disp1<DISPERSION_LIMIT)&&(disp2<DISPERSION_LIMIT)) 
+			this_time=timeGetTime();
+			if(this_time-last_mouse_time<1500UL) // Полторы секунды ждём после остановки мыши
+			{
+				flag_Activemouse=true; // Это для перерисовки окна с курсором. При активной мыши он становится оранжевым.
+				fixation_count=0; // первым делом сбросим эту переменную
+				//skip_count=POSTFIXATION_SKIP;
+			}
+			else flag_Activemouse=false; 
+			// Перерисовываем окно с курсором, если поменялась активность мыши (успокоилась или начала двигаться)
+			if(last_flag_Activemouse!=flag_Activemouse) InvalidateRect(BKBTranspWnd::Trhwnd,NULL,FALSE);
+			last_flag_Activemouse=flag_Activemouse;
+		}
+//=================================================================================
+
+		// Средняя кнопка в режиме 2 подавляет реальную фиксацию 
+		if(2==gBKB_MBUTTONFIX) fixation_count=0;
+
+		//========================================================================================================================================
+		// Добавление в версии D - розовое окно прогресса
+		//========================================================================================================================================
+		// ? любое ли false==flag_Pink_approved должно приводить к сбросу счётчика фиксации fixation_count=0?
+		// Нет, не любое, например, фиксация для левого клика в произвольном месте экрана вообще не связана с flag_Pink_approved
+		// Поэтому сброс фиксации проходит только при пепреходе flag_Pink_approved: true -> false
+		// Вводим переменную для хранения предыдущего значения флага
+		static bool prev_flag_Pink_approved=false;
+		
+		flag_Pink_approved=BKBProgressWnd::TryToShow(screen_cursor_point.x,screen_cursor_point.y, 100*fixation_count/funcFIXATION_LIMIT());
+		if(!flag_Pink_approved&&prev_flag_Pink_approved)
+		{
+			fixation_count=0;
+		}
+		prev_flag_Pink_approved=flag_Pink_approved;
+		
+		//========================================================================================================================================
+		// Искать фиксацию, только если уже оправились от предыдущей фиксации (или явно нажали на среднюю кнопку мыши), иначе уменьшаем skip_count
+		if((skip_count<=0)||(true==BKB_MBUTTON_PRESSED))
+		{
+			// Теперь засчитывается также фиксация, если прямоугольник ProgressWindow не перемещался
+			if((disp1<DISPERSION_LIMIT)&&(disp2<DISPERSION_LIMIT)||(true==BKB_MBUTTON_PRESSED)||(true==flag_Pink_approved)) 
 			{
 				fixation_count++;
-				if(BKB_MODE_KEYBOARD==Fixation::CurrentMode())
+
+				// Рисуем прогресс прямо на клавиатуре - только в старом режиме
+				if(!gBKB_2STEP_KBD_MODE&&(BKB_MODE_KEYBOARD==Fixation::CurrentMode()))
 				{
 					// Показывать прогресс нажатия на клавиатуре
 					POINT point_screen=point;
@@ -234,24 +282,37 @@ void on_gaze_data_main_thread()
 						BKBKeybWnd::ProgressBarReset();
 					}
 				}
+
+				// ---!!! Сюда же добавить Progress Bar у Transparent Window !!!
 			}
 			else
 			{
 				fixation_count=0; // копили-копили, ан нет, сорвалось
-				if(BKB_MODE_KEYBOARD==Fixation::CurrentMode()) BKBKeybWnd::ProgressBarReset();
+				// Корректировка: появился новый режим с розовым прямоугольником. При нём нет нужды сбрасывать Progress Bar
+				if(!gBKB_2STEP_KBD_MODE&&(BKB_MODE_KEYBOARD==Fixation::CurrentMode())) BKBKeybWnd::ProgressBarReset();
 			}
 		}
 		else
 		{
-			skip_count--;
+			if(skip_count>0) skip_count--;
 		}
 		// Замечена попытка фиксации взгляда
 		// Фиксация увеличивается вдвое при работе без зума
-		if((fixation_count>=funcFIXATION_LIMIT()*2)||((fixation_count>=funcFIXATION_LIMIT())&&(!BKBToolWnd::tool_modifier[3]))) 
+		// Добавлена возможность имитировать фиксацию нажатием средней кнопки мыши
+		if((fixation_count>=funcFIXATION_LIMIT()*2)||((fixation_count>=funcFIXATION_LIMIT())&&(!BKBToolWnd::tool_modifier[3]))||
+			(true==BKB_MBUTTON_PRESSED)) 
 		{
+			
 			fixation_count=0; // первым делом сбросим эту переменную
 			skip_count=funcPOSTFIXATION_SKIP();
 			if(BKBToolWnd::tool_modifier[3]) skip_count*=2; // Фиксация увеличивается вдвое при работе без зума
+
+			if(true==BKB_MBUTTON_PRESSED)
+			{
+				// Флаг надо сбросить, иначе начнется бесконечный круг фиксаций
+				BKB_MBUTTON_PRESSED=false;
+				skip_count=0; // Не ждём (важно для клавиатуры)
+			}
 
 			// Далее обрабатываем фиксацию в зависимости от текущего режима.
 			Fixation::Fix(screen_cursor_point);

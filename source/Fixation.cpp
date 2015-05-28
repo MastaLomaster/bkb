@@ -10,6 +10,8 @@
 
 extern bool skip_mouse_hook; // Не удлиннять движения мыши, если мы их сами запрограммировали
 
+bool my_own_click=false; // Чтобы хук не перехватывал свои собственные клики
+
 BKB_MODE Fixation::BKB_Mode=BKB_MODE_NONE;
 
 //==============================================================================================
@@ -135,6 +137,8 @@ bool Fixation::Fix(POINT p)
 //==============================================================================================
 void Fixation::LeftClick(POINT p, bool skip_modifier_press, bool skip_modifier_unpress)
 {
+	my_own_click=true; // Чтобы хук не перехватывал свои собственные клики
+
 	// Содрано из интернета
 	double XSCALEFACTOR = 65535.0 / (GetSystemMetrics(SM_CXSCREEN) - 1);
     double YSCALEFACTOR = 65535.0 / (GetSystemMetrics(SM_CYSCREEN) - 1);
@@ -186,6 +190,8 @@ void Fixation::LeftClick(POINT p, bool skip_modifier_press, bool skip_modifier_u
 	skip_mouse_hook=false;
 
 	if(!skip_modifier_unpress) ClickModifiers(false); // Вдруг нужно отпустить Ctrl, Shift, Alt?
+
+	my_own_click=false; 
 }
 
 //==============================================================================================

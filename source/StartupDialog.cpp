@@ -64,6 +64,12 @@ if (uMsg==WM_COMMAND)
 			SendDlgItemMessage(hdwnd,IDC_TIMEOUT, WM_SETTEXT, 0L, (LPARAM)Internat::Message(45,L"(ждём)"));
 			KillTimer(hdwnd,2); // Если тронули настройки - таймер останавливается
 			break;
+
+		case IDC_BUTTON_SETTINGS:
+			KillTimer(hdwnd,2); // Если тронули настройки - таймер останавливается
+			BKBSettings::SettingsDialogue(hdwnd);
+			break;
+
 		} // switch WM_COMMAND
 
 	
@@ -87,8 +93,9 @@ if (uMsg==WM_COMMAND)
 		if(Internat::Message(39,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_MOVEHARD, WM_SETTEXT, 0L, (LPARAM)Internat::Message(39,0)); // Усилитель мыши для тех, кому трудно сильно поворачивать голову с аэромышью
 		if(Internat::Message(40,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_X_MULTIPLIER, WM_SETTEXT, 0L, (LPARAM)Internat::Message(40,0)); // Усиление по горизонтали:
 		if(Internat::Message(41,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_Y_MULTIPLIER, WM_SETTEXT, 0L, (LPARAM)Internat::Message(41,0)); // Усиление по вертикали:
-		if(Internat::Message(42,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_NOTES1, WM_SETTEXT, 0L, (LPARAM)Internat::Message(42,0)); // * Эти и другие параметры можно изменить и сохранить в диалоге настроек,
-		if(Internat::Message(43,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_NOTES2, WM_SETTEXT, 0L, (LPARAM)Internat::Message(43,0)); // который вызывается комбинацией клавиш Fn + TAB на клавиатуре программы
+		if(Internat::Message(42,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_NOTES1, WM_SETTEXT, 0L, (LPARAM)Internat::Message(42,0)); // * Диалог настроек также вызывается
+		if(Internat::Message(43,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_NOTES2, WM_SETTEXT, 0L, (LPARAM)Internat::Message(43,0)); // комбинацией клавиш Fn + TAB на клавиатуре программы
+		if(Internat::Message(62,0)) SendDlgItemMessage(hdwnd,IDC_BUTTON_SETTINGS, WM_SETTEXT, 0L, (LPARAM)Internat::Message(62,0)); // Все настройки
 		// Строка в списке возможных значений
 		if(Internat::Message(44,0)) 
 		{

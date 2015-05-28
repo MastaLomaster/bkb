@@ -7,6 +7,8 @@
 
 static const TCHAR *wnd_class_name=L"BKBTransp";
 extern HINSTANCE BKBInst;
+extern HPEN dkyellow_pen;
+extern bool flag_Activemouse;
 
 bool BKBTranspWnd::flag_show_transp_window=true;
 
@@ -33,6 +35,9 @@ LRESULT CALLBACK BKBTranspWndProc(HWND hwnd,
 		HDC hdc;
 		hdc=BeginPaint(hwnd,&ps);
 		
+		if(flag_Activemouse) SelectObject(hdc,dkyellow_pen);
+		else SelectObject(hdc,(HPEN)BLACK_PEN);
+
 		MoveToEx(hdc,100,100,NULL);
 		LineTo(hdc,49,49);
 		MoveToEx(hdc,49,55,NULL);

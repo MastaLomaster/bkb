@@ -14,7 +14,7 @@ typedef struct
 class BKBSettings
 {
 public:
-	static void SettingsDialogue();
+	static void SettingsDialogue(HWND parent_hwnd=0);
 	static void PrepareDialogue(HWND hdwnd); // Заполняет списки
 	static void ShowLoad(HWND hdwnd); // Показываем текущие значения
 	static void Screen2Load(HWND hdwnd);
@@ -22,6 +22,7 @@ public:
 	static void SaveBKBConfig();
 	static int OpenBKBConfig();
 	static HWND settings_hwnd;
+	static HWND parent_hwnd;
 };
 
 #endif
