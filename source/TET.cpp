@@ -102,14 +102,15 @@ unsigned __stdcall ReaderThread(void *p)
 		{
 			//printf("X:%f Y:%f fix:%d state:%d\n",x_avg,y_avg,fix,state);
 			
-			if(7==state)
+			//if(7==state)
 			{
 				// Содрано из AirMouse.cpp
 				tobiigaze_gaze_data gd;
 				POINT p;
 				p.x=(LONG)(x_avg+0.5f); p.y=(LONG)(y_avg+0.5f);;
 
-				gd.tracking_status = TOBIIGAZE_TRACKING_STATUS_BOTH_EYES_TRACKED;
+				if(7==state) gd.tracking_status = TOBIIGAZE_TRACKING_STATUS_BOTH_EYES_TRACKED;
+				else gd.tracking_status = TOBIIGAZE_TRACKING_STATUS_NO_EYES_TRACKED;
 				gd.left.gaze_point_on_display_normalized.x=p.x/(double)screenX*screen_scale;
 				gd.left.gaze_point_on_display_normalized.y=p.y/(double)screenY*screen_scale;
 	

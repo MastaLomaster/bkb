@@ -13,6 +13,7 @@
 #include "BKBSettings.h"
 #include "BKBHookProc.h"
 #include "BKBProgressWnd.h"
+#include "BKBMetricsWnd.h"
 
 // Для установки хука на мышь
 static HHOOK handle;
@@ -78,6 +79,7 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 	BKBKeybWnd::Init(master_hwnd); // Клавиатура
 	BKBTranspWnd::Init(master_hwnd); // Прозрачное окно
 	BKBProgressWnd::Init(master_hwnd); // Окно прогресса
+	BKBMetricsWnd::Init(master_hwnd); // Окно метрик
 
 	// Инициализируем работу хука
 	handle = SetWindowsHookEx(WH_MOUSE_LL, 

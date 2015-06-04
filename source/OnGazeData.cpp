@@ -10,9 +10,9 @@
 #include "WM_USER_messages.h"
 #include "BKBHookProc.h"
 #include "BKBProgressWnd.h"
+#include "BKBMetricsWnd.h"
 
-#define DISPERSION_LIMIT 100.0 // Для отслеживания фиксаций
-#define DISPERSION_HIGH_LIMIT 300.0 // Для отслеживания быстрых перемещений
+
 int FIXATION_LIMIT=30; // Сколько последовательных точек с низкой дисперсией считать фиксацией (для клавиатуры)
 int NOTKBD_FIXATION_LIMIT=30; // Сколько последовательных точек с низкой дисперсией считать фиксацией (не для клавиатуры)
 int POSTFIXATION_SKIP=30; // сколько точек пропустить после фиксации, чтобы начать считать новую фиксацию (для клавиатуры)
@@ -40,6 +40,7 @@ static int funcPOSTFIXATION_SKIP()
 
 extern int screenX, screenY;
 extern int gBKB_MBUTTONFIX; // Как реагировать на среднюю кнопку мыши
+extern int gBKB_DISP_PERCENT; // Дисперсия в процентах от высоты экрана
 
 static int fixation_count=0; // количество точек, когда мышь почти не двигается
 static int skip_count=0; // сколько точек осталось пропустить после фиксации, чтобы начать считать новую фиксацию
@@ -52,6 +53,20 @@ static volatile long TGD_is_processing=0; // Типа мьютекса для In
 
 extern DWORD last_mouse_time;
 static DWORD this_time;
+
+//#define DISPERSION_LIMIT 100.0 // Для отслеживания фиксаций
+static double funcDISPERSION_LIMIT()
+{
+	//double d=gBKB_DISP_PERCENT/100.0*screenY;
+	//return d;
+	return gBKB_DISP_PERCENT/100.0*screenY;
+}
+//#define DISPERSION_HIGH_LIMIT 300.0 // Для отслеживания быстрых перемещений
+static double funcDISPERSION_HIGH_LIMIT()
+{
+	// Меняется от 0.27 до 0.5 высоты экрана при изменении дисперсии от 10 до 25 процентов
+	return screenY*(0.27+(gBKB_DISP_PERCENT-10)*0.23/15);
+}
 
 //=====================================================================================
 // Функция, возвращающая знак целого числа
@@ -154,7 +169,7 @@ void on_gaze_data_main_thread()
 		//=================================================================================
 		// Теперь о перемещениях курсора
 		// Сглаживание не нужно для аэромыши
-		if((disp1>DISPERSION_HIGH_LIMIT)&&(disp2>DISPERSION_HIGH_LIMIT)||(2==tracking_device))
+		if((disp1>funcDISPERSION_HIGH_LIMIT())&&(disp2>funcDISPERSION_HIGH_LIMIT())||(2==tracking_device))
 		{
 			// Курсор перемещаем быстро
 			//cursor_position=point;
@@ -267,7 +282,7 @@ void on_gaze_data_main_thread()
 		if((skip_count<=0)||(true==BKB_MBUTTON_PRESSED))
 		{
 			// Теперь засчитывается также фиксация, если прямоугольник ProgressWindow не перемещался
-			if((disp1<DISPERSION_LIMIT)&&(disp2<DISPERSION_LIMIT)||(true==BKB_MBUTTON_PRESSED)||(true==flag_Pink_approved)) 
+			if((disp1<funcDISPERSION_LIMIT())&&(disp2<funcDISPERSION_LIMIT())||(true==BKB_MBUTTON_PRESSED)||(true==flag_Pink_approved)) 
 			{
 				fixation_count++;
 
@@ -318,8 +333,13 @@ void on_gaze_data_main_thread()
 			Fixation::Fix(screen_cursor_point);
 			BKBTranspWnd::ToTop(); // После фиксации могут всплыть окна более близкие в z-order'e
 		}
+		BKBMetricsWnd::OnTick((disp1+disp2)/2.0f); // Рисуем в окне метрик 100%=300 пикселов
 	}
-	//else OutputDebugString(L"ONE EYE\n\r");
-		
+	else // Трекинг глаз не удался
+	{
+		//OutputDebugString(L"ONE EYE\n\r");
+		BKBMetricsWnd::OnTick(-1.0f); // Пустое место отрисуем
+	}
+
 	TGD_is_processing=0; // Без этого новые данные не поступят !
 }

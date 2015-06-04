@@ -7,6 +7,7 @@
 #include "TranspWnd.h"
 #include "Internat.h"
 #include "KeybWnd.h"
+#include "BKBMetricsWnd.h"
 
 extern HINSTANCE	BKBInst;
 
@@ -38,15 +39,21 @@ const int BKB_YESNO=2;
 BKBIntChar dlg_kbd_fullscreen[BKB_YESNO]={{L"Нет",0,IDC_RADIO_KBDFS1},{L"Да",1,IDC_RADIO_KBDFS2}}; 
 BKBIntChar dlg_kbd_2step[BKB_YESNO]={{L"Нет",0,IDC_RADIO_KBD_2STEPS_NO},{L"Да",1,IDC_RADIO_KBD_2STEPS_YES}}; 
 BKBIntChar dlg_show_clickmods[BKB_YESNO]={{L"Нет",0,IDC_RADIO_CLICKMOD_NO},{L"Да",1,IDC_RADIO_CLICKMOD_YES}}; 
+BKBIntChar dlg_show_metrics[BKB_YESNO]={{L"Нет",0,IDC_RADIO_METRICS_NO},{L"Да",1,IDC_RADIO_METRICS_YES}}; 
+
 
 int dlg_current_kbd_fullscreen=1;
 int dlg_current_kbd_2step=1;
 int dlg_current_show_clickmods=0;
+int dlg_current_show_metrics=1;
 
 const int BKB_SET_MBUTTONFIX=3;
 BKBIntChar dlg_mbuttonfix[BKB_SET_MBUTTONFIX]={{L"только фиксация",0,IDC_RADIO_MBUTTONFIX1}, {L"и мышь, и фиксация",1,IDC_RADIO_MBUTTONFIX2}, {L"только мышь",2,IDC_RADIO_MBUTTONFIX3}};
 int dlg_current_mbuttonfix=1;
 
+const int BKB_SET_DISPERSION=4;
+BKBIntChar dlg_dispersion[BKB_SET_DISPERSION]={{L"10",10,IDC_RADIO_DISP1}, {L"15",15,IDC_RADIO_DISP2}, {L"20",20,IDC_RADIO_DISP3}, {L"25",25,IDC_RADIO_DISP4}};
+int dlg_current_dispersion=0;
 
 extern int FIXATION_LIMIT; // Сколько последовательных точек с низкой дисперсией считать фиксацией
 extern int POSTFIXATION_SKIP; // сколько точек пропустить после фиксации, чтобы начать считать новую фиксацию
@@ -58,6 +65,8 @@ extern bool gBKB_2STEP_KBD_MODE; // Флаг того, что клавиши н�
 bool gBKB_SHOW_CLICK_MODS=false; // Флаг того, что нужно показывать модификаторы клика (+Ctrl, +Shift, ...)
 extern int gBKB_TOOLBOX_BUTTONS; // Количество видимых кнопок на панели инструментов
 int gBKB_MBUTTONFIX=1;
+int gBKB_SHOW_METRICS=1; // Показывать ли окно метрик
+int gBKB_DISP_PERCENT=10; // процент высоты экрана, который задаёт границы дисперсии
 
 //===================================================================
 // Диалог настроек
@@ -88,6 +97,7 @@ static BOOL CALLBACK DlgSettingsWndProc(HWND hdwnd,
 				// А также ToolBar
 				BKBToolWnd::offset=0; // пока-что насильно перематываем в начало
 				BKBToolWnd::Place();
+				BKBMetricsWnd::Show(gBKB_SHOW_METRICS);
 				if(BKBSettings::parent_hwnd) EndDialog(hdwnd,0); // диалог был вызван в начале программы
 				ShowWindow(hdwnd,SW_HIDE); // диалог был вызван во время исполнения программы
 				return 1; 
@@ -181,12 +191,14 @@ void BKBSettings::PrepareDialogue(HWND hdwnd)
 		SendDlgItemMessage(hdwnd,IDC_RADIO_KBDFS1, WM_SETTEXT, 0L, (LPARAM)Internat::Message(58,0));// Нет
 		SendDlgItemMessage(hdwnd,IDC_RADIO_KBD_2STEPS_NO, WM_SETTEXT, 0L, (LPARAM)Internat::Message(58,0));// Нет
 		SendDlgItemMessage(hdwnd,IDC_RADIO_CLICKMOD_NO, WM_SETTEXT, 0L, (LPARAM)Internat::Message(58,0));// Нет
+		SendDlgItemMessage(hdwnd,IDC_RADIO_METRICS_NO, WM_SETTEXT, 0L, (LPARAM)Internat::Message(58,0));// Нет
 	}
 	if(Internat::Message(59,0))
 	{
 		SendDlgItemMessage(hdwnd,IDC_RADIO_KBDFS2, WM_SETTEXT, 0L, (LPARAM)Internat::Message(59,0));// Да
 		SendDlgItemMessage(hdwnd,IDC_RADIO_KBD_2STEPS_YES, WM_SETTEXT, 0L, (LPARAM)Internat::Message(59,0));// Да
 		SendDlgItemMessage(hdwnd,IDC_RADIO_CLICKMOD_YES, WM_SETTEXT, 0L, (LPARAM)Internat::Message(59,0));// Да
+		SendDlgItemMessage(hdwnd,IDC_RADIO_METRICS_YES, WM_SETTEXT, 0L, (LPARAM)Internat::Message(59,0));// Да
 	}
 
 	if(Internat::Message(49,0)) SendDlgItemMessage(hdwnd,IDOK, WM_SETTEXT, 0L, (LPARAM)Internat::Message(49,0));// Сохранить
@@ -214,6 +226,8 @@ void BKBSettings::PrepareDialogue(HWND hdwnd)
 	if(Internat::Message(71,0)) SendDlgItemMessage(hdwnd,IDC_RADIO_MBUTTONFIX2, WM_SETTEXT, 0L, (LPARAM)Internat::Message(71,0));// Только фиксация
 	if(Internat::Message(72,0)) SendDlgItemMessage(hdwnd,IDC_RADIO_MBUTTONFIX3, WM_SETTEXT, 0L, (LPARAM)Internat::Message(72,0));// Только фиксация
 	
+	if(Internat::Message(74,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_SHOW_METRICS, WM_SETTEXT, 0L, (LPARAM)Internat::Message(74,0));// Показывать окно с метриками
+	if(Internat::Message(75,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_DISPERSION, WM_SETTEXT, 0L, (LPARAM)Internat::Message(75,0));// Фиксация при разбросе координат не более (% от высоты экрана)
 	
 }
 
@@ -253,17 +267,18 @@ void BKBSettings::ShowLoad(HWND hdwnd)
 	SendDlgItemMessage(hdwnd, dlg_nokbdpostfixation[dlg_current_nokbdpostfixation].button, BM_SETCHECK, BST_CHECKED, 0);
 
 
-	// 3. Клавиатура на полный экран / в два нажатия / показывать "+Ctrl"
+	// 3. Клавиатура на полный экран / в два нажатия / показывать "+Ctrl" / показывать метрики
 	for(i=0;i<BKB_YESNO;i++)
 	{
 		SendDlgItemMessage(hdwnd, dlg_kbd_fullscreen[i].button, BM_SETCHECK, BST_UNCHECKED, 0);
 		SendDlgItemMessage(hdwnd, dlg_kbd_2step[i].button, BM_SETCHECK, BST_UNCHECKED, 0);
 		SendDlgItemMessage(hdwnd, dlg_show_clickmods[i].button, BM_SETCHECK, BST_UNCHECKED, 0);
-		
+		SendDlgItemMessage(hdwnd, dlg_show_metrics[i].button, BM_SETCHECK, BST_UNCHECKED, 0);
 	}
 	SendDlgItemMessage(hdwnd, dlg_kbd_fullscreen[dlg_current_kbd_fullscreen].button, BM_SETCHECK, BST_CHECKED, 0);
 	SendDlgItemMessage(hdwnd, dlg_kbd_2step[dlg_current_kbd_2step].button, BM_SETCHECK, BST_CHECKED, 0);
 	SendDlgItemMessage(hdwnd, dlg_show_clickmods[dlg_current_show_clickmods].button, BM_SETCHECK, BST_CHECKED, 0);
+	SendDlgItemMessage(hdwnd, dlg_show_metrics[dlg_current_show_metrics].button, BM_SETCHECK, BST_CHECKED, 0);
 
 	// 4. Количество кнопок на тулбаре
 	for(i=0;i<BKB_SET_TOOLBARCELLS;i++)
@@ -278,6 +293,14 @@ void BKBSettings::ShowLoad(HWND hdwnd)
 		SendDlgItemMessage(hdwnd, dlg_mbuttonfix[i].button, BM_SETCHECK, BST_UNCHECKED, 0);
 	}
 	SendDlgItemMessage(hdwnd, dlg_mbuttonfix[dlg_current_mbuttonfix].button, BM_SETCHECK, BST_CHECKED, 0);
+
+	// 6. Граница дисперсии в процентах от высоты экрана
+	for(i=0;i<BKB_SET_DISPERSION;i++)
+	{
+		SendDlgItemMessage(hdwnd, dlg_dispersion[i].button, BM_SETCHECK, BST_UNCHECKED, 0);
+	}
+	SendDlgItemMessage(hdwnd, dlg_dispersion[dlg_current_dispersion].button, BM_SETCHECK, BST_CHECKED, 0);
+	
 }
 
 
@@ -301,6 +324,8 @@ void BKBSettings::ActualizeLoad()
 	gBKB_SHOW_CLICK_MODS=(bool)(dlg_show_clickmods[dlg_current_show_clickmods].value);
 	gBKB_TOOLBOX_BUTTONS=dlg_toolbarcells[dlg_current_toolbarcells].value;
 	gBKB_MBUTTONFIX=dlg_mbuttonfix[dlg_current_mbuttonfix].value;
+	gBKB_SHOW_METRICS=dlg_show_metrics[dlg_current_show_metrics].value;
+	gBKB_DISP_PERCENT=dlg_dispersion[dlg_current_dispersion].value;
 }
 
 
@@ -341,7 +366,7 @@ void BKBSettings::Screen2Load(HWND hdwnd)
 			dlg_current_nokbdpostfixation=i;
 	}
 
-	// 3. Клавиатура на полный экран / 2 шага клавиатуры / +Ctrl
+	// 3. Клавиатура на полный экран / 2 шага клавиатуры / +Ctrl / показывать метрики
 	for(i=0;i<BKB_YESNO;i++)
 	{
 
@@ -353,6 +378,9 @@ void BKBSettings::Screen2Load(HWND hdwnd)
 		
 		if(BST_CHECKED==SendDlgItemMessage(hdwnd, dlg_show_clickmods[i].button, BM_GETCHECK, 0, 0))
 			dlg_current_show_clickmods=i;
+
+		if(BST_CHECKED==SendDlgItemMessage(hdwnd, dlg_show_metrics[i].button, BM_GETCHECK, 0, 0))
+			dlg_current_show_metrics=i;
 	}
 
 	// 4. Количество кнопок на тулбаре
@@ -369,6 +397,14 @@ void BKBSettings::Screen2Load(HWND hdwnd)
 			dlg_current_mbuttonfix=i;
 	}
 
+	// 6. Граница дисперсии в процентах от высоты экрана
+	for(i=0;i<BKB_SET_DISPERSION;i++)
+	{
+		if(BST_CHECKED==SendDlgItemMessage(hdwnd, dlg_dispersion[i].button, BM_GETCHECK, 0, 0))
+			dlg_current_dispersion=i;
+	}
+
+
 }
 
 
@@ -383,7 +419,7 @@ typedef struct
 	int max_index;
 } T_save_struct;
 
-#define NUM_SAVE_LINES 11
+#define NUM_SAVE_LINES 13
 
 static T_save_struct save_struct[NUM_SAVE_LINES]=
 {
@@ -397,7 +433,9 @@ static T_save_struct save_struct[NUM_SAVE_LINES]=
 	{"KBD2STEP",&dlg_current_kbd_2step,dlg_kbd_2step, BKB_YESNO},
 	{"ClickMods",&dlg_current_show_clickmods,dlg_show_clickmods, BKB_YESNO},
 	{"ToolBarCells",&dlg_current_toolbarcells,dlg_toolbarcells, BKB_SET_TOOLBARCELLS },
-	{"MButtonFix",&dlg_current_mbuttonfix,dlg_mbuttonfix, BKB_SET_MBUTTONFIX }
+	{"MButtonFix",&dlg_current_mbuttonfix,dlg_mbuttonfix, BKB_SET_MBUTTONFIX },
+	{"ShowMetrics",&dlg_current_show_metrics,dlg_show_metrics, BKB_YESNO },
+	{"Dispersion",&dlg_current_dispersion,dlg_dispersion, BKB_SET_DISPERSION }
 };
 
 
