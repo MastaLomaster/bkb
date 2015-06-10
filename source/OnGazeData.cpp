@@ -271,7 +271,9 @@ void on_gaze_data_main_thread()
 		static bool prev_flag_Pink_approved=false;
 		
 		flag_Pink_approved=BKBProgressWnd::TryToShow(screen_cursor_point.x,screen_cursor_point.y, 100*fixation_count/funcFIXATION_LIMIT());
-		if(!flag_Pink_approved&&prev_flag_Pink_approved)
+		//if(!flag_Pink_approved&&prev_flag_Pink_approved)
+		//09.06.2015 переход false->true также должен сбрасывать fixation_count
+		if(flag_Pink_approved!=prev_flag_Pink_approved)
 		{
 			fixation_count=0;
 		}

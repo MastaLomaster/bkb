@@ -1,4 +1,4 @@
-#ifndef __BKB_METRICSWND
+﻿#ifndef __BKB_METRICSWND
 #define __BKB_METRICSWND
 
 class BKBMetricsWnd

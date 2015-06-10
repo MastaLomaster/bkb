@@ -23,6 +23,9 @@ public:
 	static LPRECT PinkFrame(int _x, int _y);
 	static int offset;
 
+	// Устанавливает подсветку нужной клавиши в зависимости от режима
+	static void SetCurrentTool(BKB_MODE bm);
+
 protected:
 	static TCHAR *tool_modifier_name[4];
 	static HWND Tlhwnd;

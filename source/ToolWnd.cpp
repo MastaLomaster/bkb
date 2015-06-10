@@ -8,6 +8,7 @@
 #include "TranspWnd.h"
 #include "Internat.h"
 #include "WM_USER_messages.h"
+#include "Fixation.h"
 
 
 //int gBKB_TOOLBOX_WIDTH=128;
@@ -391,6 +392,22 @@ void BKBToolWnd::OnPaint(HDC hdc)
 			}
 			else TextOut(hdc,25,60+pos_i*tool_height,tool_config[i].tool_name,wcslen(tool_config[i].tool_name));
 		
+			// Progress-bar засыпания-просыпания
+			// Проверим, попали ли на кнопку засыпания
+			if((bkb_sleep_count<BKB_SLEEP_COUNT)&&(bkb_sleep_count>0))
+			{
+				if(BKB_MODE_SLEEP==tool_config[i].bkb_mode)
+				{
+					RECT rect;
+		
+					rect.left=(LONG)(gBKB_TOOLBOX_WIDTH/10);
+					rect.right=(LONG)(rect.left+(BKB_SLEEP_COUNT-bkb_sleep_count)*90/BKB_SLEEP_COUNT*gBKB_TOOLBOX_WIDTH/100);
+					rect.top=(LONG)(tool_height/20+pos_i*tool_height);
+					rect.bottom=(LONG)(rect.top+tool_height/20); 
+
+					FillRect(hdc,&rect,blue_brush);
+				}
+			}
 		}
 
 		// Рисуем стрелки
@@ -400,19 +417,7 @@ void BKBToolWnd::OnPaint(HDC hdc)
 			DrawDownArrow(hdc,gBKB_TOOLBOX_WIDTH/2, height-gBKB_TOOLBOX_WIDTH/2);
 		}
 
-// !!!Это пересмотреть!!!!
-		// Progress-bar засыпания-просыпания
-		if((bkb_sleep_count<BKB_SLEEP_COUNT)&&(bkb_sleep_count>0))
-		{
-			RECT rect;
-		
-			rect.left=(LONG)(gBKB_TOOLBOX_WIDTH/10);
-			rect.right=(LONG)(rect.left+(BKB_SLEEP_COUNT-bkb_sleep_count)*90/BKB_SLEEP_COUNT*gBKB_TOOLBOX_WIDTH/100);
-			rect.top=(LONG)(tool_height/20+tool_height*(BKB_NUM_TOOLS-1));
-			rect.bottom=(LONG)(rect.top+tool_height/20); 
 
-			FillRect(hdc,&rect,blue_brush);
-		}
 
 	}
 
@@ -682,15 +687,18 @@ void BKBToolWnd::ScrollCursor(POINT *p)
 //================================================================
 // Уведомляем о движениях мыши на случай сна
 //================================================================
-void BKBToolWnd::SleepCheck(POINT *pnt)
+void BKBToolWnd::SleepCheck(POINT *_pnt)
 {
+	POINT pnt=*_pnt;
 	if((bkb_sleep_count<BKB_SLEEP_COUNT)&&(bkb_sleep_count>0)) // Засыпаем или просыпаемся, мышь уводить с кнопки нельзя
 	{
-		if((left_side&&(pnt->x<gBKB_TOOLBOX_WIDTH)) || !left_side&&(pnt->x>screenX-gBKB_TOOLBOX_WIDTH)) // Попали ли по ширине?
+		ScreenToClient(Tlhwnd,&pnt);
+		if((pnt.x>=0)&&(pnt.x<gBKB_TOOLBOX_WIDTH)&&(pnt.y>0)&&(pnt.y<height))
 		{
 			// попала, определяем номер инструмента
-			int tool_candidate=pnt->y/(screenY/BKB_NUM_TOOLS);
-			if((tool_candidate>=0)&&(tool_candidate<BKB_NUM_TOOLS)) // попали ли по длине?
+			int position=pnt.y/gBKB_TOOLBOX_WIDTH; // Высота и ширина совпадают
+			int tool_candidate=ToolFromPosition(position);
+			if(tool_candidate>=0) // это не стрелка?
 			{
 				if(BKB_MODE_SLEEP==tool_config[tool_candidate].bkb_mode) // Попали ли в засыпалку?
 				{
@@ -754,6 +762,19 @@ LPRECT BKBToolWnd::PinkFrame(int _x, int _y)
 		// Попала, осталось только найти, в какую ячейку
 		int cell_num=pnt.y/gBKB_TOOLBOX_WIDTH;
 
+		// Во сне подсвечиваем только кнопку сна
+		if(BKB_MODE_SLEEP==Fixation::CurrentMode()) // Да, мы в режиме сна
+		{
+// !!! Здесь возможно большое чёрное окно, проверить потом
+			// Подсвечивать только Sleep
+			int tool_candidate=ToolFromPosition(cell_num);
+			if(0<=tool_candidate) // Стрелки не являются кандидатами
+			{
+				if(BKB_MODE_SLEEP!=tool_config[tool_candidate].bkb_mode) return NULL;
+			}
+			else return NULL;
+		}
+
 		pink_rect.left=place_point.x;
 		pink_rect.right=place_point.x+gBKB_TOOLBOX_WIDTH-1;
 		pink_rect.top=place_point.y+gBKB_TOOLBOX_WIDTH*cell_num;
@@ -762,4 +783,23 @@ LPRECT BKBToolWnd::PinkFrame(int _x, int _y)
 		return &pink_rect;
 	}
 	else return NULL;
+}
+
+//===========================================================================================
+// Устанавливает подсветку нужной клавиши в зависимости от режима
+//===========================================================================================
+void BKBToolWnd::SetCurrentTool(BKB_MODE bm)
+{
+	int i;
+	
+	current_tool=-1;
+
+	for(i=0;i<BKB_NUM_TOOLS;i++)
+	{
+		if(bm==tool_config[i].bkb_mode)
+		{
+			current_tool=i;
+			return;
+		}
+	}
 }

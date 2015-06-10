@@ -12,8 +12,11 @@ public:
 	static void Hide();
 	static bool flag_show_transp_window; // В режиме [Аэро]мышь окно отключено через этот флаг
 	static HWND Trhwnd;
+	static void Progress(int _progress);
+	static int progress;
 protected:
 	static int screen_x, screen_y;
+	static int last_progress;
 };
 
 #endif

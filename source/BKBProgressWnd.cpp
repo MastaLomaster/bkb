@@ -1,9 +1,10 @@
-#include <Windows.h>
+п»ї#include <Windows.h>
 #include "BKBProgressWnd.h"
 #include "BKBRepErr.h"
 #include "Fixation.h"
 #include "KeybWnd.h"
 #include "ToolWnd.h"
+#include "TranspWnd.h"
 
 static const TCHAR *wnd_class_name=L"BKBProgress";
 extern HINSTANCE BKBInst;
@@ -15,7 +16,7 @@ int  BKBProgressWnd::percentage=0;
 extern bool gBKB_2STEP_KBD_MODE;
 
 
-// Оконная процедура 
+// РћРєРѕРЅРЅР°СЏ РїСЂРѕС†РµРґСѓСЂР° 
 LRESULT CALLBACK BKBProgressWndProc(HWND hwnd,
 						UINT message,
 						WPARAM wparam,
@@ -24,7 +25,7 @@ LRESULT CALLBACK BKBProgressWndProc(HWND hwnd,
 	switch (message)
 	{
 	case WM_CREATE:
-		// Содрано из интернета - так мы делаем окно прозрачным в белых его частях
+		// РЎРѕРґСЂР°РЅРѕ РёР· РёРЅС‚РµСЂРЅРµС‚Р° - С‚Р°Рє РјС‹ РґРµР»Р°РµРј РѕРєРЅРѕ РїСЂРѕР·СЂР°С‡РЅС‹Рј РІ Р±РµР»С‹С… РµРіРѕ С‡Р°СЃС‚СЏС…
 		// Suppose the window background color is white (255,255,255).
         // Call the SetLayeredWindowAttributes when create the window.
         SetLayeredWindowAttributes(hwnd,RGB(255,255,255),NULL,LWA_COLORKEY);
@@ -56,7 +57,7 @@ LRESULT CALLBACK BKBProgressWndProc(HWND hwnd,
 		if(BKBProgressWnd::percentage>0)
 		{
 			MoveToEx(hdc,15,15, NULL);
-			LineTo(hdc,(width-15)*BKBProgressWnd::percentage/100,15);
+			LineTo(hdc,15+(width-30)*BKBProgressWnd::percentage/100,15);
 		}
 		
 		EndPaint(hwnd,&ps);
@@ -70,19 +71,19 @@ LRESULT CALLBACK BKBProgressWndProc(HWND hwnd,
 		return DefWindowProc(hwnd,message,wparam,lparam);
 	}
 
-	return 0; // Обработали, свалились сюда по break
+	return 0; // РћР±СЂР°Р±РѕС‚Р°Р»Рё, СЃРІР°Р»РёР»РёСЃСЊ СЃСЋРґР° РїРѕ break
 }
 
 //================================================================
-// Инициализация 
+// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ 
 //================================================================
 void BKBProgressWnd::Init(HWND master_hwnd)
 {
-	ATOM aresult; // Для всяких кодов возврата
+	ATOM aresult; // Р”Р»СЏ РІСЃСЏРєРёС… РєРѕРґРѕРІ РІРѕР·РІСЂР°С‚Р°
 	
-	// 1. Регистрация класса окна
+	// 1. Р РµРіРёСЃС‚СЂР°С†РёСЏ РєР»Р°СЃСЃР° РѕРєРЅР°
 	WNDCLASS wcl={CS_HREDRAW | CS_VREDRAW, BKBProgressWndProc, 0,
-		//sizeof(LONG_PTR), // Сюда пропишем ссылку на объект
+		//sizeof(LONG_PTR), // РЎСЋРґР° РїСЂРѕРїРёС€РµРј СЃСЃС‹Р»РєСѓ РЅР° РѕР±СЉРµРєС‚
 		0,
 		BKBInst,
 		LoadIcon( NULL, IDI_APPLICATION),
@@ -101,7 +102,7 @@ void BKBProgressWnd::Init(HWND master_hwnd)
 		return;
 	}
 
-// Теперь это есть в глобальных переменных 
+// РўРµРїРµСЂСЊ СЌС‚Рѕ РµСЃС‚СЊ РІ РіР»РѕР±Р°Р»СЊРЅС‹С… РїРµСЂРµРјРµРЅРЅС‹С… 
 //	screen_x=GetSystemMetrics(SM_CXSCREEN);
 //	screen_y=GetSystemMetrics(SM_CYSCREEN);
 
@@ -113,11 +114,11 @@ void BKBProgressWnd::Init(HWND master_hwnd)
 	NULL, //TEXT(KBWindowName),
     //WS_VISIBLE|WS_POPUP,
 	WS_POPUP,
-	//100,100, // Не здесь ли крылась мерзкая ошибка, когда окно с курсором рисовалось в стороне?? Нет, похоже это было из-за HighDPI
+	//100,100, // РќРµ Р·РґРµСЃСЊ Р»Рё РєСЂС‹Р»Р°СЃСЊ РјРµСЂР·РєР°СЏ РѕС€РёР±РєР°, РєРѕРіРґР° РѕРєРЅРѕ СЃ РєСѓСЂСЃРѕСЂРѕРј СЂРёСЃРѕРІР°Р»РѕСЃСЊ РІ СЃС‚РѕСЂРѕРЅРµ?? РќРµС‚, РїРѕС…РѕР¶Рµ СЌС‚Рѕ Р±С‹Р»Рѕ РёР·-Р·Р° HighDPI
 	0,0,
 	100,100, 
     //0,
-	master_hwnd, // Чтобы в таскбаре и при альт-табе не появлялись лишние окна
+	master_hwnd, // Р§С‚РѕР±С‹ РІ С‚Р°СЃРєР±Р°СЂРµ Рё РїСЂРё Р°Р»СЊС‚-С‚Р°Р±Рµ РЅРµ РїРѕСЏРІР»СЏР»РёСЃСЊ Р»РёС€РЅРёРµ РѕРєРЅР°
 	0, BKBInst, 0L );
 
 	if(NULL==PRhwnd)
@@ -125,47 +126,55 @@ void BKBProgressWnd::Init(HWND master_hwnd)
 		BKBReportError(__WIDEFILE__,L"CreateWindow",__LINE__);
 	}
 
-	//Временно для отладки
+	//Р’СЂРµРјРµРЅРЅРѕ РґР»СЏ РѕС‚Р»Р°РґРєРё
 	ShowWindow(PRhwnd, SW_SHOW);
 	UpdateWindow(PRhwnd);
 }
 
 
 //====================================================================================================================
-// Возможно, есть где нарисовать розовый прямоугольник?
+// Р’РѕР·РјРѕР¶РЅРѕ, РµСЃС‚СЊ РіРґРµ РЅР°СЂРёСЃРѕРІР°С‚СЊ СЂРѕР·РѕРІС‹Р№ РїСЂСЏРјРѕСѓРіРѕР»СЊРЅРёРє?
 //====================================================================================================================
-bool BKBProgressWnd::TryToShow(int _x, int _y, int _percentage) // true = Pink Approves, продолжаем фиксацию, невзирая на дисперсию
+bool BKBProgressWnd::TryToShow(int _x, int _y, int _percentage) // true = Pink Approves, РїСЂРѕРґРѕР»Р¶Р°РµРј С„РёРєСЃР°С†РёСЋ, РЅРµРІР·РёСЂР°СЏ РЅР° РґРёСЃРїРµСЂСЃРёСЋ
 {
 	LPRECT lp_pink_rect;
 	static int old_top, old_left, old_right, old_bottom;
 
 
-	// Сначала ловим тулбар
+	// РЎРЅР°С‡Р°Р»Р° Р»РѕРІРёРј С‚СѓР»Р±Р°СЂ
 	lp_pink_rect=BKBToolWnd::PinkFrame(_x, _y);
 	if(NULL==lp_pink_rect)
 	{
-		// Здесь ещё будет черепашка
-		// Не нашли - пробуем искать в клавиатуре
+		// Р—РґРµСЃСЊ РµС‰С‘ Р±СѓРґРµС‚ С‡РµСЂРµРїР°С€РєР°
+		// РќРµ РЅР°С€Р»Рё - РїСЂРѕР±СѓРµРј РёСЃРєР°С‚СЊ РІ РєР»Р°РІРёР°С‚СѓСЂРµ
 		if(gBKB_2STEP_KBD_MODE&&(BKB_MODE_KEYBOARD==Fixation::CurrentMode()))
 		{
-			// В процессе анимации никакие фиксации не проходят
+			// Р’ РїСЂРѕС†РµСЃСЃРµ Р°РЅРёРјР°С†РёРё РЅРёРєР°РєРёРµ С„РёРєСЃР°С†РёРё РЅРµ РїСЂРѕС…РѕРґСЏС‚
 			if(BKBKeybWnd::Animate()) return false;
 
 			lp_pink_rect=BKBKeybWnd::PinkFrame(_x, _y);
 		}
 	}
 	
-	if(NULL!=lp_pink_rect) // Наш клиент!
+	if(NULL!=lp_pink_rect) // РќР°С€ РєР»РёРµРЅС‚!
 	{
+		// РќР° СЃР°РјРѕРј РєСѓСЂСЃРѕСЂРµ progress bar СЃР±СЂР°СЃС‹РІР°РµРј
+		BKBTranspWnd::Progress(0);
+
 		if((old_top==lp_pink_rect->top)&&(old_left==lp_pink_rect->left)&&(old_right==lp_pink_rect->right)&&(old_bottom==lp_pink_rect->bottom))
 		{
-			// Прямоугольник на старом месте, меняем только ProgressBar
+			// РџСЂСЏРјРѕСѓРіРѕР»СЊРЅРёРє РЅР° СЃС‚Р°СЂРѕРј РјРµСЃС‚Рµ, РјРµРЅСЏРµРј С‚РѕР»СЊРєРѕ ProgressBar
 			percentage=_percentage;
 			InvalidateRect(PRhwnd,NULL,TRUE);
 			return true; // Fixation approved
 		}
-		else // Новое местоположение прямоугольника
+		else // РќРѕРІРѕРµ РјРµСЃС‚РѕРїРѕР»РѕР¶РµРЅРёРµ РїСЂСЏРјРѕСѓРіРѕР»СЊРЅРёРєР°
 		{
+			// РќРѕРІРѕРµ СЂР°СЃРїРѕР»РѕР¶РµРЅРёРµ РїСЂСЏРјРѕСѓРіРѕР»СЊРЅРёРєР° РґРѕР»Р¶РЅРѕ РѕСЃС‚Р°РЅРѕРІРёС‚СЊ СЂРѕСЃС‚ fixation_count
+			// РќРѕ С‚РѕР»СЊРєРѕ РµСЃР»Рё РјС‹ СЃРІР°Р»РёР»РёСЃСЊ СЃ СЃРѕСЃРµРґРЅРµРіРѕ РїСЂСЏРјРѕСѓРіРѕР»СЊРЅРёРєР°, Р° РЅРµ РёР· РїСѓСЃС‚РѕС‚С‹
+			bool return_value=true;
+			if(-1!=old_top) 	return_value=false;
+
 			percentage=0;
 			ShowWindow(PRhwnd, SW_SHOWNORMAL);
 			MoveWindow(PRhwnd,lp_pink_rect->left,lp_pink_rect->top, lp_pink_rect->right-lp_pink_rect->left+1, lp_pink_rect->bottom-lp_pink_rect->top+1, TRUE);
@@ -179,8 +188,7 @@ bool BKBProgressWnd::TryToShow(int _x, int _y, int _percentage) // true = Pink A
 			old_right=lp_pink_rect->right;
 			old_bottom=lp_pink_rect->bottom;
 
-			// Новое расположение прямоугольника должно остановить рост fixation_count
-			return false;
+			return return_value;
 		}
 		
 		
@@ -188,8 +196,15 @@ bool BKBProgressWnd::TryToShow(int _x, int _y, int _percentage) // true = Pink A
 	}
 	else
 	{
-		old_top=-1; // Это чтобы после возвращения в тот же прямоугольник из пустоты, он не решил, что ничего не произошло, и вышел бы в SW_SHOWNORMAL
+		// РќР° РєСѓСЂСЃРѕСЂРµ СЂРёСЃСѓРµРј progress bar, РєРѕРіРґР° РµРіРѕ РЅРµС‚ РЅР° РґСЂСѓРіРёС… СЌР»РµРјРµРЅС‚Р°С…
+		if(-1!=old_top) _percentage=0; // РџСЂРё СЃРѕСЃРєР°РєРёРІР°РЅРёРё СЃ С‚СѓР»Р±Р°СЂР° (РёР»Рё С‡РµРіРѕ С‚Р°Рј РµС‰С‘) РїСЂРѕС†РµРЅС‚ СЃС‡РёС‚Р°С‚СЊ РЅСѓР»С‘Рј
+		BKBTranspWnd::Progress(_percentage);
+
+		old_top=-1; // Р­С‚Рѕ С‡С‚РѕР±С‹ РїРѕСЃР»Рµ РІРѕР·РІСЂР°С‰РµРЅРёСЏ РІ С‚РѕС‚ Р¶Рµ РїСЂСЏРјРѕСѓРіРѕР»СЊРЅРёРє РёР· РїСѓСЃС‚РѕС‚С‹, РѕРЅ РЅРµ СЂРµС€РёР», С‡С‚Рѕ РЅРёС‡РµРіРѕ РЅРµ РїСЂРѕРёР·РѕС€Р»Рѕ, Рё РІС‹С€РµР» Р±С‹ РІ SW_SHOWNORMAL
 		ShowWindow(PRhwnd, SW_HIDE);
+		
+
+		
 		return false;
 	}
 	

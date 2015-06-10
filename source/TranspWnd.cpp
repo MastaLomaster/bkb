@@ -3,17 +3,21 @@
 #include "BKBRepErr.h"
 #include "WM_USER_messages.h"
 #include "ToolWnd.h"
+#include "Fixation.h"
 
 
 static const TCHAR *wnd_class_name=L"BKBTransp";
 extern HINSTANCE BKBInst;
-extern HPEN dkyellow_pen;
+extern HPEN dkyellow_pen, pink_pen;
 extern bool flag_Activemouse;
 
 bool BKBTranspWnd::flag_show_transp_window=true;
 
 int BKBTranspWnd::screen_x, BKBTranspWnd::screen_y;
 HWND  BKBTranspWnd::Trhwnd=0;
+int BKBTranspWnd::last_progress=0, BKBTranspWnd::progress=0;
+
+static const RECT clean_rect={5,5,95,15}; // Область стирания
 
 // Оконная процедура 
 LRESULT CALLBACK BKBTranspWndProc(HWND hwnd,
@@ -44,6 +48,19 @@ LRESULT CALLBACK BKBTranspWndProc(HWND hwnd,
 		LineTo(hdc,49,49);
 		LineTo(hdc,55,49);
 		
+		// Рисуем progress bar
+		// Стираем, только если 0==progress
+		if(0==BKBTranspWnd::progress)
+		{
+			FillRect(hdc, &clean_rect, (HBRUSH)GetStockObject(WHITE_BRUSH));
+		}
+		else
+		{
+			SelectObject(hdc,pink_pen);
+			MoveToEx(hdc,10,10,NULL);
+			LineTo(hdc,10+80*BKBTranspWnd::progress/100,10);
+		}
+
 		EndPaint(hwnd,&ps);
 		break;
 	
@@ -152,5 +169,33 @@ void BKBTranspWnd::ToTop()
 		// Из-за отсутствия этого панель задач перекрывала панель инструментов 
 		SetActiveWindow(BKBToolWnd::GetHwnd());
 		BringWindowToTop(BKBToolWnd::GetHwnd()); 
+	}
+}
+
+void BKBTranspWnd::Progress(int _progress)
+{
+	if(flag_show_transp_window)
+	{
+		if(!(
+			(BKB_MODE_LCLICK==Fixation::CurrentMode())||
+			(BKB_MODE_LCLICK_PLUS==Fixation::CurrentMode())||
+			(BKB_MODE_RCLICK==Fixation::CurrentMode())||
+			(BKB_MODE_DOUBLECLICK==Fixation::CurrentMode())||
+			(BKB_MODE_DOUBLECLICK_PLUS==Fixation::CurrentMode())||
+			(BKB_MODE_DRAG==Fixation::CurrentMode()) 
+			))
+		{
+			progress=0; // Каким бы ни был _progress в других режимах, он не должен влиять на наш last_progress
+		}
+		else
+		{
+			progress=_progress;
+			if(progress<0) progress=0;
+			if(progress>100) progress=100;
+		}
+
+		if(last_progress!=progress)
+			InvalidateRect(Trhwnd,NULL,false);
+		last_progress=progress;
 	}
 }

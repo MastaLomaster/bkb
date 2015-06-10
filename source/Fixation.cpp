@@ -60,9 +60,9 @@ bool Fixation::Fix(POINT p)
 
 					case BKB_MODE_RCLICK: // Щелчок правой кнопкой мыши
 						RightClick(p);
-						// Теперь после правого клика автоматически включается левый
-						BKBToolWnd::current_tool=1;
+						// Теперь после правого клика автоматически включается левый повторяющийся
 						BKB_Mode=BKB_MODE_LCLICK_PLUS;
+						BKBToolWnd::SetCurrentTool(BKB_Mode);
 						// Пусть окно перерисует стандартная оконная процедура
 						PostMessage(BKBToolWnd::GetHwnd(), WM_USER_INVALRECT, 0, 0);
 						//BKBToolWnd::Reset(&BKB_Mode); // один раз только ловим клик-то, когда нет повтора

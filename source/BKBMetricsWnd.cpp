@@ -1,10 +1,10 @@
-#include <Windows.h>
+п»ї#include <Windows.h>
 #include "BKBMetricsWnd.h"
 #include "BKBRepErr.h"
 #include "Internat.h"
 
 static const TCHAR *wnd_class_name=L"BKBMetrics";
-static TCHAR *text_metrics=L"Фиксация ниже красной";
+static TCHAR *text_metrics=L"Р¤РёРєСЃР°С†РёСЏ РЅРёР¶Рµ РєСЂР°СЃРЅРѕР№";
 
 extern HINSTANCE BKBInst;
 extern HPEN green_pen, dkyellow_pen, red_pen, strange_pen;
@@ -20,7 +20,7 @@ HBITMAP BKBMetricsWnd::hbm1, BKBMetricsWnd::hbm2;
 
 bool BKBMetricsWnd::show=0;
 
-// Оконная процедура 
+// РћРєРѕРЅРЅР°СЏ РїСЂРѕС†РµРґСѓСЂР° 
 LRESULT CALLBACK BKBMetricsWndProc(HWND hwnd,
 						UINT message,
 						WPARAM wparam,
@@ -38,21 +38,21 @@ LRESULT CALLBACK BKBMetricsWndProc(HWND hwnd,
 		return DefWindowProc(hwnd,message,wparam,lparam);
 	}
 
-	return 0; // Обработали, свалились сюда по break
+	return 0; // РћР±СЂР°Р±РѕС‚Р°Р»Рё, СЃРІР°Р»РёР»РёСЃСЊ СЃСЋРґР° РїРѕ break
 }
 
 //================================================================
-// Инициализация 
+// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ 
 //================================================================
 void BKBMetricsWnd::Init(HWND master_hwnd)
 {
-	ATOM aresult; // Для всяких кодов возврата
+	ATOM aresult; // Р”Р»СЏ РІСЃСЏРєРёС… РєРѕРґРѕРІ РІРѕР·РІСЂР°С‚Р°
 	RECT rect={0,0,179,179};
 	
-	// 0. Перевод заголовка окна
-	if(Internat::Message(73,0)) text_metrics=Internat::Message(73,0); // фиксация ниже красной 
+	// 0. РџРµСЂРµРІРѕРґ Р·Р°РіРѕР»РѕРІРєР° РѕРєРЅР°
+	if(Internat::Message(73,0)) text_metrics=Internat::Message(73,0); // С„РёРєСЃР°С†РёСЏ РЅРёР¶Рµ РєСЂР°СЃРЅРѕР№ 
 
-	// 1. Регистрация класса окна
+	// 1. Р РµРіРёСЃС‚СЂР°С†РёСЏ РєР»Р°СЃСЃР° РѕРєРЅР°
 	WNDCLASS wcl={CS_HREDRAW | CS_VREDRAW, BKBMetricsWndProc, 0,
 		0,
 		BKBInst,
@@ -73,7 +73,7 @@ void BKBMetricsWnd::Init(HWND master_hwnd)
 	}
 
 
-	// Из-за рамки размер окна будет больше, чем 180x180
+	// РР·-Р·Р° СЂР°РјРєРё СЂР°Р·РјРµСЂ РѕРєРЅР° Р±СѓРґРµС‚ Р±РѕР»СЊС€Рµ, С‡РµРј 180x180
 	AdjustWindowRectEx(&rect, WS_POPUP | WS_CAPTION | WS_SYSMENU, false, WS_EX_TOPMOST);
 
 	MTXhwnd=CreateWindowEx(WS_EX_TOPMOST,
@@ -85,7 +85,7 @@ void BKBMetricsWnd::Init(HWND master_hwnd)
 	30,30,
 	rect.right-rect.left, rect.bottom-rect.top,
     //0,
-	master_hwnd, // Чтобы в таскбаре и при альт-табе не появлялись лишние окна
+	master_hwnd, // Р§С‚РѕР±С‹ РІ С‚Р°СЃРєР±Р°СЂРµ Рё РїСЂРё Р°Р»СЊС‚-С‚Р°Р±Рµ РЅРµ РїРѕСЏРІР»СЏР»РёСЃСЊ Р»РёС€РЅРёРµ РѕРєРЅР°
 	0, BKBInst, 0L );
 
 	if(NULL==MTXhwnd)
@@ -95,7 +95,7 @@ void BKBMetricsWnd::Init(HWND master_hwnd)
 
 	//GetClientRect(MTXhwnd,&rect);
 
-	// Создаём два DC в памяти
+	// РЎРѕР·РґР°С‘Рј РґРІР° DC РІ РїР°РјСЏС‚Рё
 	HDC hdc=GetDC(MTXhwnd);
 	RECT r2={0,0,180,180};
 
@@ -108,58 +108,58 @@ void BKBMetricsWnd::Init(HWND master_hwnd)
 	SelectObject(memdc1,hbm1);
 	SelectObject(memdc2,hbm2);
 
-	FillRect(memdc2,&r2,dkyellow_brush); // Побелим холст
+	FillRect(memdc2,&r2,dkyellow_brush); // РџРѕР±РµР»РёРј С…РѕР»СЃС‚
 	ReleaseDC(MTXhwnd,hdc);
 
-	//Временно для отладки
+	//Р’СЂРµРјРµРЅРЅРѕ РґР»СЏ РѕС‚Р»Р°РґРєРё
 	Show(gBKB_SHOW_METRICS);
 	//UpdateWindow(MTXhwnd);
 }
 
 //================================================================
-// Добавляет в график очередной отсчёт дисперсии
-// Временно считаем 100%=0.3 высоты экрана
+// Р”РѕР±Р°РІР»СЏРµС‚ РІ РіСЂР°С„РёРє РѕС‡РµСЂРµРґРЅРѕР№ РѕС‚СЃС‡С‘С‚ РґРёСЃРїРµСЂСЃРёРё
+// Р’СЂРµРјРµРЅРЅРѕ СЃС‡РёС‚Р°РµРј 100%=0.3 РІС‹СЃРѕС‚С‹ СЌРєСЂР°РЅР°
 //================================================================
 void BKBMetricsWnd::OnTick(float dispersion)
 {
 	LONG y, y_max;
 
-	// 0. Если окно невидимо, возврат
+	// 0. Р•СЃР»Рё РѕРєРЅРѕ РЅРµРІРёРґРёРјРѕ, РІРѕР·РІСЂР°С‚
 	if(!show) return;
 
-	// Максимум 30% от высоты экрана
+	// РњР°РєСЃРёРјСѓРј 30% РѕС‚ РІС‹СЃРѕС‚С‹ СЌРєСЂР°РЅР°
 	y_max=screenY*3/10;
 
-	// 1. Переведём полученный процент в координату Y
+	// 1. РџРµСЂРµРІРµРґС‘Рј РїРѕР»СѓС‡РµРЅРЅС‹Р№ РїСЂРѕС†РµРЅС‚ РІ РєРѕРѕСЂРґРёРЅР°С‚Сѓ Y
 	if(dispersion<0.0f) y=180;
 	else if(dispersion>y_max) y=0;
 	else y=180-180*dispersion/y_max;
 
-	// 2. Копируем второй слой в первый со сдвигом влево на один пиксел
+	// 2. РљРѕРїРёСЂСѓРµРј РІС‚РѕСЂРѕР№ СЃР»РѕР№ РІ РїРµСЂРІС‹Р№ СЃРѕ СЃРґРІРёРіРѕРј РІР»РµРІРѕ РЅР° РѕРґРёРЅ РїРёРєСЃРµР»
 	BitBlt(memdc1,0,0,179,180,memdc2,1,0,SRCCOPY);
 
-	// 3. Дорисовываем последнее значение из percent
-	if(dispersion>=0) // Глаза были видны
+	// 3. Р”РѕСЂРёСЃРѕРІС‹РІР°РµРј РїРѕСЃР»РµРґРЅРµРµ Р·РЅР°С‡РµРЅРёРµ РёР· percent
+	if(dispersion>=0) // Р“Р»Р°Р·Р° Р±С‹Р»Рё РІРёРґРЅС‹
 	{
-		SelectObject(memdc1,dkyellow_pen); // Сначала зачёркиваем белым то, что было нарисовано раньше
+		SelectObject(memdc1,dkyellow_pen); // РЎРЅР°С‡Р°Р»Р° Р·Р°С‡С‘СЂРєРёРІР°РµРј Р±РµР»С‹Рј С‚Рѕ, С‡С‚Рѕ Р±С‹Р»Рѕ РЅР°СЂРёСЃРѕРІР°РЅРѕ СЂР°РЅСЊС€Рµ
 		MoveToEx(memdc1,179,179,NULL);
 		LineTo(memdc1,179,-1); 
 		SelectObject(memdc1,green_pen);
 		MoveToEx(memdc1,179,179,NULL);
 		LineTo(memdc1,179,y);
 	}
-	else // Глаза не были видны, рисуем серую линию
+	else // Р“Р»Р°Р·Р° РЅРµ Р±С‹Р»Рё РІРёРґРЅС‹, СЂРёСЃСѓРµРј СЃРµСЂСѓСЋ Р»РёРЅРёСЋ
 	{
-		SelectObject(memdc1,strange_pen); // Сначала зачёркиваем белым то, что было нарисовано раньше
+		SelectObject(memdc1,strange_pen); // РЎРЅР°С‡Р°Р»Р° Р·Р°С‡С‘СЂРєРёРІР°РµРј Р±РµР»С‹Рј С‚Рѕ, С‡С‚Рѕ Р±С‹Р»Рѕ РЅР°СЂРёСЃРѕРІР°РЅРѕ СЂР°РЅСЊС€Рµ
 		MoveToEx(memdc1,179,179,NULL);
 		LineTo(memdc1,179,-1); 
 	}
 	
 
-	// 4. Возвращаем новую картинку во второй слой 
+	// 4. Р’РѕР·РІСЂР°С‰Р°РµРј РЅРѕРІСѓСЋ РєР°СЂС‚РёРЅРєСѓ РІРѕ РІС‚РѕСЂРѕР№ СЃР»РѕР№ 
 	BitBlt(memdc2,0,0,180,180,memdc1,0,0,SRCCOPY);
 
-	// 5. Отрисовываем тут всякие оси-надписи
+	// 5. РћС‚СЂРёСЃРѕРІС‹РІР°РµРј С‚СѓС‚ РІСЃСЏРєРёРµ РѕСЃРё-РЅР°РґРїРёСЃРё
 	int i;
 	for(i=10;i<=25;i+=5)
 	{
@@ -170,23 +170,23 @@ void BKBMetricsWnd::OnTick(float dispersion)
 		LineTo(memdc1,180,y);
 	}
 
-	// 6. Выкладываем на экран
+	// 6. Р’С‹РєР»Р°РґС‹РІР°РµРј РЅР° СЌРєСЂР°РЅ
 	HDC hdc=GetDC(MTXhwnd);
 	BitBlt(hdc,0,0,180,180,memdc1,0,0,SRCCOPY);
 	ReleaseDC(MTXhwnd,hdc);
 }
 
 //================================================================
-// Показывает или прячет окно метрик
+// РџРѕРєР°Р·С‹РІР°РµС‚ РёР»Рё РїСЂСЏС‡РµС‚ РѕРєРЅРѕ РјРµС‚СЂРёРє
 //================================================================
 void BKBMetricsWnd::Show(bool _show)
 {
-	if(_show) // покажите нам окно
+	if(_show) // РїРѕРєР°Р¶РёС‚Рµ РЅР°Рј РѕРєРЅРѕ
 	{
-		if(!show) // Было спрятано, надо почистить старый график
+		if(!show) // Р‘С‹Р»Рѕ СЃРїСЂСЏС‚Р°РЅРѕ, РЅР°РґРѕ РїРѕС‡РёСЃС‚РёС‚СЊ СЃС‚Р°СЂС‹Р№ РіСЂР°С„РёРє
 		{
 			RECT r2={0,0,180,180};
-			FillRect(memdc2,&r2,dkyellow_brush); // Побелим холст
+			FillRect(memdc2,&r2,dkyellow_brush); // РџРѕР±РµР»РёРј С…РѕР»СЃС‚
 		}
 		ShowWindow(MTXhwnd, SW_SHOW);
 	}

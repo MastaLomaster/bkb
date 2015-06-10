@@ -1,4 +1,4 @@
-#ifndef __BKB_PROGRESSWND
+п»ї#ifndef __BKB_PROGRESSWND
 #define __BKB_PROGRESSWND
 
 class BKBProgressWnd
@@ -6,7 +6,7 @@ class BKBProgressWnd
 public:
 	static void Init(HWND master_hwnd);
 	static bool TryToShow(int _x, int _y, int _percentage); // true = Pink Approves
-	static void Hide(){ShowWindow(PRhwnd, SW_HIDE);} // Чтобы анимация клавиатуры могла отключить розовый прямоугольник
+	static void Hide(){ShowWindow(PRhwnd, SW_HIDE);} // Р§С‚РѕР±С‹ Р°РЅРёРјР°С†РёСЏ РєР»Р°РІРёР°С‚СѓСЂС‹ РјРѕРіР»Р° РѕС‚РєР»СЋС‡РёС‚СЊ СЂРѕР·РѕРІС‹Р№ РїСЂСЏРјРѕСѓРіРѕР»СЊРЅРёРє
 	static int percentage;
 protected:
 	static HWND PRhwnd;
