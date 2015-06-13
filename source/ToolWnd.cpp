@@ -16,6 +16,7 @@
 int gBKB_TOOLBOX_WIDTH=256;
 int gBKB_TOOLBOX_BUTTONS=4;
 extern bool gBKB_SHOW_CLICK_MODS;
+bool gBKB_SLEEP_IN_BLACK=true;
 
 #define BKB_SLEEP_COUNT 3
 
@@ -43,7 +44,7 @@ ToolWndConfig tool_config[BKB_NUM_TOOLS]=
 	{L"СКРОЛЛ",16,0,BKB_MODE_SCROLL},
 	//{L"КЛАВИШИ",17,0,BKB_MODE_KEYBOARD},
 	{L"Туда-Сюда",18,0,BKB_MODE_SWAP},
-	{L"Спать",19,0,BKB_MODE_SLEEP}
+	{L"Спать",76,0,BKB_MODE_SLEEP}
 };
 #else
 
@@ -59,7 +60,8 @@ ToolWndConfig tool_config[BKB_NUM_TOOLS]=
 	{L"СКРОЛЛ",16,0,BKB_MODE_SCROLL},
 	// {L"КЛАВИШИ",17,0,BKB_MODE_KEYBOARD},
 	{L"Туда-Сюда",18,0,BKB_MODE_SWAP},
-	{L"РЕЗЕРВ",19,0,BKB_MODE_NONE} 
+	{L"Спать",76,0,BKB_MODE_SLEEP}
+	//{L"РЕЗЕРВ",19,0,BKB_MODE_NONE} 
 };
 
 /*
@@ -75,6 +77,7 @@ ToolWndConfig tool_config[BKB_NUM_TOOLS]=
 
 extern HINSTANCE BKBInst;
 extern HBRUSH dkblue_brush, dkblue_brush2, blue_brush;
+extern HPEN pink_pen;
 extern int tracking_device;
 extern int screenX, screenY;
 
@@ -201,7 +204,8 @@ HWND BKBToolWnd::Init()
 
 
 	Tlhwnd=CreateWindowEx(
-	WS_EX_LAYERED | WS_EX_TOPMOST| WS_EX_CLIENTEDGE,
+	//WS_EX_LAYERED | WS_EX_TOPMOST| WS_EX_CLIENTEDGE,
+	WS_EX_LAYERED | WS_EX_TOPMOST,
 	wnd_class_name,
 	NULL, //TEXT(KBWindowName),
     //WS_VISIBLE|WS_POPUP,
@@ -317,6 +321,32 @@ void BKBToolWnd::OnPaint(HDC hdc)
 		hdc=GetDC(Tlhwnd);
 	}
 
+	//====================================================================================
+	// Спец. случай - sleep mode Малевича на весь экран
+	if((BKB_MODE_SLEEP==Fixation::CurrentMode())&&gBKB_SLEEP_IN_BLACK)
+	{
+		RECT rect;
+
+		GetClientRect(Tlhwnd,&rect);
+		FillRect(hdc,&rect,(HBRUSH)GetStockObject(BLACK_BRUSH));
+		
+		// И точечку белую (розовую)
+		// SelectObject(hdc,GetStockObject(WHITE_PEN));
+		SelectObject(hdc,pink_pen);
+		
+		for(i=0;i<bkb_sleep_count;i++)
+		{
+			MoveToEx(hdc,rect.right-10-i*10,rect.bottom-10,NULL);
+			LineTo(hdc,rect.right-10-i*10,rect.bottom-10);
+		}
+
+		// Если брал DC - верни его
+		if(release_dc) ReleaseDC(Tlhwnd,hdc);
+
+		return;
+	} // Сон в темноте
+
+	
    // цвета подправим
 	SetTextColor(hdc,RGB(255,255,255));
 	SetBkColor(hdc,RGB(45,62,90));
@@ -324,7 +354,7 @@ void BKBToolWnd::OnPaint(HDC hdc)
 
 	// Собственно, рисование
 	// Новый раздел - в режиме клавиатуры рисуем только две кнопки
-	// Сначала проверяем, уж не клавиатура ли выбрана? В этом слкчае вырожденное окно получаем
+	// Сначала проверяем, уж не клавиатура ли выбрана? В этом случае вырожденное окно получаем
 // !!! Сюда добавить прорисовку sleep_mode
 	if(BKB_MODE_KEYBOARD==Fixation::CurrentMode())
 	{
@@ -401,7 +431,7 @@ void BKBToolWnd::OnPaint(HDC hdc)
 					RECT rect;
 		
 					rect.left=(LONG)(gBKB_TOOLBOX_WIDTH/10);
-					rect.right=(LONG)(rect.left+(BKB_SLEEP_COUNT-bkb_sleep_count)*90/BKB_SLEEP_COUNT*gBKB_TOOLBOX_WIDTH/100);
+					rect.right=(LONG)(rect.left+(BKB_SLEEP_COUNT-bkb_sleep_count)*100/BKB_SLEEP_COUNT*gBKB_TOOLBOX_WIDTH*8/1000);
 					rect.top=(LONG)(tool_height/20+pos_i*tool_height);
 					rect.bottom=(LONG)(rect.top+tool_height/20); 
 
@@ -433,11 +463,13 @@ bool BKBToolWnd::IsItYours(POINT *_pnt, BKB_MODE *bm)
 {
 	// Попала ли точка фиксации в границы окна?
 	POINT pnt=*_pnt;
+	RECT crect;
+	GetClientRect(Tlhwnd,&crect);
 	ScreenToClient(Tlhwnd,&pnt);
-	if((pnt.x>=0)&&(pnt.x<gBKB_TOOLBOX_WIDTH)&&(pnt.y>0)&&(pnt.y<height))
+	if((pnt.x>=0)&&(pnt.x<crect.right)&&(pnt.y>0)&&(pnt.y<height))
 	// Ещё не включать режим резерв (потом)
 	{
-		// Здесь будут спецрежимы - клавиатура и sleep
+		// Здесь будут спецрежимы - sleep in black и клавиатура 
 		if(BKB_MODE_KEYBOARD==*bm)
 		{
 			if(1==BKBKeybWnd::step) // Это возможно только в gBKB_PINK_RECT_MODE
@@ -470,6 +502,20 @@ bool BKBToolWnd::IsItYours(POINT *_pnt, BKB_MODE *bm)
 		int position=pnt.y/gBKB_TOOLBOX_WIDTH; // Высота и ширина совпадают
 		int tool_candidate=ToolFromPosition(position);
 
+		// Спец. режим - сон в темноте
+		if(gBKB_SLEEP_IN_BLACK&&(BKB_MODE_SLEEP==*bm))
+		{
+			// Попали ли мы в нижний правый угол экрана?
+			if((pnt.y>=screenY-gBKB_TOOLBOX_WIDTH)&&(pnt.x>=crect.right-gBKB_TOOLBOX_WIDTH))
+			{
+				// Нам нужно выставить tool_candidate, но функция выставляет current_tool
+				// Поэтому вот такой геморрой:
+				SetCurrentTool(BKB_MODE_SLEEP);
+				tool_candidate=current_tool;
+				current_tool=-1;
+			}
+		}
+
 		if(tool_candidate<0)
 		{
 			// не очень помню, зачем это нужно - потом разберусь
@@ -481,7 +527,8 @@ bool BKBToolWnd::IsItYours(POINT *_pnt, BKB_MODE *bm)
 
 			// Попали в окно, а инструмента нет... Возможно - это стрелки!
 			// Скроллинг тулбара
-			if(BKB_NUM_TOOLS>gBKB_TOOLBOX_BUTTONS)
+			// Стрелки работают, когда не выбран режим сна
+			if((BKB_NUM_TOOLS>gBKB_TOOLBOX_BUTTONS)&&(BKB_MODE_SLEEP!=*bm))
 			{
 				if(0==position) // стрелка вверх, уменьшаем offset
 				{
@@ -517,6 +564,7 @@ bool BKBToolWnd::IsItYours(POINT *_pnt, BKB_MODE *bm)
 				{
 					// Дождались-таки!
 					*bm=BKB_MODE_NONE;
+					Place();
 					transparency=60;
 					bkb_sleep_count=BKB_SLEEP_COUNT;
 				}
@@ -539,7 +587,8 @@ bool BKBToolWnd::IsItYours(POINT *_pnt, BKB_MODE *bm)
 				*bm=BKB_MODE_SLEEP;
 				bkb_sleep_count=BKB_SLEEP_COUNT;
 				current_tool=-1; // ничего не подсвечивать
-				transparency=20;
+				if(gBKB_SLEEP_IN_BLACK) {transparency=100; Place();}
+				else transparency=20;
 			}
 			PostMessage(Tlhwnd, WM_USER_INVALRECT, 0, 0);
 			return true; // В частности, не выводит увеличительное стекло;
@@ -693,6 +742,22 @@ void BKBToolWnd::SleepCheck(POINT *_pnt)
 	if((bkb_sleep_count<BKB_SLEEP_COUNT)&&(bkb_sleep_count>0)) // Засыпаем или просыпаемся, мышь уводить с кнопки нельзя
 	{
 		ScreenToClient(Tlhwnd,&pnt);
+
+		// Спец. режим - сон в темноте
+		if(gBKB_SLEEP_IN_BLACK&&BKB_MODE_SLEEP==Fixation::CurrentMode()) 
+		{
+			RECT crect;
+			GetClientRect(Tlhwnd,&crect);
+
+			if((pnt.y>=screenY-gBKB_TOOLBOX_WIDTH)&&(pnt.x>=crect.right-gBKB_TOOLBOX_WIDTH)) return; // Всё в порядке, мышь не елозит, продолжайте..
+			else
+			{
+				bkb_sleep_count=BKB_SLEEP_COUNT; // были в состоянии сна, но недодержали 5 секунд, они опять перевзводятся
+				PostMessage(Tlhwnd, WM_USER_INVALRECT, 0, 0);
+			}
+		}
+
+
 		if((pnt.x>=0)&&(pnt.x<gBKB_TOOLBOX_WIDTH)&&(pnt.y>0)&&(pnt.y<height))
 		{
 			// попала, определяем номер инструмента
@@ -726,6 +791,13 @@ void BKBToolWnd::Place()
 	// Всякий раз сызнова вычисляем..
 	gBKB_TOOLBOX_WIDTH=screenY/gBKB_TOOLBOX_BUTTONS;
 
+	// Спец. случай - сон в темноте?
+	if(gBKB_SLEEP_IN_BLACK&&BKB_MODE_SLEEP==Fixation::CurrentMode()) 
+	{
+		MoveWindow(Tlhwnd, 0,0, screenX,screenY,TRUE);
+		return;
+	}
+
 	// Сначала проверяем, уж не клавиши ли выбраны? В этом слкчае вырожденное окно получаем
 	if(BKB_MODE_KEYBOARD==Fixation::CurrentMode())
 	{
@@ -756,8 +828,10 @@ LPRECT BKBToolWnd::PinkFrame(int _x, int _y)
 {
 	// Попала ли точка в границы окна?
 	POINT pnt={_x,_y};
+	RECT crect;
+	GetClientRect(Tlhwnd,&crect);
 	ScreenToClient(Tlhwnd,&pnt);
-	if((pnt.x>=0)&&(pnt.x<gBKB_TOOLBOX_WIDTH)&&(pnt.y>0)&&(pnt.y<height))
+	if((pnt.x>=0)&&(pnt.x<crect.right)&&(pnt.y>0)&&(pnt.y<height))
 	{
 		// Попала, осталось только найти, в какую ячейку
 		int cell_num=pnt.y/gBKB_TOOLBOX_WIDTH;
@@ -765,7 +839,22 @@ LPRECT BKBToolWnd::PinkFrame(int _x, int _y)
 		// Во сне подсвечиваем только кнопку сна
 		if(BKB_MODE_SLEEP==Fixation::CurrentMode()) // Да, мы в режиме сна
 		{
-// !!! Здесь возможно большое чёрное окно, проверить потом
+			// Спец.случай: Здесь возможно большое чёрное окно
+			if(gBKB_SLEEP_IN_BLACK)
+			{
+				// Попали ли мы в нижний правый угол экрана?
+				if((pnt.y>=screenY-gBKB_TOOLBOX_WIDTH)&&(pnt.x>=crect.right-gBKB_TOOLBOX_WIDTH))
+				{
+					pink_rect.left=crect.right-gBKB_TOOLBOX_WIDTH;
+					pink_rect.right=crect.right;
+					pink_rect.top=screenY-gBKB_TOOLBOX_WIDTH;;
+					pink_rect.bottom=screenY;
+		
+					return &pink_rect;
+				}
+				else return NULL;
+			}
+
 			// Подсвечивать только Sleep
 			int tool_candidate=ToolFromPosition(cell_num);
 			if(0<=tool_candidate) // Стрелки не являются кандидатами
@@ -803,3 +892,4 @@ void BKBToolWnd::SetCurrentTool(BKB_MODE bm)
 		}
 	}
 }
+

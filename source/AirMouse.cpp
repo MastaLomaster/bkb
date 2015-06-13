@@ -88,9 +88,9 @@ void BKBAirMouse::OnTimer()
 	}
 	else
 	{
-#ifdef BELYAKOV
-		BKBToolWnd::SleepCheck(&p);
-#endif
+//#ifdef BELYAKOV
+//		BKBToolWnd::SleepCheck(&p);
+//#endif
 		gd.tracking_status = TOBIIGAZE_TRACKING_STATUS_BOTH_EYES_TRACKED;
 		//gd.left.gaze_point_on_display_normalized.x=p.x/(double)screenX;
 		//gd.left.gaze_point_on_display_normalized.y=p.y/(double)screenY;
