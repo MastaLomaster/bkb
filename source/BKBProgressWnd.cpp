@@ -5,6 +5,7 @@
 #include "KeybWnd.h"
 #include "ToolWnd.h"
 #include "TranspWnd.h"
+#include "BKBTurtle.h"
 
 static const TCHAR *wnd_class_name=L"BKBProgress";
 extern HINSTANCE BKBInst;
@@ -14,7 +15,7 @@ HWND  BKBProgressWnd::PRhwnd=0;
 int  BKBProgressWnd::percentage=0;
 
 extern bool gBKB_2STEP_KBD_MODE;
-
+bool flag_continuous_turtle=false; // Был ли выход из стрелки черепахи? если не был, то скорость можно постепенно наращивать
 
 // Оконная процедура 
 LRESULT CALLBACK BKBProgressWndProc(HWND hwnd,
@@ -54,12 +55,22 @@ LRESULT CALLBACK BKBProgressWndProc(HWND hwnd,
 		LineTo(hdc,2,height-3);
 		LineTo(hdc,2,2);
 		
-		if(BKBProgressWnd::percentage>0)
+		if((BKBProgressWnd::percentage>0)&&(BKB_MODE_TURTLE!=Fixation::CurrentMode())) // Черепашка без прогресса
 		{
 			MoveToEx(hdc,15,15, NULL);
 			LineTo(hdc,15+(width-30)*BKBProgressWnd::percentage/100,15);
 		}
 		
+		if(BKBTurtle::swap_step>0) // Это возможно, только если мы непрерывно глядим на центральное окно черепашки
+		{
+			int i;
+			for(i=0;i<BKBTurtle::swap_step;i++)
+			{
+				MoveToEx(hdc,rect.right-10-i*10,rect.bottom-10,NULL);
+				LineTo(hdc,rect.right-10-i*10,rect.bottom-10);
+			}
+		}
+
 		EndPaint(hwnd,&ps);
 		break;
 /*	
@@ -145,8 +156,27 @@ bool BKBProgressWnd::TryToShow(int _x, int _y, int _percentage) // true = Pink A
 	lp_pink_rect=BKBToolWnd::PinkFrame(_x, _y);
 	if(NULL==lp_pink_rect)
 	{
-		// Здесь ещё будет черепашка
-		// Не нашли - пробуем искать в клавиатуре
+		// Черепашка
+		if(BKB_MODE_TURTLE==Fixation::CurrentMode())
+		{
+			lp_pink_rect=BKBTurtle::PinkFrame(_x, _y); // Проверка лепестков
+			if(NULL==lp_pink_rect)
+			{
+				flag_continuous_turtle=false; // Непрерывный взгляд на стрелку черепашки соскочил
+								
+				lp_pink_rect=BKBTurtle::PinkFrameCenter(_x, _y); // Проверка центрального элемента
+				if(NULL==lp_pink_rect) BKBTurtle::swap_step=0; // Каким бы ни был шаг фиксации - он слетел
+			}
+			else
+			{
+				flag_continuous_turtle=true; // Единственное место, где мы подтверждаем непрерывность
+				BKBTurtle::swap_step=0;
+			}
+
+		}
+
+
+		// Пробуем искать в клавиатуре
 		if(gBKB_2STEP_KBD_MODE&&(BKB_MODE_KEYBOARD==Fixation::CurrentMode()))
 		{
 			// В процессе анимации никакие фиксации не проходят
@@ -154,6 +184,11 @@ bool BKBProgressWnd::TryToShow(int _x, int _y, int _percentage) // true = Pink A
 
 			lp_pink_rect=BKBKeybWnd::PinkFrame(_x, _y);
 		}
+	}
+	else
+	{
+		flag_continuous_turtle=false; // Непрерывный взгляд на стрелку черепашки соскочил
+		BKBTurtle::swap_step=0; // Каким бы ни был шаг фиксации - он слетел
 	}
 	
 	if(NULL!=lp_pink_rect) // Наш клиент!

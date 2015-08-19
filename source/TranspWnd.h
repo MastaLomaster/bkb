@@ -14,9 +14,10 @@ public:
 	static HWND Trhwnd;
 	static void Progress(int _progress);
 	static int progress;
+	static void GetPos(POINT *_p);
 protected:
-	static int screen_x, screen_y;
 	static int last_progress;
+	static LONG x_pos, y_pos;
 };
 
 #endif

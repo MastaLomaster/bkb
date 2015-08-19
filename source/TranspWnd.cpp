@@ -13,9 +13,9 @@ extern bool flag_Activemouse;
 
 bool BKBTranspWnd::flag_show_transp_window=true;
 
-int BKBTranspWnd::screen_x, BKBTranspWnd::screen_y;
 HWND  BKBTranspWnd::Trhwnd=0;
 int BKBTranspWnd::last_progress=0, BKBTranspWnd::progress=0;
+LONG BKBTranspWnd::x_pos=150, BKBTranspWnd::y_pos=150;
 
 static const RECT clean_rect={5,5,95,15}; // Область стирания
 
@@ -84,11 +84,12 @@ void BKBTranspWnd::Init(HWND master_hwnd)
 	
 
 	// 0.  Для аэромыши вообще его не создаём!
-	if(!flag_show_transp_window)
-	{
-		Trhwnd=0;
-		return;
-	}
+	// Теперь это не так, оно нужно нам в режиме черепашки БЕЗ айтрекера
+	//if(!flag_show_transp_window)
+	//{
+	//	Trhwnd=0;
+	//	return;
+	//}
 
 	// 1. Регистрация класса окна
 	WNDCLASS wcl={CS_HREDRAW | CS_VREDRAW, BKBTranspWndProc, 0,
@@ -111,8 +112,7 @@ void BKBTranspWnd::Init(HWND master_hwnd)
 		return;
 	}
 
-	screen_x=GetSystemMetrics(SM_CXSCREEN);
-	screen_y=GetSystemMetrics(SM_CYSCREEN);
+
 
 	Trhwnd=CreateWindowEx(
 	WS_EX_LAYERED|WS_EX_TOPMOST|WS_EX_CLIENTEDGE,
@@ -122,7 +122,7 @@ void BKBTranspWnd::Init(HWND master_hwnd)
     //WS_VISIBLE|WS_POPUP,
 	WS_POPUP,
 	//100,100, // Не здесь ли крылась мерзкая ошибка, когда окно с курсором рисовалось в стороне?? Нет, похоже это было из-за HighDPI
-	0,0,
+	x_pos-50,y_pos-50,
 	100,100, 
     //0,
 	master_hwnd, // Чтобы в таскбаре и при альт-табе не появлялись лишние окна
@@ -133,33 +133,46 @@ void BKBTranspWnd::Init(HWND master_hwnd)
 		BKBReportError(__WIDEFILE__,L"CreateWindow",__LINE__);
 	}
 
-	Show();
-	UpdateWindow(Trhwnd);
+	if(flag_show_transp_window)
+	{
+		Show();
+		UpdateWindow(Trhwnd);
+	}
 }
 
 void BKBTranspWnd::Move(int x, int y)
 {
+// !!! Здесь эти 50 перепроверить на HighDPI !!!
+	x_pos=x; y_pos=y;
+
 	// Это другой поток, а мы ждать не будем
-	if(flag_show_transp_window)
+	if((flag_show_transp_window)||(BKB_MODE_TURTLE==Fixation::CurrentMode()))
 		PostMessage(Trhwnd, WM_USER_MOVEWINDOW, x-50, y-50);
 	//MoveWindow(Trhwnd,x-50,y-50,100,100,FALSE);
 }
 
+void BKBTranspWnd::GetPos(POINT *_p)
+{
+// !!! Здесь эти 50 перепроверить на HighDPI !!!
+	_p->x=x_pos; 
+	_p->y=y_pos;
+}
+
 void BKBTranspWnd::Show()
 {
-	if(flag_show_transp_window)
+	if((flag_show_transp_window)||(BKB_MODE_TURTLE==Fixation::CurrentMode()))
 		ShowWindow(Trhwnd,SW_SHOWNORMAL); 
 }
 
 void BKBTranspWnd::Hide()
 {
-	if(flag_show_transp_window)
+	if((flag_show_transp_window)||(BKB_MODE_TURTLE==Fixation::CurrentMode()))
 		ShowWindow(Trhwnd,SW_HIDE); 
 }
 
 void BKBTranspWnd::ToTop()	
 { 
-	if(flag_show_transp_window)
+	if((flag_show_transp_window)||(BKB_MODE_TURTLE==Fixation::CurrentMode()))
 	{
 		SetActiveWindow(Trhwnd);
 		BringWindowToTop(Trhwnd); 

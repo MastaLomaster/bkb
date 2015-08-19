@@ -5,6 +5,7 @@
 #include "ToolWnd.h"
 #include "KeybWnd.h"
 #include "WM_USER_messages.h"
+#include "BKBTurtle.h"
 
 //static char debug_buf[4096]; 
 
@@ -13,6 +14,7 @@ extern bool skip_mouse_hook; // Не удлиннять движения мыш�
 bool my_own_click=false; // Чтобы хук не перехватывал свои собственные клики
 
 BKB_MODE Fixation::BKB_Mode=BKB_MODE_NONE;
+bool Fixation::drag_in_progress=false;
 
 //==============================================================================================
 // Взгляд зафиксировался
@@ -118,6 +120,15 @@ bool Fixation::Fix(POINT p)
 		{
 			// нет, возможно, это переключение режима
 			// здесь продумать, как увеличить время фиксации...
+			BKBToolWnd::IsItYours(&p, &BKB_Mode);
+		}
+		break;
+
+	case BKB_MODE_TURTLE:
+		// Попали в черепаху?
+		if(!BKBTurtle::IsItYours(&p))
+		{
+			// нет, возможно, это переключение режима
 			BKBToolWnd::IsItYours(&p, &BKB_Mode);
 		}
 		break;
@@ -258,7 +269,6 @@ void Fixation::DoubleClick(POINT p)
 //==============================================================================================
 bool Fixation::Drag(POINT p)
 {
-	static bool drag_in_progress=false;
 	static POINT p_initial;
 
 	// Содрано из интернета

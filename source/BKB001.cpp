@@ -14,6 +14,8 @@
 #include "BKBHookProc.h"
 #include "BKBProgressWnd.h"
 #include "BKBMetricsWnd.h"
+#include "BKBTurtle.h"
+#include "GP3.h"
 
 // Для установки хука на мышь
 static HHOOK handle;
@@ -58,9 +60,13 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 		else break; // всё прошло успешно
 
 	case 1: // TheEyeTribe
-		if(BKBTET::Init()) tracking_device=2; // пробуем с TheEyeTribe (запоминаем, что гасить в конце)
+		if(BKBTET::Init()) tracking_device=3; // пробуем с GP3 (запоминаем, что гасить в конце)
 		else break; // всё прошло успешно
 		
+	case 3: // Gazepoint GP3
+		if(BKBGP3::Init()) tracking_device=2; // сваливаемся на мышь (запоминаем, что гасить в конце)
+		else break; // всё прошло успешно
+
 	case 2: // просто мышь... ничего здесь не делаем
 		// Запускаем эмуляцию работы устройства Tobii аэромышью
 		// Это сделаем в WM_CREATE ToolBar'a
@@ -80,6 +86,10 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 	BKBTranspWnd::Init(master_hwnd); // Прозрачное окно
 	BKBProgressWnd::Init(master_hwnd); // Окно прогресса
 	BKBMetricsWnd::Init(master_hwnd); // Окно метрик
+	BKBTurtle::Init(master_hwnd); // Окна черепашки
+	BKBTurtle::Place();
+	//BKBTurtle::Show(SW_SHOW);
+
 
 	// Инициализируем работу хука
 	handle = SetWindowsHookEx(WH_MOUSE_LL, 
@@ -110,6 +120,10 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 
 	case 1:
 		BKBTET::Halt();
+		break;
+
+	case 3:
+		BKBGP3::Halt();
 		break;
 	}
 

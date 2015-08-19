@@ -1,12 +1,12 @@
 ﻿#include <Windows.h>
 #include <stdio.h>
 #include <process.h>
-#include <winsock.h>
+//#include <winsock.h>
 #include "TET.h"
 #include "BKBRepErr.h"
 #include "Internat.h"
 
-// Прототип callback-функции из TobiiREX.cpp
+// Прототип callback-функции из OnGazeData.cpp
 void on_gaze_data(const tobiigaze_gaze_data* gazedata, void *user_data);
 
 bool BKBTET::initialized(false);
@@ -33,16 +33,16 @@ char *JSON_frame_true="{\"category\":\"tracker\",\"request\":\"get\",\"statuscod
 				 ",\"y\":%f},\"pcenter\":{\"x\":%f,\"y\":%f},\"psize\":%f,\"raw\":{\"x\":%f"\
 				 ",\"y\":%f}},\"state\":%d,\"time\":%d}}}";
 
-SOCKET TETSocket;
+static SOCKET TETSocket;
 
-volatile bool flag_ShutDownThreads=false; // flag to inform the threads to terminate
+static volatile bool flag_ShutDownThreads=false; // flag to inform the threads to terminate
 
-uintptr_t handler_HeartBeat=0, handler_Reader=0; // thread handlers
+static uintptr_t handler_HeartBeat=0, handler_Reader=0; // thread handlers
 
 //==================================================
 // HeartBeat thread - sends a message once a second
 //==================================================
-unsigned __stdcall HeartBeatThread(void *p)
+static unsigned __stdcall HeartBeatThread(void *p)
 {
 	while(!flag_ShutDownThreads)
 	{
@@ -55,7 +55,7 @@ unsigned __stdcall HeartBeatThread(void *p)
 //=========================================================
 // Reader thread - receiving messages from the server here
 //=========================================================
-unsigned __stdcall ReaderThread(void *p)
+static unsigned __stdcall ReaderThread(void *p)
 {
 	// big enough buffer...
 	char buffer[4096];

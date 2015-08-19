@@ -82,7 +82,7 @@ void BKBMetricsWnd::Init(HWND master_hwnd)
 	// NULL, 
 	// WS_POPUP | WS_CAPTION | WS_SYSMENU ,
 	WS_POPUP | WS_CAPTION,
-	30,30,
+	screenY/4,30,
 	rect.right-rect.left, rect.bottom-rect.top,
     //0,
 	master_hwnd, // Чтобы в таскбаре и при альт-табе не появлялись лишние окна

@@ -59,6 +59,12 @@ if (uMsg==WM_COMMAND)
 			EndDialog(hdwnd,1);
 			return 1;
 
+		case IDOK3: 	//Хорошо! Gazepoint GP3!
+			KillTimer(hdwnd,2);
+			GetSettings(hdwnd);
+			EndDialog(hdwnd,3);
+			return 1;
+
 		case IDC_COMBO_X_MULTIPLIER:
 		case IDC_COMBO_Y_MULTIPLIER:
 			SendDlgItemMessage(hdwnd,IDC_TIMEOUT, WM_SETTEXT, 0L, (LPARAM)Internat::Message(45,L"(ждём)"));

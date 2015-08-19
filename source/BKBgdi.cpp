@@ -4,6 +4,7 @@
 HPEN red_pen, green_pen, dkyellow_pen, pink_pen, strange_pen; // перья и кисти для рисования
 HBRUSH dkblue_brush, dkblue_brush2, blue_brush, dkyellow_brush;
 HFONT hfont;
+HCURSOR hCursor;
 
 int screenX, screenY, mouscreenX, mouscreenY;
 
@@ -42,6 +43,8 @@ void BKBgdiInit()
 	// В windows 8 при HighDPI координаты курсора отличаются от координат точки на экране
 	mouscreenX=dm.dmPelsWidth;
 	mouscreenY=dm.dmPelsHeight;
+
+	hCursor = LoadCursor(NULL, IDC_ARROW); 
 }
 
 void BKBgdiHalt()
@@ -59,4 +62,5 @@ void BKBgdiHalt()
 	DeleteObject(dkyellow_brush);
 
 	DeleteObject(hfont);
+	DeleteObject(hCursor);
 }

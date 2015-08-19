@@ -1,6 +1,6 @@
-*For English  scroll down*
+*For English 'readme' scroll down*
 
-###Программа для управления компьютером при помощи глаз и одного из устройств: трекеров движения глаз Tobii REX или EyeX, трекера The Eye Tribe или любого устройства, способного перемещать курсор мыши по экрану (например, аэромыши).
+###Программа для управления компьютером при помощи глаз и одного из устройств: трекеров движения глаз Tobii REX или EyeX, трекера The Eye Tribe, трекера Gazepoint GP3 или любого устройства, способного перемещать курсор мыши по экрану (например, аэромыши).
 
 Подробнее можно прочитать здесь:  
 
@@ -29,6 +29,9 @@ Gaze SDK 4.0 можно скачать вот здесь: http://developer.tobii
 ###Использование с The Eye Tribe
 Должна быть запущена программа Eye Tribe Server. Также нужно откалибровать устройство при помощи программы Eye Tribe UI перед запуском программы bkb32c.exe
 
+###Использование с Gazepoint GP3
+Должна быть запущена программа Gazepoint Control.
+
 ###Звук нажатия клавиш
 При нажатии клавиш слышится звук. Если он вас не устраивает, положите в рабочий каталог программы WAV-файл со звуком, который вам нравится, и назовите его "click.wav".
 
@@ -50,8 +53,6 @@ http://youtu.be/rqcN9IZ39_4
 - некоторые программы (созданные до эпохи unicode) неправильно воспринимают символы на русской клавиатуре
 - drag-and-drop не всегда корректно работает, в частности, не перетаскивает иконки на рабочем столе на некоторых машинах
 - сбивается положение окон после logout/switch user
-- нельзя настроить время нажатия клавиш клавиатуры и вообще все задержки [исправлено]
-- нельзя щелкнуть мышью, удерживая нажатой клавиши (Ctrl, например) [исправлено]
 ну и ещё куча по мелочи...
 
 ###Перевод на другие языки:
@@ -73,9 +74,9 @@ Windows нужны: Ws2_32.lib, winmm.lib,Msimg32.lib
 
 Проект должен динамически подключать библиотеку MSVCRT110.dll, статическая линковка будет  конфликтовать с библиотеками Tobii Gaze SDK!
 
-##English
+##in English
 
-bkb is a program to control keyboard/mouse with eyes. It supports TobiiREX and EyeX eye trackers, The Eye Trybe eye tracker, and any device that can move a mouse cursor (e.g. an airmouse).
+bkb is a program to control keyboard/mouse with eyes. It supports TobiiREX and EyeX eye trackers, The Eye Trybe eye tracker, Gazepoint GP3 eye tracker, and any device that can move a mouse cursor (e.g. an airmouse).
 
 ###Installation:
 Just unzip the bkb32c-English.zip to any folder. Make sure that this folder remains the working  directory of the program. Otherwise the program won't load messages.bkb and keyboard.bkb files,  and you'll get Russian interface instead of English one.
@@ -99,6 +100,10 @@ Before starting the program, visit Windows Control Panel, run the "Tobii EyeX Se
 
 The "Eye Tribe Server" program must be running. Also you need to calibrate the device with the "Eye Tribe UI" before running  the bkb32c.exe
 
+###Using the program with Gazepoint GP3 tracker
+
+The "Gazepoint Control" program must be running.
+
 ###Keyboard click sounds
 There is a click sound when you press the keyboard buttons. If you don't like the sound, place a WAV-file with the desired sound into the working directory of the program and name it "click.wav".
 
@@ -109,7 +114,7 @@ Take a look at these videos to understand the modes of operation:
 
 http://youtu.be/O68C4d2SNC8
 
-**IMPORTANT**: choose Swahili language to watch English subtitles. Sorry, I don't know other ways to switch off the subtitles by default.
+(English subtitles)
 
 http://youtu.be/rqcN9IZ39_4
 
@@ -119,8 +124,6 @@ http://youtu.be/rqcN9IZ39_4
 - doesn't work with the Metro-style interface of Windows 8/8.1, you have to use good old desktop
 - drag-and-drop doesn't work in some cases, for example you cannot move desktop icons on some PCs
 - windows moved and doesn't work properly after logout/switch user
-- you cannot define timings (keyboard press, fixations, etc.) [fixed]
-- impossible to click with a mouse holding the keyboard button pressed (e.g. Ctrl + click) [fixed]
 - and many more small things....
 
 ###Translate to other languages:

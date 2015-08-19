@@ -9,14 +9,16 @@
 #include "Internat.h"
 #include "WM_USER_messages.h"
 #include "Fixation.h"
+#include "BKBTurtle.h"
 
 
 //int gBKB_TOOLBOX_WIDTH=128;
 
 int gBKB_TOOLBOX_WIDTH=256;
-int gBKB_TOOLBOX_BUTTONS=4;
+int gBKB_TOOLBOX_BUTTONS=5;
 extern bool gBKB_SHOW_CLICK_MODS;
 bool gBKB_SLEEP_IN_BLACK=true;
+static int BKB_TURTLE_BUTTONS_VISIBLE=4;
 
 #define BKB_SLEEP_COUNT 3
 
@@ -52,6 +54,7 @@ ToolWndConfig tool_config[BKB_NUM_TOOLS]=
 ToolWndConfig tool_config[BKB_NUM_TOOLS]=
 {
 	{L"КЛАВИШИ",17,0,BKB_MODE_KEYBOARD},
+	//{L"ЧЕРЕПАШКА",77,1,BKB_MODE_TURTLE},
 	{L"ЛЕВЫЙ",12,1,BKB_MODE_LCLICK},
 	{L"ЛЕВЫЙ,..",34,1,BKB_MODE_LCLICK_PLUS},
 	{L"ПРАВЫЙ",13,1,BKB_MODE_RCLICK},
@@ -75,12 +78,22 @@ ToolWndConfig tool_config[BKB_NUM_TOOLS]=
 }; */
 #endif // BELYAKOV
 
+// Кнопки для черепашки
+ToolWndConfig tool_config_turtle[5]=
+{
+	{L"ЛЕВЫЙ",12,1,BKB_MODE_LCLICK},
+	{L"ДВОЙНОЙ",14,1,BKB_MODE_DOUBLECLICK},
+	{L"ДРЕГ",15,0,BKB_MODE_DRAG},
+	{L"ПРАВЫЙ",13,1,BKB_MODE_RCLICK},
+	{L"ВЫХОД",60,0,BKB_MODE_NONE} 
+};
+
 extern HINSTANCE BKBInst;
 extern HBRUSH dkblue_brush, dkblue_brush2, blue_brush;
 extern HPEN pink_pen;
 extern int tracking_device;
 extern int screenX, screenY;
-
+extern bool flag_continuous_turtle;
 void on_gaze_data_main_thread(); // определена в OnGazeData.cpp
 
 
@@ -172,7 +185,11 @@ HWND BKBToolWnd::Init()
 	{
 		if(Internat::Message(tool_config[i].internat_num,0)) tool_config[i].tool_name=Internat::Message(tool_config[i].internat_num,0);
 	}
-	//
+	for(i=0;i<5;i++)
+	{
+		if(Internat::Message(tool_config_turtle[i].internat_num,0)) tool_config_turtle[i].tool_name=Internat::Message(tool_config[i].internat_num,0);
+	}
+	
 	// tool_names[3]=Internat::Message(35,L"ПРАВЫЙ,..");
 	//tool_modifier_name[0]=Internat::Message(35,L"ПОВТОР");
 	tool_modifier_name[3]=Internat::Message(36,L"БЕЗ ЗУМА");
@@ -355,7 +372,6 @@ void BKBToolWnd::OnPaint(HDC hdc)
 	// Собственно, рисование
 	// Новый раздел - в режиме клавиатуры рисуем только две кнопки
 	// Сначала проверяем, уж не клавиатура ли выбрана? В этом случае вырожденное окно получаем
-// !!! Сюда добавить прорисовку sleep_mode
 	if(BKB_MODE_KEYBOARD==Fixation::CurrentMode())
 	{
 		// Первая кнопка меняет название в зависимости от шага
@@ -369,7 +385,24 @@ void BKBToolWnd::OnPaint(HDC hdc)
 			LineTo(hdc,gBKB_TOOLBOX_WIDTH-1,tool_height);
 		}
 	}
-	else // Нет, не клавиатура
+	else if(BKB_MODE_TURTLE==Fixation::CurrentMode()) // Также спец.случай - черепашка
+	{
+		// Подсветка бывает только у DRAG на первом шаге
+		if(Fixation::drag_in_progress)
+		{
+			RECT rect={10,10+2*tool_height,gBKB_TOOLBOX_WIDTH/2-10,20+2*tool_height};
+			FillRect(hdc,&rect,blue_brush);
+		}
+
+		for(i=0;i<BKB_TURTLE_BUTTONS_VISIBLE;i++)
+		{
+			TextOut(hdc,25,60+i*tool_height,tool_config_turtle[i].tool_name,wcslen(tool_config_turtle[i].tool_name));
+			// Ещё чертим линию
+			MoveToEx(hdc,0,tool_height*i,NULL);
+			LineTo(hdc,gBKB_TOOLBOX_WIDTH-1,tool_height*i);
+		}
+	}
+	else // Нет, не клавиатура и не черепашка
 	{
 		// 1. Сначала подсветим рабочий инструмент
 		if(current_tool>=0)
@@ -469,6 +502,72 @@ bool BKBToolWnd::IsItYours(POINT *_pnt, BKB_MODE *bm)
 	if((pnt.x>=0)&&(pnt.x<crect.right)&&(pnt.y>0)&&(pnt.y<height))
 	// Ещё не включать режим резерв (потом)
 	{
+		// попала, определяем номер инструмента
+		int position=pnt.y/gBKB_TOOLBOX_WIDTH; // Высота и ширина совпадают
+		int tool_candidate=ToolFromPosition(position);
+		
+		// При аэромыши - берём координаты прозрачного окна (с учётом HighDPI)
+		// !!! Потом проверить на windows 8.1
+		// При других трекерах - координаты курсора
+		POINT p;
+		if(2==tracking_device) BKBTranspWnd::GetPos(&p);
+		else GetCursorPos(&p);
+
+		// Спец. режим - черепашка
+		if(BKB_MODE_TURTLE==*bm)
+		{
+			switch(position)
+			{
+			case 0: // левый
+				BKBTurtle::Show(SW_HIDE);
+				Fixation::LeftClick(p);
+				break;
+
+			case 1: // двойной
+				BKBTurtle::Show(SW_HIDE);
+				Fixation::DoubleClick(p);
+				break;
+		
+			case 2: // дрег
+				// Если возвращает true, то это был только первый шаг в дреге
+				// поэтому режим черепашки на завершаем, просто выходим
+				BKBTurtle::Show(SW_HIDE);
+				if(Fixation::Drag(p))
+				{
+					BKBTurtle::Show(SW_SHOW);
+					InvalidateRect(Tlhwnd,NULL,TRUE);
+					return true;
+				}
+				break;
+			
+
+			case 3: // правый
+				BKBTurtle::Show(SW_HIDE);
+				Fixation::RightClick(p);
+				break;
+
+			case 4: // Выход 
+				BKBTurtle::Show(SW_HIDE);
+				break;
+
+			default: // фигня какая-то, не может быть, ничего не делать.
+				return true;
+			
+			}
+
+			// Кроме Drag вернуться из режима черепашки
+			// В режиме аэромыши спрятать курсор
+			if(2==tracking_device) BKBTranspWnd::Hide();
+
+			Fixation::drag_in_progress=false; // Если дрег прошёл только наполовину
+			current_tool=-1;
+			*bm=BKB_MODE_NONE;
+			Place(); // при возврате из режима черепашки нужен Place при уже новом значении *bm
+			PostMessage(Tlhwnd, WM_USER_INVALRECT, 0, 0);
+
+			return true;
+		}
+
 		// Здесь будут спецрежимы - sleep in black и клавиатура 
 		if(BKB_MODE_KEYBOARD==*bm)
 		{
@@ -498,9 +597,6 @@ bool BKBToolWnd::IsItYours(POINT *_pnt, BKB_MODE *bm)
 			return true;
 		}
 
-		// попала, определяем номер инструмента
-		int position=pnt.y/gBKB_TOOLBOX_WIDTH; // Высота и ширина совпадают
-		int tool_candidate=ToolFromPosition(position);
 
 		// Спец. режим - сон в темноте
 		if(gBKB_SLEEP_IN_BLACK&&(BKB_MODE_SLEEP==*bm))
@@ -641,12 +737,16 @@ bool BKBToolWnd::IsItYours(POINT *_pnt, BKB_MODE *bm)
 			return true; // В частности, не выводит увеличительное стекло; режим не меняется
 		}
 
+		//
+
 		// а ещё нельзя включать скролл, когда работает клавиатура (легко промахнуться и нажать его вместо клавиши)
 		// ОТМЕНЕНО
 		//if((BKB_MODE_KEYBOARD==*bm)&&(tool_candidate>=4)) return false; 
 
 		// Специальные действия с клавиатурой
 		if(BKB_MODE_KEYBOARD==*bm)	{BKBKeybWnd::DeActivate();  }	// деактивировать клавиатуру
+		
+		// Действие по кмолчанию. Режим соответствует кнопке
 		// если этот инструмент уже был выбран, деактивируем его
 		if(tool_candidate==current_tool)
 		{
@@ -656,10 +756,21 @@ bool BKBToolWnd::IsItYours(POINT *_pnt, BKB_MODE *bm)
 		}
 		else // замена одного инструмента на другой
 		{
+			Fixation::drag_in_progress=false; // перестраховка на предмет незавершенного дрега
 			current_tool=tool_candidate;
 			*bm=tool_config[tool_candidate].bkb_mode;
-			// Специальные действия с клавиатурой
+			// Специальные действия с клавиатурой и черепашкой
 			if(BKB_MODE_KEYBOARD==*bm) {BKBKeybWnd::Activate(); Place(); }	// активировать клавиатуру
+			if(BKB_MODE_TURTLE==*bm)
+			{
+				// Если режим аэромыши - включить курсор !!
+				if(2==tracking_device) BKBTranspWnd::Show();
+				Place(); 
+				BKBTurtle::Place();
+				BKBTurtle::Show(SW_SHOW);
+				flag_continuous_turtle=false; // Непрерывный взгляд на стрелку черепашки соскочил
+				BKBTurtle::swap_step=0; // Каким бы ни был шаг фиксации - он слетел
+			}
 		}
 
 
@@ -786,10 +897,17 @@ void BKBToolWnd::SleepCheck(POINT *_pnt)
 //=======================================================================================================================
 void BKBToolWnd::Place()
 {
-	//int x=0,y=0;
-
 	// Всякий раз сызнова вычисляем..
 	gBKB_TOOLBOX_WIDTH=screenY/gBKB_TOOLBOX_BUTTONS;
+	
+	if(BKB_MODE_TURTLE==Fixation::CurrentMode()) // Спец. случай - черепашка
+	{
+		// Количество кнопок в режиме черепашки 4 или 5 в зависимости от числа кнопок в основном тулбаре
+		if(gBKB_TOOLBOX_BUTTONS>4) BKB_TURTLE_BUTTONS_VISIBLE=5;
+		else BKB_TURTLE_BUTTONS_VISIBLE=4;
+
+		gBKB_TOOLBOX_WIDTH=screenY/BKB_TURTLE_BUTTONS_VISIBLE;
+	}
 
 	// Спец. случай - сон в темноте?
 	if(gBKB_SLEEP_IN_BLACK&&BKB_MODE_SLEEP==Fixation::CurrentMode()) 
@@ -808,7 +926,7 @@ void BKBToolWnd::Place()
 		if(!BKBKeybWnd::bottom_side) // Клавиатура вверху, переносим тулбар вниз
 			place_point.y=screenY-height;
 	}
-	else // Нет, не клавиатура
+	else // Нет, не клавиатура 
 	{
 		height=screenY; // Да, вот так просто.
 	}

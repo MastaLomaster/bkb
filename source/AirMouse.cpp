@@ -28,13 +28,11 @@ static LONG last_x,last_y;
 //============================================================================
 int BKBAirMouse::Init(HWND hwnd)
 {
-	//screenX=GetSystemMetrics(SM_CXSCREEN);
-	//screenY=GetSystemMetrics(SM_CYSCREEN);
-
 	SetTimer(hwnd,1,25,NULL);
 
 	// Не показывать прозрачное окно, ибо курсор сам движется
 	BKBTranspWnd::flag_show_transp_window=false;
+	//BKBTranspWnd::flag_show_transp_window=true;
 
 	// Для тех, кому трудно поворачивать голову
 	// Теперь включаем всегда, а контролируем параметры внутри хука HookProc
@@ -167,8 +165,7 @@ LRESULT  CALLBACK HookProc(int disabled,WPARAM wParam,LPARAM lParam)
 					last_x=pMouseStruct->pt.x; last_y=pMouseStruct->pt.y;
 					hook_initialized=true;
 					if(last_x<0) last_x=0; if(last_y<0) last_y=0;
-					//if(last_x>screenX) last_x=screenX-1;
-					//if(last_y>screenX) last_y=screenX-1; // Вот тут баг какой был, а я и не замечал! y и x!
+
 					if(last_x>mouscreenX) last_x=mouscreenX-1;
 					if(last_y>mouscreenY) last_y=mouscreenY-1;
 					break;

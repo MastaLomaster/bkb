@@ -223,7 +223,8 @@ void on_gaze_data_main_thread()
 		}
 		
 		// Курсор при скролле и клавиатуре двигается только в отдельных случаях, обрабатываемых ниже
-		if((BKB_MODE_SCROLL!=Fixation::CurrentMode())&&(BKB_MODE_KEYBOARD!=Fixation::CurrentMode()))
+		// 13.06.2015 Двигаем курсор, только если это не аэромышь. Аэромышь двигает его в режиме черепашки
+		if((2!=tracking_device)&&(BKB_MODE_SCROLL!=Fixation::CurrentMode())&&(BKB_MODE_KEYBOARD!=Fixation::CurrentMode()))
 				BKBTranspWnd::Move(screen_cursor_point.x,screen_cursor_point.y); 
 		
 		// Рисуем окно со стрелкой или белое пятно на клавиатуре?
@@ -236,7 +237,7 @@ void on_gaze_data_main_thread()
 				BKBTranspWnd::Show(); // Показать стрелку
 
 			last_mouse_inside_keyboard=mouse_inside_keyboard;
-			if(!mouse_inside_keyboard)
+			if((!mouse_inside_keyboard)&&(2!=tracking_device)) 	// 13.06.2015 Двигаем курсор, только если это не аэромышь. Аэромышь двигает его в режиме черепашки
 				BKBTranspWnd::Move(screen_cursor_point.x,screen_cursor_point.y);
 		}
 
