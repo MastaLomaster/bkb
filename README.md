@@ -21,7 +21,7 @@ http://www.microsoft.com/ru-ru/download/details.aspx?id=30679
  
 Скопируйте файл "TobiiGazeCore32.dll" в рабочий каталог программы.
 
-~~ Gaze SDK 4.0 можно скачать вот здесь: http://developer.tobii.com/downloads/ (требуется регистрация)
+~~Gaze SDK 4.0 можно скачать вот здесь: http://developer.tobii.com/downloads/ (требуется регистрация)
 Ищите файл с именем TobiiGazeSdk-CApi-4.0.X.XXX-Win32, где X-цифры текущей версии. ~~
 
 Перед началом работы зайдите в контрольную панель Windows, запустите "Tobii EyeX Settings (32 bit)" и  откалибруйте устройство.
