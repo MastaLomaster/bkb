@@ -15,7 +15,7 @@
 //int gBKB_TOOLBOX_WIDTH=128;
 
 int gBKB_TOOLBOX_WIDTH=256;
-int gBKB_TOOLBOX_BUTTONS=5;
+int gBKB_TOOLBOX_BUTTONS=7;
 extern bool gBKB_SHOW_CLICK_MODS;
 bool gBKB_SLEEP_IN_BLACK=true;
 static int BKB_TURTLE_BUTTONS_VISIBLE=4;
@@ -50,20 +50,21 @@ ToolWndConfig tool_config[BKB_NUM_TOOLS]=
 };
 #else
 
-#define BKB_NUM_TOOLS 9
+#define BKB_NUM_TOOLS 7
 ToolWndConfig tool_config[BKB_NUM_TOOLS]=
 {
 	{L"КЛАВИШИ",17,0,BKB_MODE_KEYBOARD},
 	//{L"ЧЕРЕПАШКА",77,1,BKB_MODE_TURTLE},
 	{L"ЛЕВЫЙ",12,1,BKB_MODE_LCLICK},
 	{L"ЛЕВЫЙ,..",34,1,BKB_MODE_LCLICK_PLUS},
-	{L"ПРАВЫЙ",13,1,BKB_MODE_RCLICK},
 	{L"ДВОЙНОЙ",14,1,BKB_MODE_DOUBLECLICK},
+	{L"ПРАВЫЙ",13,1,BKB_MODE_RCLICK},
+
 	{L"ДРЕГ",15,0,BKB_MODE_DRAG},
-	{L"СКРОЛЛ",16,0,BKB_MODE_SCROLL},
+	//{L"СКРОЛЛ",16,0,BKB_MODE_SCROLL},
 	// {L"КЛАВИШИ",17,0,BKB_MODE_KEYBOARD},
 	{L"Туда-Сюда",18,0,BKB_MODE_SWAP},
-	{L"Спать",76,0,BKB_MODE_SLEEP}
+	//{L"Спать",76,0,BKB_MODE_SLEEP}
 	//{L"РЕЗЕРВ",19,0,BKB_MODE_NONE} 
 };
 

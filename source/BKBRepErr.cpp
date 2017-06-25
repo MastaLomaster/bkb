@@ -11,7 +11,7 @@
 
 extern HINSTANCE	BKBInst;
 
-typedef TOBIIGAZE_API const char* (TOBIIGAZE_CALL *type_tobiigaze_get_error_message)(tobiigaze_error_code error_code);
+typedef __declspec(dllimport) const char* (__cdecl *type_tobiigaze_get_error_message)(int error_code);
 extern type_tobiigaze_get_error_message fp_tobiigaze_get_error_message;
 
 //============================================================================================
@@ -141,7 +141,7 @@ void BKBReportError(TCHAR *Error)
 //============================================================================================
 // Для ошибок Tobii Gaze SDK (перегружена)
 //============================================================================================
-void BKBReportError(tobiigaze_error_code tbg_error_code, TCHAR *SourceFile, TCHAR *FuncName, int LineNumber)
+void BKBReportError(int tbg_error_code, TCHAR *SourceFile, TCHAR *FuncName, int LineNumber)
 {
 	TCHAR BKBMessage[1024];	// Это строка, в которой формируется сообщение об ошибке
 	TCHAR ConvertASCII2W[1024];

@@ -2,16 +2,17 @@
 #include "AirMouse.h"
 #include "TranspWnd.h"
 #include "ToolWnd.h"
+#include "TobiiREX.h"
 
 int g_BKB_MOUSE_X_MULTIPLIER=20, g_BKB_MOUSE_Y_MULTIPLIER=30; // усилитель мыши для тех, кому трудно поворачивать голову
 
-// Заголовочные файлы из Tobii Gaze SDK
-#include "tobiigaze_error_codes.h"
-#include "tobiigaze.h"
+// Заголовочные файлы из Tobii Gaze SDK - избавились
+//#include "tobiigaze_error_codes.h"
+//#include "tobiigaze.h"
 //#include "tobiigaze_config.h" - такой файл был в Gaze SDK 2.0
 
 // Прототип callback-функции из TobiiREX.cpp
-void on_gaze_data(const tobiigaze_gaze_data* gazedata, void *user_data);
+void on_gaze_data(const toit_gaze_data* gazedata, void *user_data);
 
 extern int screenX, screenY, mouscreenX, mouscreenY;
 
@@ -31,8 +32,11 @@ int BKBAirMouse::Init(HWND hwnd)
 	SetTimer(hwnd,1,25,NULL);
 
 	// Не показывать прозрачное окно, ибо курсор сам движется
+#ifdef _DEBUG
+	BKBTranspWnd::flag_show_transp_window=true;
+#else
 	BKBTranspWnd::flag_show_transp_window=false;
-	//BKBTranspWnd::flag_show_transp_window=true;
+#endif
 
 	// Для тех, кому трудно поворачивать голову
 	// Теперь включаем всегда, а контролируем параметры внутри хука HookProc
@@ -77,7 +81,7 @@ int BKBAirMouse::Halt(HWND hwnd)
 //============================================================================
 void BKBAirMouse::OnTimer()
 {
-	tobiigaze_gaze_data gd;
+	toit_gaze_data gd;
 
 	POINT p;
 	if(0==GetCursorPos(&p))
@@ -89,14 +93,22 @@ void BKBAirMouse::OnTimer()
 //#ifdef BELYAKOV
 //		BKBToolWnd::SleepCheck(&p);
 //#endif
-		gd.tracking_status = TOBIIGAZE_TRACKING_STATUS_BOTH_EYES_TRACKED;
+#ifdef _DEBUG
+		// Имитируем нечёткое определение направления взгляда
+#define BKB_EYE_RANDOM 300 
+		p.x+=-BKB_EYE_RANDOM+(2*BKB_EYE_RANDOM*rand()/RAND_MAX);
+		p.y+=-BKB_EYE_RANDOM+(2*BKB_EYE_RANDOM*rand()/RAND_MAX);
+#endif
+
+		//gd.tracking_status = TOBIIGAZE_TRACKING_STATUS_BOTH_EYES_TRACKED;
+		gd.toit_status = 1;
 		//gd.left.gaze_point_on_display_normalized.x=p.x/(double)screenX;
 		//gd.left.gaze_point_on_display_normalized.y=p.y/(double)screenY;
-		gd.left.gaze_point_on_display_normalized.x=p.x/(double)screenX;
-		gd.left.gaze_point_on_display_normalized.y=p.y/(double)screenY;
+		gd.left.bingo.x=p.x/(double)screenX;
+		gd.left.bingo.y=p.y/(double)screenY;
 
-		gd.right.gaze_point_on_display_normalized.x=gd.left.gaze_point_on_display_normalized.x;
-		gd.right.gaze_point_on_display_normalized.y=gd.left.gaze_point_on_display_normalized.y;
+		gd.right.bingo.x=gd.left.bingo.x;
+		gd.right.bingo.y=gd.left.bingo.y;
 
 		gd.timestamp=1000UL*timeGetTime(); // Используется скроллом
 
@@ -109,7 +121,6 @@ void BKBAirMouse::OnTimer()
 //====================================================================================
 LRESULT  CALLBACK HookProc(int disabled,WPARAM wParam,LPARAM lParam) 
 {
-	LRESULT l;
 	INPUT input={0};
 	
     if ((!disabled)&&((g_BKB_MOUSE_X_MULTIPLIER!=10)||(g_BKB_MOUSE_Y_MULTIPLIER!=10)))
@@ -166,8 +177,8 @@ LRESULT  CALLBACK HookProc(int disabled,WPARAM wParam,LPARAM lParam)
 					hook_initialized=true;
 					if(last_x<0) last_x=0; if(last_y<0) last_y=0;
 
-					if(last_x>mouscreenX) last_x=mouscreenX-1;
-					if(last_y>mouscreenY) last_y=mouscreenY-1;
+					if(last_x>=mouscreenX) last_x=mouscreenX-1;
+					if(last_y>=mouscreenY) last_y=mouscreenY-1;
 					break;
 			}
 		}

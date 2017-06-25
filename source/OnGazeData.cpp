@@ -1,5 +1,7 @@
 ﻿#include <Windows.h>
 #include <process.h>
+#include <stdio.h>
+#include <time.h>
 #include "BKBRepErr.h"
 #include "Smooth.h"
 #include "Fixation.h"
@@ -11,13 +13,13 @@
 #include "BKBHookProc.h"
 #include "BKBProgressWnd.h"
 #include "BKBMetricsWnd.h"
-
+#include "TobiiREX.h"
 
 int FIXATION_LIMIT=30; // Сколько последовательных точек с низкой дисперсией считать фиксацией (для клавиатуры)
 int NOTKBD_FIXATION_LIMIT=30; // Сколько последовательных точек с низкой дисперсией считать фиксацией (не для клавиатуры)
 int POSTFIXATION_SKIP=30; // сколько точек пропустить после фиксации, чтобы начать считать новую фиксацию (для клавиатуры)
 int NOTKBD_POSTFIXATION_SKIP=30; // сколько точек пропустить после фиксации, чтобы начать считать новую фиксацию (не для клавиатуры)
-bool gBKB_2STEP_KBD_MODE=true;
+bool gBKB_2STEP_KBD_MODE=false;
 bool flag_Pink_approved;
 bool flag_Activemouse=false;
 
@@ -48,7 +50,7 @@ static int skip_count=0; // сколько точек осталось проп�
 //extern HWND	BKBhwnd;
 extern int tracking_device;
 
-static tobiigaze_gaze_data TGD_interchange; // Буфер, куда записывается пришедшее значение для передачи в другую очередь
+static toit_gaze_data TGD_interchange; // Буфер, куда записывается пришедшее значение для передачи в другую очередь
 static volatile long TGD_is_processing=0; // Типа мьютекса для InterlockedCompareExchange
 
 extern DWORD last_mouse_time;
@@ -84,8 +86,27 @@ inline long signum(long x)
 // 01.02.14 Её может вызывать и аэромышь
 // 14.04.14 Теперь посылает сообщение другому потоку, если тот уже закончил обработку предыдущего сообщения
 //===========================================================================================================
-void on_gaze_data(const tobiigaze_gaze_data* gazedata, void *user_data)
+FILE *debug_fout=0;
+void on_gaze_data(const toit_gaze_data* gazedata, void *user_data)
 {
+#ifdef _DEBUG
+	// 30.11.2015 Запишем, что сможем
+	if(!debug_fout)
+	{
+		time_t mytime = time(0); /* not 'long' */
+		TCHAR ctbuf[1024];
+		_wctime_s(ctbuf,1023,&mytime);
+		ctbuf[13]=L'-';
+		ctbuf[16]=L'-';
+		ctbuf[24]=0;
+		//wcscat_s(ctbuf,1023,L"_dbg.txt");
+		_wfopen_s(&debug_fout,ctbuf,L"wb");
+	}
+	else fwrite(gazedata,sizeof(gazedata),1,debug_fout);
+	
+#endif
+
+
 	// Сбагриваем очередные данные, только если старые уже обработаны
 	// Нет нужды в хитрых сравнениях, если мы пропустим один отсчёт, ровным счетом ничего не произойдёт
 	// достаточно было бы if(0==TGD_is_processing)
@@ -112,7 +133,7 @@ void on_gaze_data(const tobiigaze_gaze_data* gazedata, void *user_data)
 //==========================================================================================================
 void on_gaze_data_main_thread()
 {
-	tobiigaze_gaze_data* gazedata=&TGD_interchange;
+	toit_gaze_data* gazedata=&TGD_interchange;
 	
 
 	static POINT point_left={0,0}, point_right={0,0}, point={0,0}; //, last_point={0,0}, tmp_point;
@@ -127,40 +148,47 @@ void on_gaze_data_main_thread()
 	
 		// Для проверки рисуем точку на экране
 	// Но только если отследили оба глаза!!
-	if (gazedata->tracking_status == TOBIIGAZE_TRACKING_STATUS_BOTH_EYES_TRACKED)
-	//if (gazedata->tracking_status != TOBIIGAZE_TRACKING_STATUS_NO_EYES_TRACKED)
+	//if (gazedata->tracking_status == TOBIIGAZE_TRACKING_STATUS_BOTH_EYES_TRACKED)
+	//if (gazedata->toit_status != TOBIIGAZE_TRACKING_STATUS_NO_EYES_TRACKED)
+	if (gazedata->toit_status != 0)
 	{
 		//hdc=GetDC(BKBhwnd);
 		// Этот кусок не отрабатывает, если выше мы ограничились только  TOBIIGAZE_TRACKING_STATUS_BOTH_EYES_TRACKED
-		switch(gazedata->tracking_status)
+		switch(gazedata->toit_status)
 		{
-		case TOBIIGAZE_TRACKING_STATUS_ONLY_LEFT_EYE_TRACKED:
-		case TOBIIGAZE_TRACKING_STATUS_ONE_EYE_TRACKED_PROBABLY_LEFT:
-			gazedata->right.gaze_point_on_display_normalized.x=gazedata->left.gaze_point_on_display_normalized.x;
-			gazedata->right.gaze_point_on_display_normalized.y=gazedata->left.gaze_point_on_display_normalized.y;
+		//case TOBIIGAZE_TRACKING_STATUS_ONLY_LEFT_EYE_TRACKED:
+		//case TOBIIGAZE_TRACKING_STATUS_ONE_EYE_TRACKED_PROBABLY_LEFT:
+		case 2:
+		case 3:
+			gazedata->right.bingo.x=gazedata->left.bingo.x;
+			gazedata->right.bingo.y=gazedata->left.bingo.y;
 			break;
 
-		case TOBIIGAZE_TRACKING_STATUS_ONE_EYE_TRACKED_UNKNOWN_WHICH:
+		//case TOBIIGAZE_TRACKING_STATUS_ONE_EYE_TRACKED_UNKNOWN_WHICH:
+		case 4:
 			TGD_is_processing=0;
 			return;
 			break;
 			
-		case TOBIIGAZE_TRACKING_STATUS_ONE_EYE_TRACKED_PROBABLY_RIGHT:
-		case TOBIIGAZE_TRACKING_STATUS_ONLY_RIGHT_EYE_TRACKED:
-			gazedata->left.gaze_point_on_display_normalized.x=gazedata->right.gaze_point_on_display_normalized.x;
-			gazedata->left.gaze_point_on_display_normalized.y=gazedata->right.gaze_point_on_display_normalized.y;
+		//case TOBIIGAZE_TRACKING_STATUS_ONE_EYE_TRACKED_PROBABLY_RIGHT:
+		//case TOBIIGAZE_TRACKING_STATUS_ONLY_RIGHT_EYE_TRACKED:
+		case 5:
+		case 6:
+		
+			gazedata->left.bingo.x=gazedata->right.bingo.x;
+			gazedata->left.bingo.y=gazedata->right.bingo.y;
 			break;
 		}
 
 
 		// Трекинг левого глаза 
-		point_left.x=screenX*gazedata->left.gaze_point_on_display_normalized.x;
-		point_left.y=screenY*gazedata->left.gaze_point_on_display_normalized.y;
+		point_left.x=screenX*gazedata->left.bingo.x;
+		point_left.y=screenY*gazedata->left.bingo.y;
 		disp1=BKBSmooth(&point_left, 0);
 		
 		// Трекинг правого глаза 
-		point_right.x=screenX*gazedata->right.gaze_point_on_display_normalized.x;
-		point_right.y=screenY*gazedata->right.gaze_point_on_display_normalized.y;
+		point_right.x=screenX*gazedata->right.bingo.x;
+		point_right.y=screenY*gazedata->right.bingo.y;
 		disp2=BKBSmooth(&point_right, 1);
 		
 		point.x=(point_right.x+point_left.x)/2;
@@ -224,8 +252,14 @@ void on_gaze_data_main_thread()
 		
 		// Курсор при скролле и клавиатуре двигается только в отдельных случаях, обрабатываемых ниже
 		// 13.06.2015 Двигаем курсор, только если это не аэромышь. Аэромышь двигает его в режиме черепашки
+		// 30.11.2015 Ещё двигаем курсор в режиме DEBUG
+#ifdef _DEBUG
+		if((BKB_MODE_SCROLL!=Fixation::CurrentMode())&&(BKB_MODE_KEYBOARD!=Fixation::CurrentMode()))
+				BKBTranspWnd::Move(screen_cursor_point.x,screen_cursor_point.y); 
+#else
 		if((2!=tracking_device)&&(BKB_MODE_SCROLL!=Fixation::CurrentMode())&&(BKB_MODE_KEYBOARD!=Fixation::CurrentMode()))
 				BKBTranspWnd::Move(screen_cursor_point.x,screen_cursor_point.y); 
+#endif
 		
 		// Рисуем окно со стрелкой или белое пятно на клавиатуре?
 		if(BKB_MODE_KEYBOARD==Fixation::CurrentMode()) 
@@ -237,7 +271,11 @@ void on_gaze_data_main_thread()
 				BKBTranspWnd::Show(); // Показать стрелку
 
 			last_mouse_inside_keyboard=mouse_inside_keyboard;
+#ifdef _DEBUG
+			if((!mouse_inside_keyboard)) 	// 30.11.2015 Для отладки при имитации неточного определения взгляда
+#else
 			if((!mouse_inside_keyboard)&&(2!=tracking_device)) 	// 13.06.2015 Двигаем курсор, только если это не аэромышь. Аэромышь двигает его в режиме черепашки
+#endif
 				BKBTranspWnd::Move(screen_cursor_point.x,screen_cursor_point.y);
 		}
 

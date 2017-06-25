@@ -33,7 +33,7 @@ int dlg_current_btnfixation=6, dlg_current_postfixation=4,dlg_current_nokbdfixat
 
 const int BKB_SET_TOOLBARCELLS=6;
 BKBIntChar dlg_toolbarcells[BKB_SET_TOOLBARCELLS]={{L"4",4,IDC_RADIO_TOOLBAR4}, {L"5",5,IDC_RADIO_TOOLBAR5}, {L"6",6,IDC_RADIO_TOOLBAR6}, {L"7",7,IDC_RADIO_TOOLBAR7}, {L"8",8,IDC_RADIO_TOOLBAR8}, {L"9",9,IDC_RADIO_TOOLBAR9}};
-int dlg_current_toolbarcells=1;
+int dlg_current_toolbarcells=3;
 
 const int BKB_YESNO=2;
 BKBIntChar dlg_kbd_fullscreen[BKB_YESNO]={{L"Нет",0,IDC_RADIO_KBDFS1},{L"Да",1,IDC_RADIO_KBDFS2}}; 
@@ -43,9 +43,9 @@ BKBIntChar dlg_show_metrics[BKB_YESNO]={{L"Нет",0,IDC_RADIO_METRICS_NO},{L"Д
 
 
 int dlg_current_kbd_fullscreen=1;
-int dlg_current_kbd_2step=1;
+int dlg_current_kbd_2step=0;
 int dlg_current_show_clickmods=0;
-int dlg_current_show_metrics=1;
+int dlg_current_show_metrics=0;
 
 const int BKB_SET_MBUTTONFIX=3;
 BKBIntChar dlg_mbuttonfix[BKB_SET_MBUTTONFIX]={{L"только фиксация",0,IDC_RADIO_MBUTTONFIX1}, {L"и мышь, и фиксация",1,IDC_RADIO_MBUTTONFIX2}, {L"только мышь",2,IDC_RADIO_MBUTTONFIX3}};
@@ -65,7 +65,7 @@ extern bool gBKB_2STEP_KBD_MODE; // Флаг того, что клавиши н�
 bool gBKB_SHOW_CLICK_MODS=false; // Флаг того, что нужно показывать модификаторы клика (+Ctrl, +Shift, ...)
 extern int gBKB_TOOLBOX_BUTTONS; // Количество видимых кнопок на панели инструментов
 int gBKB_MBUTTONFIX=1;
-int gBKB_SHOW_METRICS=1; // Показывать ли окно метрик
+int gBKB_SHOW_METRICS=0; // Показывать ли окно метрик
 int gBKB_DISP_PERCENT=10; // процент высоты экрана, который задаёт границы дисперсии
 
 //===================================================================
@@ -148,7 +148,7 @@ void BKBSettings::SettingsDialogue(HWND _parent_hwnd)
 	// Вызов диалога при работе программы
 	if(!settings_hwnd)
 	{
-		settings_hwnd=CreateDialog(BKBInst, MAKEINTRESOURCE(IDD_SETTINGS), parent_hwnd , DlgSettingsWndProc);
+		settings_hwnd=CreateDialog(BKBInst, MAKEINTRESOURCE(IDD_SETTINGS), parent_hwnd , (DLGPROC)DlgSettingsWndProc);
 		ShowWindow(settings_hwnd, SW_SHOW);
 	}
 	else

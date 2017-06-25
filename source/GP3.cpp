@@ -5,9 +5,10 @@
 #include "GP3.h"
 #include "BKBRepErr.h"
 #include "Internat.h"
+#include "TobiiREX.h"
 
 // Прототип callback-функции из OnGazeData.cpp
-void on_gaze_data(const tobiigaze_gaze_data* gazedata, void *user_data);
+void on_gaze_data(const toit_gaze_data* gazedata, void *user_data);
 
 bool BKBGP3::initialized(false);
 
@@ -42,15 +43,18 @@ static unsigned __stdcall ReaderThread(void *p)
 	
 	  if(3==num_scanned)
 	  {
-		  tobiigaze_gaze_data gd;
+		  toit_gaze_data gd;
 
-		  if(1==v_bpog) gd.tracking_status = TOBIIGAZE_TRACKING_STATUS_BOTH_EYES_TRACKED;
-		  else gd.tracking_status = TOBIIGAZE_TRACKING_STATUS_NO_EYES_TRACKED;
-		  gd.left.gaze_point_on_display_normalized.x=x_bpog;
-		  gd.left.gaze_point_on_display_normalized.y=y_bpog;
+		  //if(1==v_bpog) gd.tracking_status = TOBIIGAZE_TRACKING_STATUS_BOTH_EYES_TRACKED;
+		  //else gd.tracking_status = TOBIIGAZE_TRACKING_STATUS_NO_EYES_TRACKED;
+		  if(1==v_bpog) gd.toit_status = 1;
+		  else gd.toit_status = 0;
+		  
+		  gd.left.bingo.x=x_bpog;
+		  gd.left.bingo.y=y_bpog;
 
-		  gd.right.gaze_point_on_display_normalized.x=gd.left.gaze_point_on_display_normalized.x;
-		  gd.right.gaze_point_on_display_normalized.y=gd.left.gaze_point_on_display_normalized.y;
+		  gd.right.bingo.x=gd.left.bingo.x;
+		  gd.right.bingo.y=gd.left.bingo.y;
 
 		  gd.timestamp=1000UL*timeGetTime(); // Используется скроллом
 

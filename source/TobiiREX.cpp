@@ -4,31 +4,38 @@
 #include "TobiiREX.h"
 #include "Internat.h"
 
-// Заголовочные файлы из Tobii Gaze SDK
-#include "tobiigaze_error_codes.h"
-#include "tobiigaze.h"
+// Заголовочные файлы из Tobii Gaze SDK - избавились от них
+//#include "tobiigaze_error_codes.h"
+//#include "tobiigaze.h"
 //#include "tobiigaze_config.h" - такой файл был в Gaze SDK 2.0
-#include "tobiigaze_discovery.h"
+//#include "tobiigaze_discovery.h"
+#include <stdint.h>
+
+// Избавление от header-файлов от Тобии
+typedef struct toet toet;
 
 // Для динамической подгрузки библиотек
 // typedef  TOBIIGAZE_API void (TOBIIGAZE_CALL *type_tobiigaze_config_init)(tobiigaze_error_code *error_code);
 // typedef TOBIIGAZE_API void (TOBIIGAZE_CALL *type_tobiigaze_config_get_default_eye_tracker_url)(char *url, uint32_t url_size, tobiigaze_error_code *error_code);
-typedef  TOBIIGAZE_API void (TOBIIGAZE_CALL *type_tobiigaze_get_connected_eye_tracker)(char *url, uint32_t url_size, tobiigaze_error_code *error_code);
-typedef  TOBIIGAZE_API void (TOBIIGAZE_CALL *type_tobiigaze_run_event_loop_on_internal_thread)(tobiigaze_eye_tracker *eye_tracker, tobiigaze_async_callback callback, void *user_data);
+typedef void (__cdecl *type_tobiigaze_gaze_listener)(const struct toit_gaze_data *gaze_data, const struct tobiigaze_gaze_data_extensions *gaze_data_extensions, void *user_data);
+typedef void (__cdecl *type_tobiigaze_async_callback)(int error_code, void *user_data);
 
-typedef TOBIIGAZE_API tobiigaze_eye_tracker* (TOBIIGAZE_CALL *type_tobiigaze_create)(const char *url, tobiigaze_error_code *error_code);
-typedef TOBIIGAZE_API void (TOBIIGAZE_CALL *type_tobiigaze_connect)(tobiigaze_eye_tracker *eye_tracker, tobiigaze_error_code *error_code);
-typedef TOBIIGAZE_API void (TOBIIGAZE_CALL *type_tobiigaze_start_tracking)(tobiigaze_eye_tracker *eye_tracker, tobiigaze_gaze_listener gaze_callback, tobiigaze_error_code *error_code, void *user_data);
+typedef  __declspec(dllimport) void (__cdecl *type_tobiigaze_get_connected_eye_tracker)(char *url, uint32_t url_size, int *error_code);
+typedef  __declspec(dllimport) void (__cdecl *type_tobiigaze_run_event_loop_on_internal_thread)(toet *eye_tracker, type_tobiigaze_async_callback callback, void *user_data);
+
+typedef __declspec(dllimport) toet* (__cdecl *type_tobiigaze_create)(const char *url, int *error_code);
+typedef __declspec(dllimport) void (__cdecl *type_tobiigaze_connect)(toet *eye_tracker, int *error_code);
+typedef __declspec(dllimport) void (__cdecl *type_tobiigaze_start_tracking)(toet *eye_tracker, type_tobiigaze_gaze_listener gaze_callback, int *error_code, void *user_data);
 
 
-typedef TOBIIGAZE_API void (TOBIIGAZE_CALL *type_tobiigaze_stop_tracking)(tobiigaze_eye_tracker *eye_tracker, tobiigaze_error_code *error_code);
-typedef TOBIIGAZE_API void (TOBIIGAZE_CALL *type_tobiigaze_disconnect)(tobiigaze_eye_tracker *eye_tracker);
-typedef TOBIIGAZE_API void (TOBIIGAZE_CALL *type_tobiigaze_break_event_loop)(tobiigaze_eye_tracker *eye_tracker);
-typedef TOBIIGAZE_API void (TOBIIGAZE_CALL *type_tobiigaze_destroy)(tobiigaze_eye_tracker *eye_tracker);
+typedef __declspec(dllimport) void (__cdecl *type_tobiigaze_stop_tracking)(toet *eye_tracker, int *error_code);
+typedef __declspec(dllimport) void (__cdecl *type_tobiigaze_disconnect)(toet *eye_tracker);
+typedef __declspec(dllimport) void (__cdecl *type_tobiigaze_break_event_loop)(toet *eye_tracker);
+typedef __declspec(dllimport) void (__cdecl *type_tobiigaze_destroy)(toet *eye_tracker);
 
-typedef TOBIIGAZE_API const char* (TOBIIGAZE_CALL *type_tobiigaze_get_error_message)(tobiigaze_error_code error_code);
+typedef __declspec(dllimport) const char* (__cdecl *type_tobiigaze_get_error_message)(int error_code);
 
-typedef TOBIIGAZE_API void (TOBIIGAZE_CALL *type_tobiigaze_run_event_loop)(tobiigaze_eye_tracker *eye_tracker, tobiigaze_error_code *error_code);
+typedef __declspec(dllimport) void (__cdecl *type_tobiigaze_run_event_loop)(toet *eye_tracker, int *error_code);
 
 HMODULE TobiiConfigDLL=0, TobiiCoreDLL=0;
 
@@ -50,20 +57,20 @@ type_tobiigaze_get_error_message fp_tobiigaze_get_error_message=0;
 type_tobiigaze_run_event_loop fp_tobiigaze_run_event_loop;
 
 // Всякие переменные для работы с Tobii Gaze SDK видны только локально (static)
-static tobiigaze_error_code tbg_error_code;
-static char url[256];
-static tobiigaze_eye_tracker* eye_tracker=0;
+static int tbg_error_code;
+static char url[256]="tet-tcp://127.0.0.1";
+static toet* eye_tracker=0;
 
 static uintptr_t tobii_thread_handler; // Хендлер потока для Gaze SDK
 
-void on_gaze_data(const tobiigaze_gaze_data* gazedata, void *user_data); // Определён в OnGazeData.cpp
+void on_gaze_data(const toit_gaze_data* gazedata, void *user_data); // Определён в OnGazeData.cpp
 
 bool BKBTobiiREX::initialized(false);
 
 //===========================================================================================================
 // Заглушка для Gaze SDK 4, там добавился новый параметр, мы его игнорируем
 //===========================================================================================================
-void on_gaze_data_SDK4(const struct tobiigaze_gaze_data *gaze_data, const struct tobiigaze_gaze_data_extensions *gaze_data_extensions, void *user_data)
+void __cdecl on_gaze_data_SDK4(const struct toit_gaze_data *gaze_data, const struct tobiigaze_gaze_data_extensions *gaze_data_extensions, void *user_data)
 {
 	on_gaze_data(gaze_data, user_data);
 }
@@ -93,6 +100,7 @@ int BKBTobiiREX::Init()
 {
 	if(initialized) return 1; // уже инициализировали
 
+
 	// Этого больше нет в Gaze SDK 4
 	// -1. Загрузка DLL
 	/* TobiiConfigDLL = LoadLibrary(L"TobiiGazeConfig32.dll");
@@ -103,19 +111,35 @@ int BKBTobiiREX::Init()
 	}
 	*/
 
+#ifdef _WIN64
+	// This does not work! Never compile as a 64-bit application! Just testing.
+	TobiiCoreDLL = LoadLibrary(L"TobiiGazeCore64.dll");
+	if(0==TobiiCoreDLL)
+	{
+		BKBReportError(Internat::Message(28,L"Не удалось загрузить библиотеку TobiiGazeCore64.dll\r\nСкопируйте её в рабочий каталог программы"));
+		return 1;
+	}
+#else
 	TobiiCoreDLL = LoadLibrary(L"TobiiGazeCore32.dll");
 	if(0==TobiiCoreDLL)
 	{
 		BKBReportError(Internat::Message(28,L"Не удалось загрузить библиотеку TobiiGazeCore32.dll\r\nСкопируйте её в рабочий каталог программы"));
 		return 1;
 	}
+#endif
+
+	
+
 
 
 	// 0. Загрузка функций из DLL
 	// Пытаемся найти там нужные функции
 	//fp_tobiigaze_config_init=(type_tobiigaze_config_init)GetProcAddress(TobiiCoreDLL,"tobiigaze_config_init");
 	//fp_tobiigaze_config_get_default_eye_tracker_url=(type_tobiigaze_config_get_default_eye_tracker_url)GetProcAddress(TobiiCoreDLL,"tobiigaze_config_get_default_eye_tracker_url");
+#ifndef _WIN64
+	// эта функция есть только в 32-битной DLL
 	fp_tobiigaze_get_connected_eye_tracker=(type_tobiigaze_get_connected_eye_tracker)GetProcAddress(TobiiCoreDLL,"tobiigaze_get_connected_eye_tracker");
+#endif
 	fp_tobiigaze_run_event_loop_on_internal_thread=(type_tobiigaze_run_event_loop_on_internal_thread)GetProcAddress(TobiiCoreDLL,"tobiigaze_run_event_loop_on_internal_thread");
 
 	fp_tobiigaze_create=(type_tobiigaze_create)GetProcAddress(TobiiCoreDLL,"tobiigaze_create");
@@ -128,7 +152,11 @@ int BKBTobiiREX::Init()
 	fp_tobiigaze_get_error_message=(type_tobiigaze_get_error_message)GetProcAddress(TobiiCoreDLL,"tobiigaze_get_error_message");
 	fp_tobiigaze_run_event_loop=(type_tobiigaze_run_event_loop)GetProcAddress(TobiiCoreDLL,"tobiigaze_run_event_loop");
 
-	if(!fp_tobiigaze_get_connected_eye_tracker||!fp_tobiigaze_run_event_loop_on_internal_thread||!fp_tobiigaze_create||
+	if(
+#ifndef _WIN64
+		!fp_tobiigaze_get_connected_eye_tracker||
+#endif		
+		!fp_tobiigaze_run_event_loop_on_internal_thread||!fp_tobiigaze_create||
 		!fp_tobiigaze_connect||!fp_tobiigaze_start_tracking||!fp_tobiigaze_stop_tracking||
 		!fp_tobiigaze_disconnect||!fp_tobiigaze_break_event_loop||!fp_tobiigaze_destroy||
 		!fp_tobiigaze_get_error_message||!fp_tobiigaze_run_event_loop)
@@ -157,13 +185,15 @@ int BKBTobiiREX::Init()
 	*/
 	// Изменение в Gaze SDK 4.0
 	// 1.1.
+#ifndef _WIN64
 	(*fp_tobiigaze_get_connected_eye_tracker)(url, 255, &tbg_error_code);
 	if(tbg_error_code)
 	{
 		BKBReportError(tbg_error_code, __WIDEFILE__,L"tobiigaze_get_connected_eye_tracker",__LINE__);
 		return 1;
 	}
-	
+#endif
+
 	// 1.2.
 	eye_tracker = (*fp_tobiigaze_create)(url, &tbg_error_code);
     if(tbg_error_code)
