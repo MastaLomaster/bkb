@@ -50,7 +50,7 @@ ToolWndConfig tool_config[BKB_NUM_TOOLS]=
 };
 #else
 
-#define BKB_NUM_TOOLS 7
+#define BKB_NUM_TOOLS 9
 ToolWndConfig tool_config[BKB_NUM_TOOLS]=
 {
 	{L"КЛАВИШИ",17,0,BKB_MODE_KEYBOARD},
@@ -61,10 +61,10 @@ ToolWndConfig tool_config[BKB_NUM_TOOLS]=
 	{L"ПРАВЫЙ",13,1,BKB_MODE_RCLICK},
 
 	{L"ДРЕГ",15,0,BKB_MODE_DRAG},
-	//{L"СКРОЛЛ",16,0,BKB_MODE_SCROLL},
+	{L"СКРОЛЛ",16,0,BKB_MODE_SCROLL},
 	// {L"КЛАВИШИ",17,0,BKB_MODE_KEYBOARD},
 	{L"Туда-Сюда",18,0,BKB_MODE_SWAP},
-	//{L"Спать",76,0,BKB_MODE_SLEEP}
+	{L"Спать",76,0,BKB_MODE_SLEEP}
 	//{L"РЕЗЕРВ",19,0,BKB_MODE_NONE} 
 };
 

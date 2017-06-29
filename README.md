@@ -22,7 +22,7 @@ http://www.microsoft.com/ru-ru/download/details.aspx?id=30679
 Скопируйте файл "TobiiGazeCore32.dll" в рабочий каталог программы.
 
 ~~Gaze SDK 4.0 можно скачать вот здесь: http://developer.tobii.com/downloads/ (требуется регистрация)
-Ищите файл с именем TobiiGazeSdk-CApi-4.0.X.XXX-Win32, где X-цифры текущей версии. ~~
+Ищите файл с именем TobiiGazeSdk-CApi-4.0.X.XXX-Win32, где X-цифры текущей версии.~~
 
 Перед началом работы зайдите в контрольную панель Windows, запустите "Tobii EyeX Settings (32 bit)" и  откалибруйте устройство.
 
@@ -66,20 +66,19 @@ http://youtu.be/rqcN9IZ39_4
 В свойствах проекта установите поддержку unicode
 
 ~~Включаемые каталоги должны иметь в своем составе каталог "include" из Tobii Gaze SDK 4.0.
-
 Gaze SDK 4.0 можно скачать вот здесь: http://developer.tobii.com/downloads/ (требуется регистрация)
-Ищите файл с именем TobiiGazeSdk-CApi-4.0.X.XXX-Win32, где X-цифры текущей версии. ~~
+Ищите файл с именем TobiiGazeSdk-CApi-4.0.X.XXX-Win32, где X-цифры текущей версии.~~
 
 Никакие библиотеки из Tobii Gaze SDK при компиляции не требуются, а вот стандартные библиотеки  
 Windows нужны: Ws2_32.lib, winmm.lib,Msimg32.lib
 
 Проект должен динамически подключать библиотеку MSVCRT110.dll, статическая линковка будет  конфликтовать с библиотеками Tobii Gaze SDK!
 
-##in English
+## in English
 
 bkb is a program to control keyboard/mouse with eyes. It supports TobiiREX and EyeX eye trackers, The Eye Trybe eye tracker, Gazepoint GP3 eye tracker, and any device that can move a mouse cursor (e.g. an airmouse).
 
-###Installation:
+### Installation:
 Just unzip the bkb32c-English.zip to any folder. Make sure that this folder remains the working  directory of the program. Otherwise the program won't load messages.bkb and keyboard.bkb files,  and you'll get Russian interface instead of English one.
 
 To run the program you also need Microsoft Visual C++ Redistributable for Visual Studio 2012 Update 4. It can be downloaded here:
@@ -88,7 +87,7 @@ http://www.microsoft.com/en-us/download/details.aspx?id=30679
 
 If it is not installed, you'll get the error message complaining that the file "msvcrt110.dll"  cannot be found.
 
-###Using the program with the Tobii REX or EyeX eye tracker
+### Using the program with the Tobii REX or EyeX eye tracker
 
 You need the "TobiiGazeCore32.dll" file to be copied to the working directory of the program.
 By the way, I found it in my "C:\Program Files (x86)\Tobii\Tobii EyeX" directory after installing the "Tobii Eye Experience".
@@ -98,18 +97,18 @@ Look for the "TobiiGazeSdk-CApi-4.0.X.XXX-Win32" file, where X-current release n
 
 Before starting the program, visit Windows Control Panel, run the "Tobii EyeX Settings (32 bit)" program, and calibrate the device.
 
-###Using the program with The Eye Tribe tracker
+### Using the program with The Eye Tribe tracker
 
 The "Eye Tribe Server" program must be running. Also you need to calibrate the device with the "Eye Tribe UI" before running  the bkb32c.exe
 
-###Using the program with Gazepoint GP3 tracker
+### Using the program with Gazepoint GP3 tracker
 
 The "Gazepoint Control" program must be running.
 
-###Keyboard click sounds
+### Keyboard click sounds
 There is a click sound when you press the keyboard buttons. If you don't like the sound, place a WAV-file with the desired sound into the working directory of the program and name it "click.wav".
 
-###Basic work principles
+### Basic work principles
 After program started and a supported device is selected, you may see the toolbar on the right side. If you use an eye tracker, the transparent window with the cursor will be shown, it will follow your eyes movements. When using an [air]mouse, the regular cursor is used. To select a tool fixate your eyes on the tool button.
 
 Take a look at these videos to understand the modes of operation:
@@ -120,7 +119,7 @@ http://youtu.be/O68C4d2SNC8
 
 http://youtu.be/rqcN9IZ39_4
 
-###Known issues:
+### Known issues:
 - no easy way to exit the program. One have to close windows in the task bar
 - doesn't work with fullscreen applacations so far
 - doesn't work with the Metro-style interface of Windows 8/8.1, you have to use good old desktop
@@ -128,10 +127,10 @@ http://youtu.be/rqcN9IZ39_4
 - windows moved and doesn't work properly after logout/switch user
 - and many more small things....
 
-###Translate to other languages:
+### Translate to other languages:
 One can easily translate the User Interface and modify a keyboard. Just edit the "messages.bkb" and "keyboard.bkb" files. These are text unicode files. But (!) the file format and contents can be changed in future!!!
 
-###Compiling the source codes
+### Compiling the source codes
 As for now, you have to use Microsoft Visual Studio 2012 (latest update preferred). This is due to the fact that the libraries used (from the Tobii Gaze SDK 4.0) are compiled the same way.
 
 In the project properties enable unicode support
