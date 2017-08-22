@@ -91,7 +91,7 @@ if (uMsg==WM_COMMAND)
 		SendDlgItemMessage(hdwnd,IDC_STATIC_THENTTE, WM_SETTEXT, 0L, (LPARAM)Internat::Message(6,L"сек., затем TheEyeTribe,"));
 		SendDlgItemMessage(hdwnd,IDC_STATIC_ALLFAIL, WM_SETTEXT, 0L, (LPARAM)Internat::Message(7,L"а уж если и это не получится, то просто мышь (аэро)."));
 		
-		SendDlgItemMessage(hdwnd,IDOK, WM_SETTEXT, 0L, (LPARAM)Internat::Message(9,L"Трекер Tobii REX или EyeX"));
+		SendDlgItemMessage(hdwnd,IDOK, WM_SETTEXT, 0L, (LPARAM)Internat::Message(9,L"Трекер Tobii Eye Tracker 4C или EyeX или REX"));
 		SendDlgItemMessage(hdwnd,IDOK2, WM_SETTEXT, 0L, (LPARAM)Internat::Message(10,L"Трекер TheEyeTribe"));
 		SendDlgItemMessage(hdwnd,IDCANCEL, WM_SETTEXT, 0L, (LPARAM)Internat::Message(11,L"АэроМышь"));
 		

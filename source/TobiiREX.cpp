@@ -112,11 +112,10 @@ int BKBTobiiREX::Init()
 	*/
 
 #ifdef _WIN64
-	// This does not work! Never compile as a 64-bit application! Just testing.
 	TobiiCoreDLL = LoadLibrary(L"TobiiGazeCore64.dll");
 	if(0==TobiiCoreDLL)
 	{
-		BKBReportError(Internat::Message(28,L"Не удалось загрузить библиотеку TobiiGazeCore64.dll\r\nСкопируйте её в рабочий каталог программы"));
+		BKBReportError(Internat::Message(78,L"Не удалось загрузить библиотеку TobiiGazeCore64.dll\r\nСкопируйте её в рабочий каталог программы"));
 		return 1;
 	}
 #else

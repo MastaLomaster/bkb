@@ -1,6 +1,6 @@
 *For English 'readme' scroll down*
 
-### Программа для управления компьютером при помощи глаз и одного из устройств: трекеров движения глаз Tobii REX или EyeX, трекера The Eye Tribe, трекера Gazepoint GP3 или любого устройства, способного перемещать курсор мыши по экрану (например, аэромыши).
+### Программа для управления компьютером при помощи глаз и одного из трекеров движения глаз: Tobii REX, Tobii EyeX, Tobii Eye Tracker 4C, The Eye Tribe, Gazepoint GP3. Также поддерживается управление поворотом головы вместе с любым устройством, способным перемещать курсор мыши по экрану (например, с аэромышью).
 
 Подробнее можно прочитать здесь:  
 
@@ -15,19 +15,23 @@ http://www.microsoft.com/ru-ru/download/details.aspx?id=30679
 Если он у вас не установлен, то при запуске программы вы увидите сообщение о том, что не найден файл msvcrt110.dll
 
 
-### Использование с Tobii Rex или EyeX
-Для работы программы с Tobii Rex или EyeX необходим файл "TobiiGazeCore32.dll", который идёт в комплекте с Gaze SDK 4.0,
-а ещё я нашёл его у себя в каталоге "C:\Program Files (x86)\Tobii\Tobii EyeX" после установки "Tobii Eye Experience".
+### Использование с Tobii Rex или Tobii EyeX или Tobii Eye Tracker 4C
+Для работы программы с Tobii Rex или Tobii EyeX или Tobii Eye Tracker 4C необходим файл "TobiiGazeCore32.dll" или "TobiiGazeCore64.dll",  которые идут в комплекте с Gaze SDK 4.0.
+Ещё вы можете поискать их в каталогах "C:\Program Files (x86)\Tobii\..." и "C:\Program Files\Tobii\..." после установки "Tobii Eye Tracking Core Software".
  
-Скопируйте файл "TobiiGazeCore32.dll" в рабочий каталог программы.
+Скопируйте файл "TobiiGazeCore32.dll" или "TobiiGazeCore64.dll" в рабочий каталог программы.
+"TobiiGazeCore32.dll" используется, если вы запускаете программу "bkb32d.exe" (32-битная версия),
+"TobiiGazeCore64.dll" используется, если вы запускаете программу "bkb64d.exe" (64-битная версия).
+
+Если вы нашли несколько файлов вида "TobiiGazeCoreXX.dll", используйте файл более свежей версии. Для работы с Tobii Eye Tracker 4C нужен файл версии не старее 4.1.3.X
 
 ~~Gaze SDK 4.0 можно скачать вот здесь: http://developer.tobii.com/downloads/ (требуется регистрация)
 Ищите файл с именем TobiiGazeSdk-CApi-4.0.X.XXX-Win32, где X-цифры текущей версии.~~
 
-Перед началом работы зайдите в контрольную панель Windows, запустите "Tobii EyeX Settings (32 bit)" и  откалибруйте устройство.
+Перед началом работы откалибруйте устройство.
 
 ### Использование с The Eye Tribe
-Должна быть запущена программа Eye Tribe Server. Также нужно откалибровать устройство при помощи программы Eye Tribe UI перед запуском программы bkb32c.exe
+Должна быть запущена программа Eye Tribe Server. Также нужно откалибровать устройство при помощи программы Eye Tribe UI перед запуском программы bkb32d.exe
 
 ### Использование с Gazepoint GP3
 Должна быть запущена программа Gazepoint Control.
@@ -76,7 +80,7 @@ Windows нужны: Ws2_32.lib, winmm.lib,Msimg32.lib
 
 ## in English
 
-bkb is a program to control keyboard/mouse with eyes. It supports TobiiREX and EyeX eye trackers, The Eye Trybe eye tracker, Gazepoint GP3 eye tracker, and any device that can move a mouse cursor (e.g. an airmouse).
+bkb is a program to control keyboard/mouse with eyes. It supports the following eye trackers: TobiiREX, Tobii EyeX, Tobii Eye Tracker 4C, The Eye Trybe, Gazepoint GP3. It also supports controlling keyboard/mouse by turning the head along with any device that can move a mouse cursor (e.g. an airmouse).
 
 ### Installation:
 Just unzip the bkb32c-English.zip to any folder. Make sure that this folder remains the working  directory of the program. Otherwise the program won't load messages.bkb and keyboard.bkb files,  and you'll get Russian interface instead of English one.
@@ -87,19 +91,24 @@ http://www.microsoft.com/en-us/download/details.aspx?id=30679
 
 If it is not installed, you'll get the error message complaining that the file "msvcrt110.dll"  cannot be found.
 
-### Using the program with the Tobii REX or EyeX eye tracker
+### Using the program with Tobii REX or Tobii EyeX or Tobii Eye Tracker 4C
 
-You need the "TobiiGazeCore32.dll" file to be copied to the working directory of the program.
-By the way, I found it in my "C:\Program Files (x86)\Tobii\Tobii EyeX" directory after installing the "Tobii Eye Experience".
+You will need "TobiiGazeCore32.dll" or "TobiiGazeCore64.dll" file to be copied to the working directory of the program. These files are the parts of the Tobii Gaze SDK 4.0.
+You may also try to find them in "C:\Program Files (x86)\Tobii\..." and "C:\Program Files\Tobii\..." directories after installing "Tobii Eye Tracking Core Software".
+
+"TobiiGazeCore32.dll" is required to run the "bkb32d.exe" program (32-bit version),
+"TobiiGazeCore64.dll" is required to run the "bkb64d.exe" program (64-bit version).
+
+If you've found several files like "TobiiGazeCoreXX.dll", use the latest version file. You need at least 4.1.3.X file version to use Tobii Eye Tracker 4C.
 
 ~~Alternatively, Gaze SDK 4.0 can be downloaded from: http://developer.tobii.com/downloads/ (registration required).
 Look for the "TobiiGazeSdk-CApi-4.0.X.XXX-Win32" file, where X-current release numbers.~~
 
-Before starting the program, visit Windows Control Panel, run the "Tobii EyeX Settings (32 bit)" program, and calibrate the device.
+Calibrate the device before starting the program.
 
 ### Using the program with The Eye Tribe tracker
 
-The "Eye Tribe Server" program must be running. Also you need to calibrate the device with the "Eye Tribe UI" before running  the bkb32c.exe
+The "Eye Tribe Server" program must be running. Also you need to calibrate the device with the "Eye Tribe UI" before running  the bkb32d.exe
 
 ### Using the program with Gazepoint GP3 tracker
 
