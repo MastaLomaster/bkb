@@ -16,14 +16,10 @@ http://www.microsoft.com/ru-ru/download/details.aspx?id=30679
 
 
 ### Использование с Tobii Rex или Tobii EyeX или Tobii Eye Tracker 4C
-Для работы программы с Tobii Rex или Tobii EyeX или Tobii Eye Tracker 4C необходим файл "TobiiGazeCore32.dll" или "TobiiGazeCore64.dll",  которые идут в комплекте с Gaze SDK 4.0.
-Ещё вы можете поискать их в каталогах "C:\Program Files (x86)\Tobii\..." и "C:\Program Files\Tobii\..." после установки "Tobii Eye Tracking Core Software".
- 
-Скопируйте файл "TobiiGazeCore32.dll" или "TobiiGazeCore64.dll" в рабочий каталог программы.
-"TobiiGazeCore32.dll" используется, если вы запускаете программу "bkb32d.exe" (32-битная версия),
-"TobiiGazeCore64.dll" используется, если вы запускаете программу "bkb64d.exe" (64-битная версия).
+Для работы программы с **Tobii Rex** или **Tobii EyeX** или **Tobii Eye Tracker 4C** необходим файл "TobiiGazeCore32.dll" версии не ниже 4.1.3.938, который нужно скопировать в рабочий каталог программы.
 
-Если вы нашли несколько файлов вида "TobiiGazeCoreXX.dll", используйте файл более свежей версии. Для работы с Tobii Eye Tracker 4C нужен файл версии не старее 4.1.3.X
+В настоящий момент компания Tobii закрыла возможность скачивания Gaze SDK, содержащего этот файл. Но вы можете найти его, если установите "Tobii EyeX 2.1.1" ( http://files.update.tech.tobii.com/engine/Tobii.EyeX_2.1.1.293.exe ), как 
+указано в документе https://help.tobii.com/hc/en-us/articles/213546185-Attention-all-REX-users.
 
 ~~Gaze SDK 4.0 можно скачать вот здесь: http://developer.tobii.com/downloads/ (требуется регистрация)
 Ищите файл с именем TobiiGazeSdk-CApi-4.0.X.XXX-Win32, где X-цифры текущей версии.~~
@@ -93,13 +89,10 @@ If it is not installed, you'll get the error message complaining that the file "
 
 ### Using the program with Tobii REX or Tobii EyeX or Tobii Eye Tracker 4C
 
-You will need "TobiiGazeCore32.dll" or "TobiiGazeCore64.dll" file to be copied to the working directory of the program. These files are the parts of the Tobii Gaze SDK 4.0.
-You may also try to find them in "C:\Program Files (x86)\Tobii\..." and "C:\Program Files\Tobii\..." directories after installing "Tobii Eye Tracking Core Software".
+You will need "TobiiGazeCore32.dll" version 4.1.3.938 or newer to be copied to the working directory of the program. 
 
-"TobiiGazeCore32.dll" is required to run the "bkb32d.exe" program (32-bit version),
-"TobiiGazeCore64.dll" is required to run the "bkb64d.exe" program (64-bit version).
-
-If you've found several files like "TobiiGazeCoreXX.dll", use the latest version file. You need at least 4.1.3.X file version to use Tobii Eye Tracker 4C.
+At the moment Tobii has discontinued the ability to download Gaze SDK, containing the file. But you can get it if you install "Tobii EyeX 2.1.1" ( http://files.update.tech.tobii.com/engine/Tobii.EyeX_2.1.1.293.exe ), as 
+stated in the document: https://help.tobii.com/hc/en-us/articles/213546185-Attention-all-REX-users.
 
 ~~Alternatively, Gaze SDK 4.0 can be downloaded from: http://developer.tobii.com/downloads/ (registration required).
 Look for the "TobiiGazeSdk-CApi-4.0.X.XXX-Win32" file, where X-current release numbers.~~
