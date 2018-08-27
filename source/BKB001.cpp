@@ -16,6 +16,11 @@
 #include "BKBMetricsWnd.h"
 #include "BKBTurtle.h"
 #include "GP3.h"
+#include "Grid.h"
+#include "Fixation.h"
+
+extern FILE *debug_fout;
+extern int transparency;
 
 // Для установки хука на мышь
 static HHOOK handle;
@@ -26,7 +31,7 @@ LRESULT CALLBACK WndProc(HWND,UINT,WPARAM,LPARAM);
 int StartupDialog();
 
 // Глобальные переменные, которые могут потребоваться везде
-//TCHAR		BKBAppName=L"Клавиатура и мышь для управления глазами : сборка D / Keyboard & Mouse control with the eyes : Release D";
+//TCHAR		BKBAppName=L"Клавиатура и мышь для управления глазами : сборка E / Keyboard & Mouse control with the eyes : Release E";
 HINSTANCE	BKBInst;
 HWND		BKBhwnd;
 int tracking_device;
@@ -73,10 +78,19 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 		break;
 	}
 
+	// При необходимости меняем режим на GRID
+	if(BKBGrid::f_grid_only)
+	{
+		Fixation::SetGridMode();
+		transparency=100;
+	}
+
 	// Кисти-фонты, screen_scale
 	BKBgdiInit();
 	// Звуки
 	BKBClick::Init();
+	// Grid
+	BKBGrid::Load();
 
 	// Создаем окна
 	//BKBMagnifyWnd::Init(); // Увеличительное
@@ -128,6 +142,14 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 	}
 
 	Internat::Unload();
+
+#ifdef _DEBUG
+	if(debug_fout)
+	{
+		fflush(debug_fout);
+		fclose(debug_fout);
+	}
+#endif
 
 	return 0;
 }

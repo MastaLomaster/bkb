@@ -1,5 +1,6 @@
 ﻿#include <Windows.h>
 #include <stdint.h> // Это для uint64_t
+#include "resource.h"
 #include "ToolWnd.h"
 #include "BKBRepErr.h"
 #include "KeybWnd.h"
@@ -10,6 +11,7 @@
 #include "WM_USER_messages.h"
 #include "Fixation.h"
 #include "BKBTurtle.h"
+#include "Grid.h"
 
 
 //int gBKB_TOOLBOX_WIDTH=128;
@@ -50,10 +52,11 @@ ToolWndConfig tool_config[BKB_NUM_TOOLS]=
 };
 #else
 
-#define BKB_NUM_TOOLS 9
+#define BKB_NUM_TOOLS 10
 ToolWndConfig tool_config[BKB_NUM_TOOLS]=
 {
 	{L"КЛАВИШИ",17,0,BKB_MODE_KEYBOARD},
+	//{L"ТАБЛИЦА",79,0,BKB_MODE_GRID},
 	//{L"ЧЕРЕПАШКА",77,1,BKB_MODE_TURTLE},
 	{L"ЛЕВЫЙ",12,1,BKB_MODE_LCLICK},
 	{L"ЛЕВЫЙ,..",34,1,BKB_MODE_LCLICK_PLUS},
@@ -64,6 +67,7 @@ ToolWndConfig tool_config[BKB_NUM_TOOLS]=
 	{L"СКРОЛЛ",16,0,BKB_MODE_SCROLL},
 	// {L"КЛАВИШИ",17,0,BKB_MODE_KEYBOARD},
 	{L"Туда-Сюда",18,0,BKB_MODE_SWAP},
+	{L"ТАБЛИЦА",79,0,BKB_MODE_GRID},
 	{L"Спать",76,0,BKB_MODE_SLEEP}
 	//{L"РЕЗЕРВ",19,0,BKB_MODE_NONE} 
 };
@@ -114,7 +118,7 @@ int BKBToolWnd::height=0;
 bool BKBToolWnd::left_side=false;
 
 static int bkb_sleep_count=BKB_SLEEP_COUNT; // Количество фиксаций для вывода из состояния сна
-static int transparency=60, last_transparency=60;
+int transparency=60, last_transparency=60;
 
 static TCHAR *button_exit=L"ВЫХОД";
 static TCHAR *button_cancel=L"ОТМЕНА";
@@ -202,8 +206,10 @@ HWND BKBToolWnd::Init()
 		//sizeof(LONG_PTR), // Сюда пропишем ссылку на объект
 		0,
 		BKBInst,
-		LoadIcon( NULL, IDI_APPLICATION),
-        LoadCursor(NULL, IDC_ARROW), 
+		//LoadIcon( NULL, IDI_APPLICATION),
+        //MAKEINTRESOURCE(IDI_ICON1),
+		LoadIcon(BKBInst, MAKEINTRESOURCE(IDI_ICON1)),
+		LoadCursor(NULL, IDC_ARROW), 
 		//Надо бы красить фон
         dkblue_brush,
 		//0,
@@ -224,6 +230,7 @@ HWND BKBToolWnd::Init()
 	Tlhwnd=CreateWindowEx(
 	//WS_EX_LAYERED | WS_EX_TOPMOST| WS_EX_CLIENTEDGE,
 	WS_EX_LAYERED | WS_EX_TOPMOST,
+	//WS_EX_LAYERED, // Это для записи видео
 	wnd_class_name,
 	NULL, //TEXT(KBWindowName),
     //WS_VISIBLE|WS_POPUP,
@@ -339,13 +346,14 @@ void BKBToolWnd::OnPaint(HDC hdc)
 		hdc=GetDC(Tlhwnd);
 	}
 
+	RECT rect;
+	GetClientRect(Tlhwnd,&rect);
+	
 	//====================================================================================
 	// Спец. случай - sleep mode Малевича на весь экран
 	if((BKB_MODE_SLEEP==Fixation::CurrentMode())&&gBKB_SLEEP_IN_BLACK)
 	{
-		RECT rect;
 
-		GetClientRect(Tlhwnd,&rect);
 		FillRect(hdc,&rect,(HBRUSH)GetStockObject(BLACK_BRUSH));
 		
 		// И точечку белую (розовую)
@@ -403,7 +411,11 @@ void BKBToolWnd::OnPaint(HDC hdc)
 			LineTo(hdc,gBKB_TOOLBOX_WIDTH-1,tool_height*i);
 		}
 	}
-	else // Нет, не клавиатура и не черепашка
+	else if(BKB_MODE_GRID==Fixation::CurrentMode()) // Обработка режима Grid вынесена в отдельную функцию. Так и раньше надо было делать с другими режимами
+	{
+		BKBGrid::OnPaint(hdc, rect.right, rect.bottom);
+	}
+	else // Нет, не клавиатура и не черепашка, не grid
 	{
 		// 1. Сначала подсветим рабочий инструмент
 		if(current_tool>=0)
@@ -483,7 +495,7 @@ void BKBToolWnd::OnPaint(HDC hdc)
 
 
 
-	}
+	} // не клавиатура, не черепашка, не grid
 
 	// Если брал DC - верни его
 	if(release_dc) ReleaseDC(Tlhwnd,hdc);
@@ -500,23 +512,42 @@ bool BKBToolWnd::IsItYours(POINT *_pnt, BKB_MODE *bm)
 	RECT crect;
 	GetClientRect(Tlhwnd,&crect);
 	ScreenToClient(Tlhwnd,&pnt);
-	if((pnt.x>=0)&&(pnt.x<crect.right)&&(pnt.y>0)&&(pnt.y<height))
+	//if((pnt.x>=0)&&(pnt.x<crect.right)&&(pnt.y>0)&&(pnt.y<height))
+	// 22.07.2018 не понимаю, почему сравнивали с height?
+	if((pnt.x>=0)&&(pnt.x<crect.right)&&(pnt.y>0)&&(pnt.y<crect.bottom))
 	// Ещё не включать режим резерв (потом)
 	{
 		// попала, определяем номер инструмента
 		int position=pnt.y/gBKB_TOOLBOX_WIDTH; // Высота и ширина совпадают
 		int tool_candidate=ToolFromPosition(position);
 		
-		// При аэромыши - берём координаты прозрачного окна (с учётом HighDPI)
-		// !!! Потом проверить на windows 8.1
-		// При других трекерах - координаты курсора
-		POINT p;
-		if(2==tracking_device) BKBTranspWnd::GetPos(&p);
-		else GetCursorPos(&p);
+
+		// Спец. режим - GRID
+		if(BKB_MODE_GRID==*bm)
+		{
+			// Здесь будет определение нажатой кнопки и навигация по GRID с возвратом из функции
+			if(BKBGrid::IsItYours()) // ненулевой код возврата - мы вышли из режима GRID
+			{
+				current_tool=-1;
+				*bm=BKB_MODE_NONE;
+				transparency=60;
+				Place();
+			}
+			
+			// попали точно, даже если не обработали
+			return true;
+		}
 
 		// Спец. режим - черепашка
 		if(BKB_MODE_TURTLE==*bm)
 		{
+			// При аэромыши - берём координаты прозрачного окна (с учётом HighDPI)
+			// !!! Потом проверить на windows 8.1
+			// При других трекерах - координаты курсора
+			POINT p;
+			if(2==tracking_device) BKBTranspWnd::GetPos(&p);
+			else GetCursorPos(&p);
+
 			switch(position)
 			{
 			case 0: // левый
@@ -760,7 +791,7 @@ bool BKBToolWnd::IsItYours(POINT *_pnt, BKB_MODE *bm)
 			Fixation::drag_in_progress=false; // перестраховка на предмет незавершенного дрега
 			current_tool=tool_candidate;
 			*bm=tool_config[tool_candidate].bkb_mode;
-			// Специальные действия с клавиатурой и черепашкой
+			// Специальные действия с клавиатурой и черепашкой и Grid
 			if(BKB_MODE_KEYBOARD==*bm) {BKBKeybWnd::Activate(); Place(); }	// активировать клавиатуру
 			if(BKB_MODE_TURTLE==*bm)
 			{
@@ -772,6 +803,7 @@ bool BKBToolWnd::IsItYours(POINT *_pnt, BKB_MODE *bm)
 				flag_continuous_turtle=false; // Непрерывный взгляд на стрелку черепашки соскочил
 				BKBTurtle::swap_step=0; // Каким бы ни был шаг фиксации - он слетел
 			}
+			if(BKB_MODE_GRID==*bm) {transparency=100; Place(); }	// активировать GRID
 		}
 
 
@@ -910,11 +942,27 @@ void BKBToolWnd::Place()
 		gBKB_TOOLBOX_WIDTH=screenY/BKB_TURTLE_BUTTONS_VISIBLE;
 	}
 
-	// Спец. случай - сон в темноте?
+	// Занимает полный экран в двух случаях:
+	// 1. Спец. случай - сон в темноте?
+	// 2. GRID не минимизированный
 	if(gBKB_SLEEP_IN_BLACK&&BKB_MODE_SLEEP==Fixation::CurrentMode()) 
 	{
 		MoveWindow(Tlhwnd, 0,0, screenX,screenY,TRUE);
 		return;
+	}
+	if(BKB_MODE_GRID==Fixation::CurrentMode())
+	{
+		if(BKBGrid::IsMinimized()) // Одно маленькое окошечко с символом увеличить/уменьшить
+		{
+			MoveWindow(Tlhwnd, 0,0, gBKB_TOOLBOX_WIDTH*2, gBKB_TOOLBOX_WIDTH*2, TRUE);
+			return;
+		}
+		else // Весь экран отдан под Grid
+		{
+			MoveWindow(Tlhwnd, 0,0, screenX,screenY,TRUE);
+			//MoveWindow(Tlhwnd, screenX*3/4,screenY*3/4, screenX/4,screenY/4,TRUE);
+			return;
+		}
 	}
 
 	// Сначала проверяем, уж не клавиши ли выбраны? В этом слкчае вырожденное окно получаем
@@ -950,8 +998,16 @@ LPRECT BKBToolWnd::PinkFrame(int _x, int _y)
 	RECT crect;
 	GetClientRect(Tlhwnd,&crect);
 	ScreenToClient(Tlhwnd,&pnt);
-	if((pnt.x>=0)&&(pnt.x<crect.right)&&(pnt.y>0)&&(pnt.y<height))
+	//if((pnt.x>=0)&&(pnt.x<crect.right)&&(pnt.y>0)&&(pnt.y<height))
+	if((pnt.x>=0)&&(pnt.x<crect.right)&&(pnt.y>0)&&(pnt.y<crect.bottom))
 	{
+
+		// спец.случай - Grid [22/07/2018]
+		if(BKB_MODE_GRID==Fixation::CurrentMode())
+		{
+			return BKBGrid::PinkFrame(pnt.x, pnt.y, crect.right, crect.bottom);
+		}
+
 		// Попала, осталось только найти, в какую ячейку
 		int cell_num=pnt.y/gBKB_TOOLBOX_WIDTH;
 

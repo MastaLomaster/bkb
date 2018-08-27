@@ -29,6 +29,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{8CD2FF65-E6F3-4FF2-A7C3-1AC2E3D334DF}</ProjectGuid>
     <RootNamespace>bkb32d</RootNamespace>
+    <ProjectName>bkb32e</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -196,7 +197,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ResourceCompile Include="bkb32d.rc" />
+    <ResourceCompile Include="bkb32e.rc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AirMouse.h" />
@@ -210,6 +211,7 @@
     <ClInclude Include="Click.h" />
     <ClInclude Include="Fixation.h" />
     <ClInclude Include="GP3.h" />
+    <ClInclude Include="Grid.h" />
     <ClInclude Include="Internat.h" />
     <ClInclude Include="KeybWnd.h" />
     <ClInclude Include="MagnifyWnd.h" />
@@ -235,6 +237,7 @@
     <ClCompile Include="Click.cpp" />
     <ClCompile Include="Fixation.cpp" />
     <ClCompile Include="GP3.cpp" />
+    <ClCompile Include="Grid.cpp" />
     <ClCompile Include="Internat.cpp" />
     <ClCompile Include="KeybLayouts.cpp" />
     <ClCompile Include="KeybWnd.cpp" />
@@ -247,6 +250,10 @@
     <ClCompile Include="TobiiREX.cpp" />
     <ClCompile Include="ToolWnd.cpp" />
     <ClCompile Include="TranspWnd.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="bell.bmp" />
+    <Image Include="icon1.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

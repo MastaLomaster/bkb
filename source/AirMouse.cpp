@@ -93,11 +93,12 @@ void BKBAirMouse::OnTimer()
 //#ifdef BELYAKOV
 //		BKBToolWnd::SleepCheck(&p);
 //#endif
+
 #ifdef _DEBUG
 		// Имитируем нечёткое определение направления взгляда
 #define BKB_EYE_RANDOM 300 
-		p.x+=-BKB_EYE_RANDOM+(2*BKB_EYE_RANDOM*rand()/RAND_MAX);
-		p.y+=-BKB_EYE_RANDOM+(2*BKB_EYE_RANDOM*rand()/RAND_MAX);
+		//p.x+=-BKB_EYE_RANDOM+(2*BKB_EYE_RANDOM*rand()/RAND_MAX);
+		//p.y+=-BKB_EYE_RANDOM+(2*BKB_EYE_RANDOM*rand()/RAND_MAX);
 #endif
 
 		//gd.tracking_status = TOBIIGAZE_TRACKING_STATUS_BOTH_EYES_TRACKED;

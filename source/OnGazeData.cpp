@@ -14,6 +14,7 @@
 #include "BKBProgressWnd.h"
 #include "BKBMetricsWnd.h"
 #include "TobiiREX.h"
+#include "Grid.h"
 
 int FIXATION_LIMIT=30; // Сколько последовательных точек с низкой дисперсией считать фиксацией (для клавиатуры)
 int NOTKBD_FIXATION_LIMIT=30; // Сколько последовательных точек с низкой дисперсией считать фиксацией (не для клавиатуры)
@@ -278,11 +279,14 @@ void on_gaze_data_main_thread()
 #endif
 				BKBTranspWnd::Move(screen_cursor_point.x,screen_cursor_point.y);
 		}
-
 		// При скролле рисуем прозрачное окно только тогда, когда оно попадает на тулбар
-		if(BKB_MODE_SCROLL==Fixation::CurrentMode()) 
+		else if(BKB_MODE_SCROLL==Fixation::CurrentMode()) 
 		{
 			BKBToolWnd::ScrollCursor(&screen_cursor_point);
+		}
+		else if(BKB_MODE_GRID==Fixation::CurrentMode()) 
+		{
+			BKBGrid::ShowCursor(&screen_cursor_point);
 		}
 
 //=================================================================================

@@ -1,12 +1,17 @@
 ﻿#include <Windows.h>
 #include "BKBgdi.h"
+#include "resource.h"
 
 HPEN red_pen, green_pen, dkyellow_pen, pink_pen, strange_pen; // перья и кисти для рисования
-HBRUSH dkblue_brush, dkblue_brush2, blue_brush, dkyellow_brush;
+HBRUSH dkblue_brush, dkblue_brush2, blue_brush, dkyellow_brush, green_brush, red_brush;
 HFONT hfont;
 HCURSOR hCursor;
 
 int screenX, screenY, mouscreenX, mouscreenY;
+
+HBITMAP hbm_bell;
+extern HINSTANCE	BKBInst;
+
 
 double screen_scale=1.0;
 
@@ -23,6 +28,9 @@ void BKBgdiInit()
 	dkblue_brush2=CreateSolidBrush(RGB(100,72,100));
 	blue_brush=CreateSolidBrush(RGB(188,199,216));
 	dkyellow_brush=CreateSolidBrush(RGB(227,198,2));
+
+	green_brush=CreateSolidBrush(RGB(100,255,100));
+	red_brush=CreateSolidBrush(RGB(255,50,50));
 
 	hfont = CreateFont( -48, 0, 0, 0, FW_BOLD, 0, 0, 0,
 		RUSSIAN_CHARSET,
@@ -45,6 +53,9 @@ void BKBgdiInit()
 	mouscreenY=dm.dmPelsHeight;
 
 	hCursor = LoadCursor(NULL, IDC_ARROW); 
+
+	hbm_bell=LoadBitmap(BKBInst, MAKEINTRESOURCE(IDB_BITMAP_BELL));
+
 }
 
 void BKBgdiHalt()
@@ -61,6 +72,11 @@ void BKBgdiHalt()
 	DeleteObject(dkblue_brush2);
 	DeleteObject(dkyellow_brush);
 
+	DeleteObject(red_brush);
+	DeleteObject(green_brush);
+
 	DeleteObject(hfont);
 	DeleteObject(hCursor);
+
+	DeleteObject(hbm_bell);
 }

@@ -2,6 +2,7 @@
 #include "resource.h"
 #include "Internat.h"
 #include "BKBSettings.h"
+#include "Grid.h"
 
 extern HINSTANCE	BKBInst;
 
@@ -11,8 +12,8 @@ static TCHAR *timeout_chars[5]={L"00",L"01",L"02",L"03",L"04"};
 
 // Усиление мыши на выбор, определены в BKBSettings.cpp (к сожалению, не работает extern const)
 const int BKB_MOUSE_MULTIPLIERS=7;
-extern BKBIntChar dlg_mouse_x_multiplier[BKB_MOUSE_MULTIPLIERS],dlg_mouse_y_multiplier[BKB_MOUSE_MULTIPLIERS]; 
-extern int dlg_current_mouse_x_multiplier, dlg_current_mouse_y_multiplier;
+extern BKBIntChar dlg_mouse_x_multiplier[BKB_MOUSE_MULTIPLIERS],dlg_mouse_y_multiplier[BKB_MOUSE_MULTIPLIERS], dlg_grid_only[2]; 
+extern int dlg_current_mouse_x_multiplier, dlg_current_mouse_y_multiplier, dlg_current_grid_only;
 
 extern int g_BKB_MOUSE_X_MULTIPLIER, g_BKB_MOUSE_Y_MULTIPLIER; // Определены в AirMouse.cpp
 
@@ -25,6 +26,12 @@ static void GetSettings(HWND hdwnd)
 	g_BKB_MOUSE_X_MULTIPLIER=dlg_mouse_x_multiplier[dlg_current_mouse_x_multiplier].value;
 	dlg_current_mouse_y_multiplier=SendDlgItemMessage(hdwnd,IDC_COMBO_Y_MULTIPLIER, CB_GETCURSEL, 0, 0L);
 	g_BKB_MOUSE_Y_MULTIPLIER=dlg_mouse_y_multiplier[dlg_current_mouse_y_multiplier].value;	
+
+	if(BST_CHECKED==SendDlgItemMessage(hdwnd, IDC_CHECK_GRIDONLY, BM_GETCHECK, 0, 0))
+		dlg_current_grid_only=1;
+	else
+		dlg_current_grid_only=0;
+	BKBGrid::f_grid_only=(bool)dlg_grid_only[dlg_current_grid_only].value;
 }
 
 //===================================================================
@@ -36,6 +43,7 @@ static BOOL CALLBACK DlgSettingsWndProc(HWND hdwnd,
 						   LPARAM lparam )
 {
 	static int timeout_counter;
+	static bool f_settings_changed=false; // Если поменялись настройки grid, нужно сохранить в файле конфигурации
 
 if (uMsg==WM_COMMAND)
 	{
@@ -44,24 +52,28 @@ if (uMsg==WM_COMMAND)
 		case IDCANCEL: // Не случилось. [Аэро]Мышь
 			KillTimer(hdwnd,2);
 			GetSettings(hdwnd);
+			if(f_settings_changed) BKBSettings::SaveBKBConfig();
 			EndDialog(hdwnd,2);
 			return 1;
 
 		case IDOK: 	//Хорошо! Tobii!
 			KillTimer(hdwnd,2);
 			GetSettings(hdwnd);
+			if(f_settings_changed) BKBSettings::SaveBKBConfig();
 			EndDialog(hdwnd,0);
 			return 1;
 
 		case IDOK2: 	//Хорошо! TheEyeTribe!
 			KillTimer(hdwnd,2);
 			GetSettings(hdwnd);
+			if(f_settings_changed) BKBSettings::SaveBKBConfig();
 			EndDialog(hdwnd,1);
 			return 1;
 
 		case IDOK3: 	//Хорошо! Gazepoint GP3!
 			KillTimer(hdwnd,2);
 			GetSettings(hdwnd);
+			if(f_settings_changed) BKBSettings::SaveBKBConfig();
 			EndDialog(hdwnd,3);
 			return 1;
 
@@ -73,7 +85,14 @@ if (uMsg==WM_COMMAND)
 
 		case IDC_BUTTON_SETTINGS:
 			KillTimer(hdwnd,2); // Если тронули настройки - таймер останавливается
+			GetSettings(hdwnd); // поправим настройки
 			BKBSettings::SettingsDialogue(hdwnd);
+			break;
+			
+		case IDC_CHECK_GRIDONLY:
+			SendDlgItemMessage(hdwnd,IDC_TIMEOUT, WM_SETTEXT, 0L, (LPARAM)Internat::Message(45,L"(ждём)"));
+			KillTimer(hdwnd,2); // Если тронули настройки - таймер останавливается
+			f_settings_changed=true;
 			break;
 
 		} // switch WM_COMMAND
@@ -102,6 +121,9 @@ if (uMsg==WM_COMMAND)
 		if(Internat::Message(42,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_NOTES1, WM_SETTEXT, 0L, (LPARAM)Internat::Message(42,0)); // * Диалог настроек также вызывается
 		if(Internat::Message(43,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_NOTES2, WM_SETTEXT, 0L, (LPARAM)Internat::Message(43,0)); // комбинацией клавиш Fn + TAB на клавиатуре программы
 		if(Internat::Message(62,0)) SendDlgItemMessage(hdwnd,IDC_BUTTON_SETTINGS, WM_SETTEXT, 0L, (LPARAM)Internat::Message(62,0)); // Все настройки
+		if(Internat::Message(80,0)) SendDlgItemMessage(hdwnd,IDC_CHECK_GRIDONLY, WM_SETTEXT, 0L, (LPARAM)Internat::Message(80,0)); // GRID mode
+
+		
 		// Строка в списке возможных значений
 		if(Internat::Message(44,0)) 
 		{
@@ -118,6 +140,13 @@ if (uMsg==WM_COMMAND)
 		// считанные из файла значения
 		SendDlgItemMessage(hdwnd,IDC_COMBO_X_MULTIPLIER, CB_SETCURSEL, dlg_current_mouse_x_multiplier, 0L);
 		SendDlgItemMessage(hdwnd,IDC_COMBO_Y_MULTIPLIER, CB_SETCURSEL, dlg_current_mouse_y_multiplier, 0L);
+
+		// GRID ONLY
+		if(1==dlg_current_grid_only)
+			SendDlgItemMessage(hdwnd, IDC_CHECK_GRIDONLY, BM_SETCHECK, BST_CHECKED, 0);
+		else
+			SendDlgItemMessage(hdwnd, IDC_CHECK_GRIDONLY, BM_SETCHECK, BST_UNCHECKED, 0);
+		
 
 		SetWindowPos(hdwnd,NULL,50,50,0,0,SWP_NOSIZE);
 		SetTimer(hdwnd,2,1000,0);

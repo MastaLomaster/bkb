@@ -8,6 +8,7 @@
 #include "Internat.h"
 #include "KeybWnd.h"
 #include "BKBMetricsWnd.h"
+#include "Grid.h"
 
 extern HINSTANCE	BKBInst;
 
@@ -41,6 +42,10 @@ BKBIntChar dlg_kbd_2step[BKB_YESNO]={{L"Нет",0,IDC_RADIO_KBD_2STEPS_NO},{L"Д
 BKBIntChar dlg_show_clickmods[BKB_YESNO]={{L"Нет",0,IDC_RADIO_CLICKMOD_NO},{L"Да",1,IDC_RADIO_CLICKMOD_YES}}; 
 BKBIntChar dlg_show_metrics[BKB_YESNO]={{L"Нет",0,IDC_RADIO_METRICS_NO},{L"Да",1,IDC_RADIO_METRICS_YES}}; 
 
+// для режима Grid Only (вырожденный, но нужен для чтения/сохранения)
+// !!! Потом поменять значение по усолчанию на 0
+BKBIntChar dlg_grid_only[2]={{L"Нет",0,NULL},{L"Да",1,NULL}};
+int dlg_current_grid_only=0;
 
 int dlg_current_kbd_fullscreen=1;
 int dlg_current_kbd_2step=0;
@@ -326,6 +331,7 @@ void BKBSettings::ActualizeLoad()
 	gBKB_MBUTTONFIX=dlg_mbuttonfix[dlg_current_mbuttonfix].value;
 	gBKB_SHOW_METRICS=dlg_show_metrics[dlg_current_show_metrics].value;
 	gBKB_DISP_PERCENT=dlg_dispersion[dlg_current_dispersion].value;
+	BKBGrid::f_grid_only=(bool)dlg_grid_only[dlg_current_grid_only].value;
 }
 
 
@@ -419,7 +425,7 @@ typedef struct
 	int max_index;
 } T_save_struct;
 
-#define NUM_SAVE_LINES 13
+#define NUM_SAVE_LINES 14
 
 static T_save_struct save_struct[NUM_SAVE_LINES]=
 {
@@ -435,8 +441,10 @@ static T_save_struct save_struct[NUM_SAVE_LINES]=
 	{"ToolBarCells",&dlg_current_toolbarcells,dlg_toolbarcells, BKB_SET_TOOLBARCELLS },
 	{"MButtonFix",&dlg_current_mbuttonfix,dlg_mbuttonfix, BKB_SET_MBUTTONFIX },
 	{"ShowMetrics",&dlg_current_show_metrics,dlg_show_metrics, BKB_YESNO },
-	{"Dispersion",&dlg_current_dispersion,dlg_dispersion, BKB_SET_DISPERSION }
+	{"Dispersion",&dlg_current_dispersion,dlg_dispersion, BKB_SET_DISPERSION },
+	{"GridOnly", &dlg_current_grid_only, dlg_grid_only,2 }
 };
+
 
 
 //===============================================================================================

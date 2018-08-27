@@ -43,6 +43,8 @@ http://www.microsoft.com/ru-ru/download/details.aspx?id=30679
 
 http://youtu.be/O68C4d2SNC8
 
+https://youtu.be/9q_z0pmnY74
+
 http://youtu.be/rqcN9IZ39_4
 
 
@@ -118,6 +120,8 @@ Take a look at these videos to understand the modes of operation:
 http://youtu.be/O68C4d2SNC8
 
 (English subtitles)
+
+https://youtu.be/9gersivzkUc
 
 http://youtu.be/rqcN9IZ39_4
 
