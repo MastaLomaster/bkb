@@ -21,6 +21,7 @@ protected:
 	static void RightClick(POINT p);
 	static void DoubleClick(POINT p);
 	static bool Drag(POINT p); // true - значит закончил, можно сбрасывать режим
+	static bool Drag2(POINT p); // старая версия
 	static void ClickModifiers(bool press); // нажать-отпустить модификаторы клика
 
 	static BKB_MODE BKB_Mode;

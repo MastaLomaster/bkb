@@ -29,12 +29,16 @@ static bool mouse_inside_keyboard=false, last_mouse_inside_keyboard=false; // Д
 static int funcFIXATION_LIMIT()
 {
 	if((BKB_MODE_KEYBOARD==Fixation::CurrentMode())&&(true==mouse_inside_keyboard)) return FIXATION_LIMIT;
+	else if(BKB_MODE_GRID==Fixation::CurrentMode()) return NOTKBD_FIXATION_LIMIT*3; // в ражиме таблицы фиксация увеличивается втрое
+	else if(BKBToolWnd::tool_modifier[3]) return NOTKBD_FIXATION_LIMIT*2; // в режиме без зума фиксация увеличивается вдвое
 	else return NOTKBD_FIXATION_LIMIT;
 }
 
 static int funcPOSTFIXATION_SKIP()
 {
 	if((BKB_MODE_KEYBOARD==Fixation::CurrentMode())&&(true==mouse_inside_keyboard)) return POSTFIXATION_SKIP;
+	else if(BKB_MODE_GRID==Fixation::CurrentMode()) return NOTKBD_POSTFIXATION_SKIP*3; // в ражиме таблицы фиксация увеличивается втрое
+	else if(BKBToolWnd::tool_modifier[3]) return NOTKBD_POSTFIXATION_SKIP*2; // в режиме без зума фиксация увеличивается вдвое
 	else return NOTKBD_POSTFIXATION_SKIP;
 }
 
@@ -363,15 +367,17 @@ void on_gaze_data_main_thread()
 			if(skip_count>0) skip_count--;
 		}
 		// Замечена попытка фиксации взгляда
-		// Фиксация увеличивается вдвое при работе без зума
+		// Фиксация увеличивается вдвое при работе без зума (25.09.2018 - это вынесено в функцию funcFIXATION_LIMIT )
 		// Добавлена возможность имитировать фиксацию нажатием средней кнопки мыши
-		if((fixation_count>=funcFIXATION_LIMIT()*2)||((fixation_count>=funcFIXATION_LIMIT())&&(!BKBToolWnd::tool_modifier[3]))||
-			(true==BKB_MBUTTON_PRESSED)) 
+		//if((fixation_count>=funcFIXATION_LIMIT()*2)||((fixation_count>=funcFIXATION_LIMIT())&&(!BKBToolWnd::tool_modifier[3]))||
+		if((fixation_count>=funcFIXATION_LIMIT())||(true==BKB_MBUTTON_PRESSED)) 
 		{
 			
 			fixation_count=0; // первым делом сбросим эту переменную
 			skip_count=funcPOSTFIXATION_SKIP();
-			if(BKBToolWnd::tool_modifier[3]) skip_count*=2; // Фиксация увеличивается вдвое при работе без зума
+
+			// Увеличение вынесено в саму функцию funcPOSTFIXATION_SKIP
+			//if(BKBToolWnd::tool_modifier[3]) skip_count*=2; // Фиксация увеличивается вдвое при работе без зума
 
 			if(true==BKB_MBUTTON_PRESSED)
 			{

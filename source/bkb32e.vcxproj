@@ -215,6 +215,7 @@
     <ClInclude Include="Internat.h" />
     <ClInclude Include="KeybWnd.h" />
     <ClInclude Include="MagnifyWnd.h" />
+    <ClInclude Include="MyGaze.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Smooth.h" />
     <ClInclude Include="TET.h" />
@@ -243,6 +244,7 @@
     <ClCompile Include="KeybWnd.cpp" />
     <ClCompile Include="KeybWndLoad.cpp" />
     <ClCompile Include="MagnifyWnd.cpp" />
+    <ClCompile Include="MyGaze.cpp" />
     <ClCompile Include="OnGazeData.cpp" />
     <ClCompile Include="Smooth.cpp" />
     <ClCompile Include="StartupDialog.cpp" />

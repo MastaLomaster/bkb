@@ -276,6 +276,89 @@ bool Fixation::Drag(POINT p)
     double YSCALEFACTOR = 65535.0 / (GetSystemMetrics(SM_CYSCREEN) - 1);
 
 	// Из-за того, что не обнулял, были страшные глюки. Очень странно...
+	// разобрался. SendInput вызывался даже на первом шаге, вот и все глюки...
+	INPUT input[4]={0};
+
+	if(!drag_in_progress) // Только нажимаем
+	{
+		drag_in_progress=true;
+		// просто запоминаем исходную позицию
+		p_initial=p;
+
+		// Теперь нажимаем и удерживаем кнопку уже после первой фиксации
+		// 1. Сначала подвинем курсор
+		input[0].type=INPUT_MOUSE;
+		input[0].mi.dx=(LONG)(p_initial.x*XSCALEFACTOR);
+		input[0].mi.dy=(LONG)(p_initial.y*YSCALEFACTOR);
+		input[0].mi.mouseData=0; // Нужно для всяких колёс прокрутки 
+		input[0].mi.dwFlags=MOUSEEVENTF_ABSOLUTE|MOUSEEVENTF_MOVE;
+		input[0].mi.time=0;
+		input[0].mi.dwExtraInfo=0;
+
+		// 2. нажатие левой кнопки
+		input[1].type=INPUT_MOUSE;
+		input[1].mi.dx=(LONG)(p_initial.x*XSCALEFACTOR);
+		input[1].mi.dy=(LONG)(p_initial.y*YSCALEFACTOR);
+		input[1].mi.mouseData=0; // Нужно для всяких колёс прокрутки 
+		input[1].mi.dwFlags=MOUSEEVENTF_ABSOLUTE|MOUSEEVENTF_LEFTDOWN;
+		input[1].mi.time=0;
+		input[1].mi.dwExtraInfo=0;
+
+		// Имитирует нажатие и отпускание правой кнопки мыши
+		//SendInput(4,input,sizeof(INPUT));
+		skip_mouse_hook=true;
+		SendInput(2,&input[0],sizeof(INPUT));
+		skip_mouse_hook=false;
+
+
+	}
+	else
+	{
+		drag_in_progress=false;
+
+		// 3. Сначала подвинем курсор
+		input[2].type=INPUT_MOUSE;
+		input[2].mi.dx=(LONG)(p.x*XSCALEFACTOR);
+		input[2].mi.dy=(LONG)(p.y*YSCALEFACTOR);
+		input[2].mi.mouseData=0; // Нужно для всяких колёс прокрутки 
+		input[2].mi.dwFlags=MOUSEEVENTF_ABSOLUTE|MOUSEEVENTF_MOVE;
+		input[2].mi.time=0;
+		input[2].mi.dwExtraInfo=0;
+
+	
+		// 4. отпускание левой кнопки
+		input[3].type=INPUT_MOUSE;
+		input[3].mi.dx=(LONG)(p.x*XSCALEFACTOR);
+		input[3].mi.dy=(LONG)(p.y*YSCALEFACTOR);
+		input[3].mi.mouseData=0; // Нужно для всяких колёс прокрутки 
+		input[3].mi.dwFlags=MOUSEEVENTF_ABSOLUTE|MOUSEEVENTF_LEFTUP;
+		input[3].mi.time=0;
+		input[3].mi.dwExtraInfo=0;
+
+		// Имитирует нажатие и отпускание правой кнопки мыши
+		//SendInput(4,input,sizeof(INPUT));
+		skip_mouse_hook=true;
+		SendInput(2,&input[2],sizeof(INPUT));
+		skip_mouse_hook=false;
+	}
+
+	return drag_in_progress;
+
+}
+
+//==============================================================================================
+// Имитирует начало и конец дрега (старая версия)
+//==============================================================================================
+bool Fixation::Drag2(POINT p)
+{
+	static POINT p_initial;
+
+	// Содрано из интернета
+	double XSCALEFACTOR = 65535.0 / (GetSystemMetrics(SM_CXSCREEN) - 1);
+    double YSCALEFACTOR = 65535.0 / (GetSystemMetrics(SM_CYSCREEN) - 1);
+
+	// Из-за того, что не обнулял, были страшные глюки. Очень странно...
+	// разобрался. SendInput вызывался даже на первом шаге, вот и все глюки...
 	INPUT input[4]={0};
 
 	if(!drag_in_progress) // Только нажимаем
@@ -324,20 +407,21 @@ bool Fixation::Drag(POINT p)
 		input[3].mi.dwFlags=MOUSEEVENTF_ABSOLUTE|MOUSEEVENTF_LEFTUP;
 		input[3].mi.time=0;
 		input[3].mi.dwExtraInfo=0;
+
+		// Имитирует нажатие и отпускание правой кнопки мыши
+		//SendInput(4,input,sizeof(INPUT));
+		skip_mouse_hook=true;
+		SendInput(2,&input[0],sizeof(INPUT));
+		Sleep(80);
+		SendInput(2,&input[2],sizeof(INPUT));
+		skip_mouse_hook=false;
 	}
 
-	// Имитирует нажатие и отпускание правой кнопки мыши
-	//SendInput(4,input,sizeof(INPUT));
-	skip_mouse_hook=true;
-	SendInput(2,&input[0],sizeof(INPUT));
-	Sleep(80);
-	SendInput(2,&input[2],sizeof(INPUT));
-	skip_mouse_hook=false;
+
 
 	return drag_in_progress;
 
 }
-
 //==============================================================================================
 // Скролл на величину, пропорциональную времени в сторону direction
 //==============================================================================================

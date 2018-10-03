@@ -122,7 +122,8 @@ static BOOL CALLBACK DlgSettingsWndProc(HWND hdwnd,
 		break;
 
 	case WM_CLOSE:
-		ShowWindow(hdwnd,SW_HIDE);
+		if(BKBSettings::parent_hwnd) EndDialog(hdwnd,0); // диалог был вызван в начале программы
+		ShowWindow(hdwnd,SW_HIDE); // диалог был вызван во время исполнения программы
         return 1; // Обработали, т.е. забили
 		break;
 
@@ -233,7 +234,9 @@ void BKBSettings::PrepareDialogue(HWND hdwnd)
 	
 	if(Internat::Message(74,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_SHOW_METRICS, WM_SETTEXT, 0L, (LPARAM)Internat::Message(74,0));// Показывать окно с метриками
 	if(Internat::Message(75,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_DISPERSION, WM_SETTEXT, 0L, (LPARAM)Internat::Message(75,0));// Фиксация при разбросе координат не более (% от высоты экрана)
-	
+
+	if(Internat::Message(83,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_TIME_MULTIPLY, WM_SETTEXT, 0L, (LPARAM)Internat::Message(83,0));// * время увеличивается вдвое при работе без зума и втрое в режиме таблицы
+
 }
 
 //=======================================================================================

@@ -4,7 +4,7 @@
 
 HPEN red_pen, green_pen, dkyellow_pen, pink_pen, strange_pen; // перья и кисти для рисования
 HBRUSH dkblue_brush, dkblue_brush2, blue_brush, dkyellow_brush, green_brush, red_brush;
-HFONT hfont;
+HFONT hfont, hfont2;
 HCURSOR hCursor;
 
 int screenX, screenY, mouscreenX, mouscreenY;
@@ -33,9 +33,17 @@ void BKBgdiInit()
 	red_brush=CreateSolidBrush(RGB(255,50,50));
 
 	hfont = CreateFont( -48, 0, 0, 0, FW_BOLD, 0, 0, 0,
-		RUSSIAN_CHARSET,
+		//RUSSIAN_CHARSET,
+		DEFAULT_CHARSET,
 		0, 0, 0, 0, L"Arial");
-	
+
+	hfont2 = CreateFont( -14, 0, 0, 0, FW_NORMAL, 0, 0, 0,
+		//RUSSIAN_CHARSET,
+		DEFAULT_CHARSET,
+		0, 0, 0, 0, L"Arial");
+
+
+	//hfont2=(HFONT)GetStockObject(DEFAULT_GUI_FONT);
 
 	// Получим разрешение экрана
 	screenX=GetSystemMetrics(SM_CXSCREEN);
@@ -75,6 +83,7 @@ void BKBgdiHalt()
 	DeleteObject(red_brush);
 	DeleteObject(green_brush);
 
+	DeleteObject(hfont2);
 	DeleteObject(hfont);
 	DeleteObject(hCursor);
 

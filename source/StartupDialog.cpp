@@ -77,6 +77,13 @@ if (uMsg==WM_COMMAND)
 			EndDialog(hdwnd,3);
 			return 1;
 
+		case IDOK4: 	//Хорошо! myGaze!
+			KillTimer(hdwnd,2);
+			GetSettings(hdwnd);
+			if(f_settings_changed) BKBSettings::SaveBKBConfig();
+			EndDialog(hdwnd,4);
+			return 1;
+
 		case IDC_COMBO_X_MULTIPLIER:
 		case IDC_COMBO_Y_MULTIPLIER:
 			SendDlgItemMessage(hdwnd,IDC_TIMEOUT, WM_SETTEXT, 0L, (LPARAM)Internat::Message(45,L"(ждём)"));
@@ -107,7 +114,7 @@ if (uMsg==WM_COMMAND)
 		SetWindowText(hdwnd,Internat::Message(8,L"Что используем?"));
 
 		SendDlgItemMessage(hdwnd,IDC_STATIC_STARTTOBII5SEC, WM_SETTEXT, 0L, (LPARAM)Internat::Message(5,L"Автоматически попробуем запустить трекер Tobii через"));
-		SendDlgItemMessage(hdwnd,IDC_STATIC_THENTTE, WM_SETTEXT, 0L, (LPARAM)Internat::Message(6,L"сек., затем TheEyeTribe,"));
+		SendDlgItemMessage(hdwnd,IDC_STATIC_THENTTE, WM_SETTEXT, 0L, (LPARAM)Internat::Message(6,L"сек., затем TheEyeTribe, затем Gazepoint GP3, затем myGaze,"));
 		SendDlgItemMessage(hdwnd,IDC_STATIC_ALLFAIL, WM_SETTEXT, 0L, (LPARAM)Internat::Message(7,L"а уж если и это не получится, то просто мышь (аэро)."));
 		
 		SendDlgItemMessage(hdwnd,IDOK, WM_SETTEXT, 0L, (LPARAM)Internat::Message(9,L"Трекер Tobii Eye Tracker 4C или EyeX или REX"));

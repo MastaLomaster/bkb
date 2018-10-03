@@ -7,6 +7,7 @@
 #include "ToolWnd.h"
 #include "TranspWnd.h"
 #include "BKBProgressWnd.h"
+#include "BKBHookProc.h"
 
 static bool flag_hide_anim=false; // Прятать окно анимации только поcле перерисовки клавиатуры (с запозданием, чтобы не было flickers)
 
@@ -49,7 +50,7 @@ int BKBKeybWnd::step=0;
 LONG  BKBKeybWnd::anim_width=50,  BKBKeybWnd::anim_height=50;
 
 extern HBRUSH dkblue_brush, blue_brush;
-extern HFONT hfont;
+extern HFONT hfont, hfont2;
 
 extern bool gBKB_2STEP_KBD_MODE;
 
@@ -432,6 +433,9 @@ void BKBKeybWnd::OnPaintStep0(HDC hdc)
 		SelectObject(memdc1, old_font);
 
 		// 3.2. Системным фонтом - то, что длиннее одного символа
+		// Фонт меняем на DEFAULT_CHARSET
+		old_font=(HFONT)SelectObject(memdc1, hfont2);
+
 		for(j=0;j<rows;j++)
 			for(i=0;i<columns;i++)
 			{
@@ -461,7 +465,9 @@ void BKBKeybWnd::OnPaintStep0(HDC hdc)
 				}
 			}
 				
-		
+			// Возвращаем старый фонт
+			SelectObject(memdc1, old_font);
+
 		// ЗДЕСЬ НЕ НУЖЕН break !!! После нулевого шага всегда идёт первый!!!
 
 	case 1:

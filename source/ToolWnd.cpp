@@ -12,7 +12,7 @@
 #include "Fixation.h"
 #include "BKBTurtle.h"
 #include "Grid.h"
-
+#include "BKBHookProc.h"
 
 //int gBKB_TOOLBOX_WIDTH=128;
 
@@ -24,6 +24,7 @@ static int BKB_TURTLE_BUTTONS_VISIBLE=4;
 
 #define BKB_SLEEP_COUNT 3
 
+extern HFONT hfont2;
 
 typedef struct
 {
@@ -230,7 +231,7 @@ HWND BKBToolWnd::Init()
 	Tlhwnd=CreateWindowEx(
 	//WS_EX_LAYERED | WS_EX_TOPMOST| WS_EX_CLIENTEDGE,
 	WS_EX_LAYERED | WS_EX_TOPMOST,
-	//WS_EX_LAYERED, // Это для записи видео
+	//WS_EX_LAYERED, // Для записи видео
 	wnd_class_name,
 	NULL, //TEXT(KBWindowName),
     //WS_VISIBLE|WS_POPUP,
@@ -378,6 +379,9 @@ void BKBToolWnd::OnPaint(HDC hdc)
 	SetBkColor(hdc,RGB(45,62,90));
 	SelectObject(hdc,GetStockObject(WHITE_PEN));
 
+	// Фонт меняем на DEFAULT_CHARSET
+	HFONT	old_font=(HFONT)SelectObject(hdc, hfont2);
+
 	// Собственно, рисование
 	// Новый раздел - в режиме клавиатуры рисуем только две кнопки
 	// Сначала проверяем, уж не клавиатура ли выбрана? В этом случае вырожденное окно получаем
@@ -496,6 +500,9 @@ void BKBToolWnd::OnPaint(HDC hdc)
 
 
 	} // не клавиатура, не черепашка, не grid
+	
+	// Возвращаем старый фонт
+	SelectObject(hdc, old_font);
 
 	// Если брал DC - верни его
 	if(release_dc) ReleaseDC(Tlhwnd,hdc);

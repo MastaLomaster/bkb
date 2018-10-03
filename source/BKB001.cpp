@@ -18,6 +18,7 @@
 #include "GP3.h"
 #include "Grid.h"
 #include "Fixation.h"
+#include "MyGaze.h"
 
 extern FILE *debug_fout;
 extern int transparency;
@@ -70,8 +71,13 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 		
 	case 3: // Gazepoint GP3
 		if(BKBGP3::Init()) tracking_device=2; // сваливаемся на мышь (запоминаем, что гасить в конце)
+		//if(BKBGP3::Init()) tracking_device=4; // сваливаемся на myGaze (запоминаем, что гасить в конце)
 		else break; // всё прошло успешно
-
+/*
+	case 4: // myGaze
+		if(BKBMyGaze::Init()) tracking_device=2; // сваливаемся на мышь (запоминаем, что гасить в конце)
+		else break; // всё прошло успешно
+*/
 	case 2: // просто мышь... ничего здесь не делаем
 		// Запускаем эмуляцию работы устройства Tobii аэромышью
 		// Это сделаем в WM_CREATE ToolBar'a
@@ -138,6 +144,10 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 
 	case 3:
 		BKBGP3::Halt();
+		break;
+
+	case 4:
+		BKBMyGaze::Halt();
 		break;
 	}
 
