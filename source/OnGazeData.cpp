@@ -15,6 +15,7 @@
 #include "BKBMetricsWnd.h"
 #include "TobiiREX.h"
 #include "Grid.h"
+#include "WheelChair.h"
 
 int FIXATION_LIMIT=30; // Сколько последовательных точек с низкой дисперсией считать фиксацией (для клавиатуры)
 int NOTKBD_FIXATION_LIMIT=30; // Сколько последовательных точек с низкой дисперсией считать фиксацией (не для клавиатуры)
@@ -31,6 +32,7 @@ static int funcFIXATION_LIMIT()
 	if((BKB_MODE_KEYBOARD==Fixation::CurrentMode())&&(true==mouse_inside_keyboard)) return FIXATION_LIMIT;
 	else if(BKB_MODE_GRID==Fixation::CurrentMode()) return NOTKBD_FIXATION_LIMIT*3; // в ражиме таблицы фиксация увеличивается втрое
 	else if(BKBToolWnd::tool_modifier[3]) return NOTKBD_FIXATION_LIMIT*2; // в режиме без зума фиксация увеличивается вдвое
+	else if(BKB_MODE_WHEELCHAIR==Fixation::CurrentMode()) return BKBWheelChair::FixationLimit();
 	else return NOTKBD_FIXATION_LIMIT;
 }
 
@@ -39,6 +41,7 @@ static int funcPOSTFIXATION_SKIP()
 	if((BKB_MODE_KEYBOARD==Fixation::CurrentMode())&&(true==mouse_inside_keyboard)) return POSTFIXATION_SKIP;
 	else if(BKB_MODE_GRID==Fixation::CurrentMode()) return NOTKBD_POSTFIXATION_SKIP*3; // в ражиме таблицы фиксация увеличивается втрое
 	else if(BKBToolWnd::tool_modifier[3]) return NOTKBD_POSTFIXATION_SKIP*2; // в режиме без зума фиксация увеличивается вдвое
+	else if(BKB_MODE_WHEELCHAIR==Fixation::CurrentMode()) return BKBWheelChair::PostFixationSkip(); 
 	else return NOTKBD_POSTFIXATION_SKIP;
 }
 

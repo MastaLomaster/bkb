@@ -199,8 +199,12 @@ bool BKBProgressWnd::TryToShow(int _x, int _y, int _percentage) // true = Pink A
 		if((old_top==lp_pink_rect->top)&&(old_left==lp_pink_rect->left)&&(old_right==lp_pink_rect->right)&&(old_bottom==lp_pink_rect->bottom))
 		{
 			// Прямоугольник на старом месте, меняем только ProgressBar
-			percentage=_percentage;
-			InvalidateRect(PRhwnd,NULL,TRUE);
+			// Исключение - режим wheelchair
+			if(BKB_MODE_WHEELCHAIR!=Fixation::CurrentMode())
+			{
+				percentage=_percentage;
+				InvalidateRect(PRhwnd,NULL,TRUE);
+			}
 			return true; // Fixation approved
 		}
 		else // Новое местоположение прямоугольника

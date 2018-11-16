@@ -5,7 +5,10 @@
 #include "TranspWnd.h"
 
 bool BKBGrid::f_minimized=false;
-bool BKBGrid::f_grid_only=false;
+// Теперь это один из возможных режимов gBKB_GRID_WHEELCHAIR;
+//bool BKBGrid::f_grid_only=false;
+extern int gBKB_GRID_WHEELCHAIR;
+
 int BKBGrid::selected_cell=-1;
 
 BKBGrid BKBGrid::mg; // Master Grid - корневая таблица
@@ -19,7 +22,7 @@ extern HBITMAP hbm_bell;
 //===========================================================================
 // рисует стрелку влево (по аналогии с функциями из ToolWnd.cpp)
 //===========================================================================
-static void DrawRightArrow(HDC hdc,int x, int y)
+void DrawRightArrow(HDC hdc,int x, int y)
 {
 	MoveToEx(hdc,x,y-35,NULL);
 	LineTo(hdc,x+50,y);
@@ -31,7 +34,7 @@ static void DrawRightArrow(HDC hdc,int x, int y)
 	LineTo(hdc,x,y-35);
 }
 
-static void DrawLeftArrow(HDC hdc,int x, int y)
+void DrawLeftArrow(HDC hdc,int x, int y)
 {
 	MoveToEx(hdc,x,y-35,NULL);
 	LineTo(hdc,x-50,y);
@@ -46,7 +49,8 @@ static void DrawLeftArrow(HDC hdc,int x, int y)
 //==============================================================================================================
 // Фактически, попадание в ToolBar уже определено. Остаётся выяснить, какая именно ячейка затронута 
 // и остаёмся ли в режиме Grid. Если остаёмся, то возвращаем 0. Если не остаёмся, то 1.
-// При обработка IsItYours в Grid используется определенное ранее (В PinkFrame) значение selected_cell. Заново определять его не будем.
+// При обработка IsItYours в Grid используется определенное ранее (В PinkFrame) значение selected_cell. 
+// Заново определять его не будем.
 //==============================================================================================================
 //int BKBGrid::IsItYours(LONG x, LONG y, LONG width, LONG height)
 int BKBGrid::IsItYours()
@@ -70,7 +74,7 @@ int BKBGrid::IsItYours()
 			// Возврат или минимизация.
 			if(IsTopLevel())
 			{
-				if(f_grid_only) // возвращаться некуда - минимизируем
+				if(1==gBKB_GRID_WHEELCHAIR) // возвращаться некуда - минимизируем
 				{
 					f_minimized=true;
 					// Теперь вместо этого - BKBGrid::ShowCursor()
@@ -335,16 +339,40 @@ void BKBGrid::OnPaint(HDC hdc, LONG width, LONG height)
 //================================================================================================
 void BKBGrid::Activate(int cell)
 {
-	
+	TCHAR cmd_filename[16];
+
 	if(current_grid->child[cell]) // может быть вариант, когда объекта нет (с вопросительным знаком)
 	{
 		// Есть ли звук для проигрывания?
 		if(current_grid->child[cell]->soundfile[0])
 			PlaySound(current_grid->child[cell]->soundfile, NULL, SND_FILENAME|SND_ASYNC);
 
+		// 11.10.2018
+		// Выполняет внешнюю программу
+		// Формируем реальное имя файла
+		wcscpy_s(cmd_filename,L"grid\\"); // Имя файла всегда начинается с каталога grid
+		wcscat_s(cmd_filename,current_grid->child[cell]->filename_template);
+		wcscat_s(cmd_filename,L".cmd");
+
+		BOOL result;
+		STARTUPINFO cif;
+		ZeroMemory(&cif,sizeof(STARTUPINFO));
+		PROCESS_INFORMATION pi;
+
+		result=CreateProcess(cmd_filename,NULL,NULL,NULL,FALSE,NULL,NULL,NULL,&cif,&pi);
+		if(result)
+		{
+			f_minimized=true; // Теперь может минимизироваться не только на верхнем уровне, если запускает программу
+			BKBToolWnd::Place();
+		}
+		// [ конец изменений 11.10.2018 ]
+
 		// Нужно ли делать переход на следующий уровень?
 		if(current_grid->child[cell]->num_active>0)
 			current_grid=current_grid->child[cell];
+
+		
+
 	}
 }
 
@@ -492,6 +520,9 @@ void BKBGrid::Load()
 
 			if(NULL!=g)
 			{
+				// 11.10.2018 Добавили сохранение имени файла без расширения
+				wcsncpy_s(g->filename_template, FindFileData.cFileName, len-4);
+
 				// Формируем реальное имя файла
 				wcscpy_s(filename,L"grid\\"); // Имя файла всегда начинается с каталога grid
 				wcscat_s(filename,FindFileData.cFileName);

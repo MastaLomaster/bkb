@@ -19,9 +19,11 @@
 #include "Grid.h"
 #include "Fixation.h"
 #include "MyGaze.h"
+#include "SerialComm.h"
 
 extern FILE *debug_fout;
 extern int transparency;
+extern int gBKB_GRID_WHEELCHAIR;
 
 // Для установки хука на мышь
 static HHOOK handle;
@@ -85,10 +87,14 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 	}
 
 	// При необходимости меняем режим на GRID
-	if(BKBGrid::f_grid_only)
+	if(1==gBKB_GRID_WHEELCHAIR)
 	{
 		Fixation::SetGridMode();
 		transparency=100;
+	}
+	else if(2==gBKB_GRID_WHEELCHAIR)
+	{
+		Fixation::SetWheelChairMode();
 	}
 
 	// Кисти-фонты, screen_scale
@@ -160,6 +166,8 @@ int WINAPI WinMain(HINSTANCE hInst,HINSTANCE,LPSTR cline,INT)
 		fclose(debug_fout);
 	}
 #endif
+
+	BKBSerial::Halt(); // На всякий случай
 
 	return 0;
 }

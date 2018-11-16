@@ -12,11 +12,11 @@ static TCHAR *timeout_chars[5]={L"00",L"01",L"02",L"03",L"04"};
 
 // Усиление мыши на выбор, определены в BKBSettings.cpp (к сожалению, не работает extern const)
 const int BKB_MOUSE_MULTIPLIERS=7;
-extern BKBIntChar dlg_mouse_x_multiplier[BKB_MOUSE_MULTIPLIERS],dlg_mouse_y_multiplier[BKB_MOUSE_MULTIPLIERS], dlg_grid_only[2]; 
-extern int dlg_current_mouse_x_multiplier, dlg_current_mouse_y_multiplier, dlg_current_grid_only;
+extern BKBIntChar dlg_mouse_x_multiplier[BKB_MOUSE_MULTIPLIERS],dlg_mouse_y_multiplier[BKB_MOUSE_MULTIPLIERS], dlg_grid_wheelchair[3]; 
+extern int dlg_current_mouse_x_multiplier, dlg_current_mouse_y_multiplier, dlg_current_grid_wheelchair;
 
 extern int g_BKB_MOUSE_X_MULTIPLIER, g_BKB_MOUSE_Y_MULTIPLIER; // Определены в AirMouse.cpp
-
+extern int gBKB_GRID_WHEELCHAIR;
 //==================================================================
 // Крохотная функция считывания параметров
 //==================================================================
@@ -27,11 +27,8 @@ static void GetSettings(HWND hdwnd)
 	dlg_current_mouse_y_multiplier=SendDlgItemMessage(hdwnd,IDC_COMBO_Y_MULTIPLIER, CB_GETCURSEL, 0, 0L);
 	g_BKB_MOUSE_Y_MULTIPLIER=dlg_mouse_y_multiplier[dlg_current_mouse_y_multiplier].value;	
 
-	if(BST_CHECKED==SendDlgItemMessage(hdwnd, IDC_CHECK_GRIDONLY, BM_GETCHECK, 0, 0))
-		dlg_current_grid_only=1;
-	else
-		dlg_current_grid_only=0;
-	BKBGrid::f_grid_only=(bool)dlg_grid_only[dlg_current_grid_only].value;
+	dlg_current_grid_wheelchair=SendDlgItemMessage(hdwnd,IDC_COMBO_GRID_WHEELCHAIR, CB_GETCURSEL, 0, 0L);
+	gBKB_GRID_WHEELCHAIR=dlg_grid_wheelchair[dlg_current_grid_wheelchair].value;	
 }
 
 //===================================================================
@@ -96,7 +93,7 @@ if (uMsg==WM_COMMAND)
 			BKBSettings::SettingsDialogue(hdwnd);
 			break;
 			
-		case IDC_CHECK_GRIDONLY:
+		case IDC_COMBO_GRID_WHEELCHAIR:
 			SendDlgItemMessage(hdwnd,IDC_TIMEOUT, WM_SETTEXT, 0L, (LPARAM)Internat::Message(45,L"(ждём)"));
 			KillTimer(hdwnd,2); // Если тронули настройки - таймер останавливается
 			f_settings_changed=true;
@@ -128,8 +125,8 @@ if (uMsg==WM_COMMAND)
 		if(Internat::Message(42,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_NOTES1, WM_SETTEXT, 0L, (LPARAM)Internat::Message(42,0)); // * Диалог настроек также вызывается
 		if(Internat::Message(43,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_NOTES2, WM_SETTEXT, 0L, (LPARAM)Internat::Message(43,0)); // комбинацией клавиш Fn + TAB на клавиатуре программы
 		if(Internat::Message(62,0)) SendDlgItemMessage(hdwnd,IDC_BUTTON_SETTINGS, WM_SETTEXT, 0L, (LPARAM)Internat::Message(62,0)); // Все настройки
-		if(Internat::Message(80,0)) SendDlgItemMessage(hdwnd,IDC_CHECK_GRIDONLY, WM_SETTEXT, 0L, (LPARAM)Internat::Message(80,0)); // GRID mode
-
+		if(Internat::Message(86,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_OPERATION_MODE, WM_SETTEXT, 0L, (LPARAM)Internat::Message(86,0)); // Режим работы
+		
 		
 		// Строка в списке возможных значений
 		if(Internat::Message(44,0)) 
@@ -148,12 +145,14 @@ if (uMsg==WM_COMMAND)
 		SendDlgItemMessage(hdwnd,IDC_COMBO_X_MULTIPLIER, CB_SETCURSEL, dlg_current_mouse_x_multiplier, 0L);
 		SendDlgItemMessage(hdwnd,IDC_COMBO_Y_MULTIPLIER, CB_SETCURSEL, dlg_current_mouse_y_multiplier, 0L);
 
-		// GRID ONLY
-		if(1==dlg_current_grid_only)
-			SendDlgItemMessage(hdwnd, IDC_CHECK_GRIDONLY, BM_SETCHECK, BST_CHECKED, 0);
-		else
-			SendDlgItemMessage(hdwnd, IDC_CHECK_GRIDONLY, BM_SETCHECK, BST_UNCHECKED, 0);
-		
+		// Список режимов GRID/WHEELCHAIR
+		SendDlgItemMessage(hdwnd,IDC_COMBO_GRID_WHEELCHAIR, CB_ADDSTRING, 0,  (LPARAM)Internat::Message(84,L"Обычный"));
+		SendDlgItemMessage(hdwnd,IDC_COMBO_GRID_WHEELCHAIR, CB_ADDSTRING, 0,  (LPARAM)Internat::Message(80,L"Режим таблицы (GRID) - для детей"));
+		SendDlgItemMessage(hdwnd,IDC_COMBO_GRID_WHEELCHAIR, CB_ADDSTRING, 0,  (LPARAM)Internat::Message(85,L"Управление моторизованной коляской через порт COM9 (посылает символы L,F,R,S,B)"));
+
+		// считанные из файла значения
+		SendDlgItemMessage(hdwnd,IDC_COMBO_GRID_WHEELCHAIR, CB_SETCURSEL, dlg_current_grid_wheelchair, 0L);
+
 
 		SetWindowPos(hdwnd,NULL,50,50,0,0,SWP_NOSIZE);
 		SetTimer(hdwnd,2,1000,0);

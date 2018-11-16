@@ -8,7 +8,6 @@
 #include "Internat.h"
 #include "KeybWnd.h"
 #include "BKBMetricsWnd.h"
-#include "Grid.h"
 
 extern HINSTANCE	BKBInst;
 
@@ -42,10 +41,9 @@ BKBIntChar dlg_kbd_2step[BKB_YESNO]={{L"Нет",0,IDC_RADIO_KBD_2STEPS_NO},{L"Д
 BKBIntChar dlg_show_clickmods[BKB_YESNO]={{L"Нет",0,IDC_RADIO_CLICKMOD_NO},{L"Да",1,IDC_RADIO_CLICKMOD_YES}}; 
 BKBIntChar dlg_show_metrics[BKB_YESNO]={{L"Нет",0,IDC_RADIO_METRICS_NO},{L"Да",1,IDC_RADIO_METRICS_YES}}; 
 
-// для режима Grid Only (вырожденный, но нужен для чтения/сохранения)
-// !!! Потом поменять значение по усолчанию на 0
-BKBIntChar dlg_grid_only[2]={{L"Нет",0,NULL},{L"Да",1,NULL}};
-int dlg_current_grid_only=0;
+// Режим работы: 0 - обычный, 1 - GRID, 2 - WheelChair
+BKBIntChar dlg_grid_wheelchair[3]={{L"regular",0,NULL},{L"GRID",1,NULL},{L"WheelChair",2,NULL}};
+int dlg_current_grid_wheelchair=0;
 
 int dlg_current_kbd_fullscreen=1;
 int dlg_current_kbd_2step=0;
@@ -72,7 +70,7 @@ extern int gBKB_TOOLBOX_BUTTONS; // Количество видимых кноп
 int gBKB_MBUTTONFIX=1;
 int gBKB_SHOW_METRICS=0; // Показывать ли окно метрик
 int gBKB_DISP_PERCENT=10; // процент высоты экрана, который задаёт границы дисперсии
-
+int gBKB_GRID_WHEELCHAIR=0; // режим работы стандартный/GRID/WheelChair
 //===================================================================
 // Диалог настроек
 //===================================================================
@@ -334,7 +332,7 @@ void BKBSettings::ActualizeLoad()
 	gBKB_MBUTTONFIX=dlg_mbuttonfix[dlg_current_mbuttonfix].value;
 	gBKB_SHOW_METRICS=dlg_show_metrics[dlg_current_show_metrics].value;
 	gBKB_DISP_PERCENT=dlg_dispersion[dlg_current_dispersion].value;
-	BKBGrid::f_grid_only=(bool)dlg_grid_only[dlg_current_grid_only].value;
+	gBKB_GRID_WHEELCHAIR=dlg_grid_wheelchair[dlg_current_grid_wheelchair].value;
 }
 
 
@@ -445,7 +443,7 @@ static T_save_struct save_struct[NUM_SAVE_LINES]=
 	{"MButtonFix",&dlg_current_mbuttonfix,dlg_mbuttonfix, BKB_SET_MBUTTONFIX },
 	{"ShowMetrics",&dlg_current_show_metrics,dlg_show_metrics, BKB_YESNO },
 	{"Dispersion",&dlg_current_dispersion,dlg_dispersion, BKB_SET_DISPERSION },
-	{"GridOnly", &dlg_current_grid_only, dlg_grid_only,2 }
+	{"GridOnly", &dlg_current_grid_wheelchair, dlg_grid_wheelchair, 3 }
 };
 
 

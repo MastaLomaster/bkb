@@ -217,11 +217,13 @@
     <ClInclude Include="MagnifyWnd.h" />
     <ClInclude Include="MyGaze.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="SerialComm.h" />
     <ClInclude Include="Smooth.h" />
     <ClInclude Include="TET.h" />
     <ClInclude Include="TobiiREX.h" />
     <ClInclude Include="ToolWnd.h" />
     <ClInclude Include="TranspWnd.h" />
+    <ClInclude Include="WheelChair.h" />
     <ClInclude Include="WIDEFILE.h" />
     <ClInclude Include="WM_USER_messages.h" />
   </ItemGroup>
@@ -246,12 +248,14 @@
     <ClCompile Include="MagnifyWnd.cpp" />
     <ClCompile Include="MyGaze.cpp" />
     <ClCompile Include="OnGazeData.cpp" />
+    <ClCompile Include="SerialComm.cpp" />
     <ClCompile Include="Smooth.cpp" />
     <ClCompile Include="StartupDialog.cpp" />
     <ClCompile Include="TET.cpp" />
     <ClCompile Include="TobiiREX.cpp" />
     <ClCompile Include="ToolWnd.cpp" />
     <ClCompile Include="TranspWnd.cpp" />
+    <ClCompile Include="WheelChair.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="bell.bmp" />

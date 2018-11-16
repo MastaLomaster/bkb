@@ -12,6 +12,7 @@
 #include "Fixation.h"
 #include "BKBTurtle.h"
 #include "Grid.h"
+#include "WheelChair.h"
 #include "BKBHookProc.h"
 
 //int gBKB_TOOLBOX_WIDTH=128;
@@ -169,6 +170,21 @@ LRESULT CALLBACK BKBToolWndProc(HWND hwnd,
 		on_gaze_data_main_thread();
 		break;
 
+	case WM_CHAR: // Кое-какие кнопки обрабатываем
+		switch((TCHAR) wparam)
+		{
+			case 0x1B: // Escape - используется для выхода из программы в режиме WheelChair
+				if(BKB_MODE_WHEELCHAIR==Fixation::CurrentMode())
+				{
+					DestroyWindow(hwnd);
+				}
+				break;
+
+			default: // А вот эти клавиши обработает система
+			 return DefWindowProc(hwnd,message,wparam,lparam);
+		}
+		break; // Это от WM_CHAR
+
 	default:
 		return DefWindowProc(hwnd,message,wparam,lparam);
 	}
@@ -297,7 +313,7 @@ int BKBToolWnd::ToolFromPosition(int position)
 }
 
 // Функции, рисующие стрелки (потом сделать другие примитивы)
-static void DrawUpArrow(HDC hdc,int x, int y)
+void DrawUpArrow(HDC hdc,int x, int y)
 {
 	MoveToEx(hdc,x-35,y,NULL);
 	LineTo(hdc,x,y-50);
@@ -309,7 +325,7 @@ static void DrawUpArrow(HDC hdc,int x, int y)
 	LineTo(hdc,x-35,y);
 }
 
-static void DrawDownArrow(HDC hdc,int x, int y)
+void DrawDownArrow(HDC hdc,int x, int y)
 {
 	MoveToEx(hdc,x-35,y,NULL);
 	LineTo(hdc,x,y+50);
@@ -419,7 +435,11 @@ void BKBToolWnd::OnPaint(HDC hdc)
 	{
 		BKBGrid::OnPaint(hdc, rect.right, rect.bottom);
 	}
-	else // Нет, не клавиатура и не черепашка, не grid
+	else if(BKB_MODE_WHEELCHAIR==Fixation::CurrentMode()) // Обработка режима Grid вынесена в отдельную функцию. Так и раньше надо было делать с другими режимами
+	{
+		BKBWheelChair::OnPaint(hdc, rect.right, rect.bottom);
+	}
+	else // Нет, не клавиатура и не черепашка, не grid, не wheelchair
 	{
 		// 1. Сначала подсветим рабочий инструмент
 		if(current_tool>=0)
@@ -527,7 +547,21 @@ bool BKBToolWnd::IsItYours(POINT *_pnt, BKB_MODE *bm)
 		// попала, определяем номер инструмента
 		int position=pnt.y/gBKB_TOOLBOX_WIDTH; // Высота и ширина совпадают
 		int tool_candidate=ToolFromPosition(position);
-		
+
+		// Спец. режим - WheelChair
+		if(BKB_MODE_WHEELCHAIR==*bm)
+		{
+			if(BKBWheelChair::IsItYours()) // ненулевой код возврата - мы вышли из режима WheelChair
+			{
+				current_tool=-1;
+				*bm=BKB_MODE_NONE;
+				transparency=60;
+				Place();
+			}
+			
+			// попали точно, даже если не обработали
+			return true;
+		}
 
 		// Спец. режим - GRID
 		if(BKB_MODE_GRID==*bm)
@@ -798,7 +832,7 @@ bool BKBToolWnd::IsItYours(POINT *_pnt, BKB_MODE *bm)
 			Fixation::drag_in_progress=false; // перестраховка на предмет незавершенного дрега
 			current_tool=tool_candidate;
 			*bm=tool_config[tool_candidate].bkb_mode;
-			// Специальные действия с клавиатурой и черепашкой и Grid
+			// Специальные действия с клавиатурой и черепашкой и Grid и WheelChair
 			if(BKB_MODE_KEYBOARD==*bm) {BKBKeybWnd::Activate(); Place(); }	// активировать клавиатуру
 			if(BKB_MODE_TURTLE==*bm)
 			{
@@ -811,6 +845,7 @@ bool BKBToolWnd::IsItYours(POINT *_pnt, BKB_MODE *bm)
 				BKBTurtle::swap_step=0; // Каким бы ни был шаг фиксации - он слетел
 			}
 			if(BKB_MODE_GRID==*bm) {transparency=100; Place(); }	// активировать GRID
+			if(BKB_MODE_WHEELCHAIR==*bm) {Place(); }	// меняем положение, но прозрачность оставляем 
 		}
 
 
@@ -957,6 +992,7 @@ void BKBToolWnd::Place()
 		MoveWindow(Tlhwnd, 0,0, screenX,screenY,TRUE);
 		return;
 	}
+	
 	if(BKB_MODE_GRID==Fixation::CurrentMode())
 	{
 		if(BKBGrid::IsMinimized()) // Одно маленькое окошечко с символом увеличить/уменьшить
@@ -970,6 +1006,15 @@ void BKBToolWnd::Place()
 			//MoveWindow(Tlhwnd, screenX*3/4,screenY*3/4, screenX/4,screenY/4,TRUE);
 			return;
 		}
+	}
+
+	// WheelChair занимает нижнюю четверть экрана
+	if(BKB_MODE_WHEELCHAIR==Fixation::CurrentMode())
+	{
+		// 31.10.2018 временно 
+		MoveWindow(Tlhwnd, 0,screenY/3, screenX,screenY*2/3,TRUE);
+		// MoveWindow(Tlhwnd, 0,screenY*3/4, screenX,screenY/4,TRUE);
+		return;
 	}
 
 	// Сначала проверяем, уж не клавиши ли выбраны? В этом слкчае вырожденное окно получаем
@@ -1008,6 +1053,11 @@ LPRECT BKBToolWnd::PinkFrame(int _x, int _y)
 	//if((pnt.x>=0)&&(pnt.x<crect.right)&&(pnt.y>0)&&(pnt.y<height))
 	if((pnt.x>=0)&&(pnt.x<crect.right)&&(pnt.y>0)&&(pnt.y<crect.bottom))
 	{
+		// спец.случай - WheelChair [20/10/2018]
+		if(BKB_MODE_WHEELCHAIR==Fixation::CurrentMode())
+		{
+			return BKBWheelChair::PinkFrame(pnt.x, pnt.y, crect.right, crect.bottom);
+		}
 
 		// спец.случай - Grid [22/07/2018]
 		if(BKB_MODE_GRID==Fixation::CurrentMode())
@@ -1053,7 +1103,18 @@ LPRECT BKBToolWnd::PinkFrame(int _x, int _y)
 		
 		return &pink_rect;
 	}
-	else return NULL;
+	else
+	{
+		// Для таймаутов WheelChair нужно знать, когда мы отвели взгляд с кнопок в пустоту 
+		if(BKB_MODE_WHEELCHAIR==Fixation::CurrentMode())
+		{
+			//BKBWheelChair::selected_cell=-1;
+			// Теперь так - возможно, уже пора послать в COM-порт
+			BKBWheelChair::PinkFrameMissed();
+		}
+		return NULL;
+	}
+	
 }
 
 //===========================================================================================

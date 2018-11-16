@@ -4,7 +4,8 @@
 class BKBGrid
 {
 public:
-	static bool f_grid_only; // Режим, при котором показывается только Grid
+	// с появлением новых режимов эту переменную заменила gBKB_GRID_WHEELCHAIR
+	//static bool f_grid_only; // Режим, при котором показывается только Grid
 
 	static bool IsMinimized(){return f_minimized;}
 	static int NumCells();
@@ -39,6 +40,7 @@ protected:
 	BKBGrid *child[16];
 	int num_active;
 	TCHAR soundfile[16]; // В реальности "grid\XXXX.WAV" - максимум 14 символов, включая завершающий ноль
+	TCHAR filename_template[4]; // Имя файла без расширения, например, "001". Для удобства добавления других действий, например, ".CMD" 
 	HBITMAP hbm;
 	int hbm_width, hbm_height;
 
