@@ -8,6 +8,7 @@
 #include "TranspWnd.h"
 #include "BKBProgressWnd.h"
 #include "BKBHookProc.h"
+#include "BKBCOM9Kbd.h"
 
 static bool flag_hide_anim=false; // Прятать окно анимации только поcле перерисовки клавиатуры (с запозданием, чтобы не было flickers)
 
@@ -60,6 +61,7 @@ LPCTSTR kbd_usenglish=L"00000409", kbd_russian=L"00000419";
 HKL hkl_usenglish=0, hkl_russian=0;
 #endif
 
+extern int gBKB_COM9KEYBOARD; // COM9-клавиатура
 
 // Оконная процедура 
 LRESULT CALLBACK BKBKeybWndProc(HWND hwnd,
@@ -888,6 +890,28 @@ bool BKBKeybWnd::IsItYours(POINT *p, BKB_MODE *bm)
 			else
 			{
 				// Нажатие unicode-кнопки
+				// 27.03.2019 управление внешней клавиатурой
+				if(gBKB_COM9KEYBOARD)
+				{
+					WORD unicode;
+
+					if(shift_pressed) unicode=key_pressed.bkb_unicode_uppercase;
+					else unicode=key_pressed.bkb_unicode;
+
+					if(!BKBCOM9Kbd::UnicodeButton(unicode, shift_pressed, ctrl_pressed, alt_pressed))
+					{
+						if((shift_pressed)&&(!caps_lock_pressed))  // Сбрасываем shift, если он не ужерживается caps_lock'ом
+						{
+							shift_pressed=false;
+						}
+						// для соответствия legacy-коду
+						//alt_pressed=false;
+						//ctrl_pressed=false;
+						break; // Удалось послать через железную клавиатуру!
+					}
+				}
+
+				// далее - старый код без внешней клавиатуры
 				input[0].type=INPUT_KEYBOARD;
 				input[0].ki.dwFlags =  KEYEVENTF_UNICODE;
 		
@@ -1054,6 +1078,22 @@ void BKBKeybWnd::ScanCodeButton(WORD scancode)
 
 	INPUT input={0};
 	input.type=INPUT_KEYBOARD;
+
+	// 26.03.2019 управление внешней клавиатурой
+	if(gBKB_COM9KEYBOARD)
+	{
+		if(!BKBCOM9Kbd::ScanCodeButton(scancode, shift_pressed, ctrl_pressed, alt_pressed))
+		{
+			if((shift_pressed)&&(!caps_lock_pressed))  // Сбрасываем shift, если он не ужерживается caps_lock'ом
+			{
+				shift_pressed=false;
+			}
+			alt_pressed=false;
+			ctrl_pressed=false;
+			return; // Удалось послать через железную клавиатуру!
+		}
+	}
+
 
 	// 15.09.2014 При нажатии на PrntScrn прятать клавиатуру
 	if(VK_SNAPSHOT==scancode)
@@ -1609,6 +1649,13 @@ void BKBKeybWnd::BackSpace()
 {
 	INPUT input={0};
 	input.type=INPUT_KEYBOARD;
+
+	// 26.03.2019 управление внешней клавиатурой
+	if(gBKB_COM9KEYBOARD)
+	{
+		if(!BKBCOM9Kbd::ScanCodeButton(VK_BACK, false, false, false))
+			return; // Удалось послать через железную клавиатуру!
+	}
 
 	// Нажатие кнопки
 	input.ki.dwFlags =  0;

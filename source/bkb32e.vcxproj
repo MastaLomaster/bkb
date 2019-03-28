@@ -201,6 +201,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AirMouse.h" />
+    <ClInclude Include="BKBCOM9Kbd.h" />
     <ClInclude Include="BKBgdi.h" />
     <ClInclude Include="BKBHookProc.h" />
     <ClInclude Include="BKBMetricsWnd.h" />
@@ -230,6 +231,7 @@
   <ItemGroup>
     <ClCompile Include="AirMouse.cpp" />
     <ClCompile Include="BKB001.cpp" />
+    <ClCompile Include="BKBCOM9Kbd.cpp" />
     <ClCompile Include="BKBgdi.cpp" />
     <ClCompile Include="BKBHookProc.cpp" />
     <ClCompile Include="BKBMetricsWnd.cpp" />

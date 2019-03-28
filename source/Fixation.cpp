@@ -10,11 +10,14 @@
 //static char debug_buf[4096]; 
 
 extern bool skip_mouse_hook; // Не удлиннять движения мыши, если мы их сами запрограммировали
+extern int tracking_device;
 
 bool my_own_click=false; // Чтобы хук не перехватывал свои собственные клики
 
 BKB_MODE Fixation::BKB_Mode=BKB_MODE_NONE;
 bool Fixation::drag_in_progress=false;
+
+extern int gBKB_SLOW_MOUSE; // Медленная мышь (уверенный дрег)
 
 //==============================================================================================
 // Взгляд зафиксировался
@@ -197,7 +200,19 @@ void Fixation::LeftClick(POINT p, bool skip_modifier_press, bool skip_modifier_u
 		
 	// Имитирует нажатие и отпускание левой кнопки мыши
 	skip_mouse_hook=true;
-	SendInput(3,input,sizeof(INPUT));
+
+	if(!gBKB_SLOW_MOUSE) // Медленная мышь (уверенный дрег)
+	{
+		SendInput(3,input,sizeof(INPUT));
+	}
+	else
+	{
+		// 27.03.2019 По жалобам Богдана вводим задержки при выполнении клика 
+		SendInput(1,&input[0],sizeof(INPUT));
+		//if(2!=tracking_device) Sleep(80);
+		// паузы между нажатием и отпусканием опасна, может превратиться в дрег
+		SendInput(2,&input[1],sizeof(INPUT));
+	}
 	skip_mouse_hook=false;
 
 	if(!skip_modifier_unpress) ClickModifiers(false); // Вдруг нужно отпустить Ctrl, Shift, Alt?
@@ -247,7 +262,18 @@ void Fixation::RightClick(POINT p)
 		
 	// Имитирует нажатие и отпускание правой кнопки мыши
 	skip_mouse_hook=true;
-	SendInput(3,input,sizeof(INPUT));
+	if(!gBKB_SLOW_MOUSE) // Медленная мышь (уверенный дрег)
+	{
+		SendInput(3,input,sizeof(INPUT));
+	}
+	else
+	{
+		// 27.03.2019 По жалобам Богдана вводим задержки при выполнении клика - ОТМЕНЕНО
+		SendInput(1,&input[0],sizeof(INPUT));
+		//if(2!=tracking_device) Sleep(80);
+		// паузы между нажатием и отпусканием опасна, может превратиться в дрег
+		SendInput(2,&input[1],sizeof(INPUT));
+	}
 	skip_mouse_hook=false;
 
 	ClickModifiers(false); // Вдруг нужно отпустить Ctrl, Shift, Alt?
@@ -307,7 +333,17 @@ bool Fixation::Drag(POINT p)
 		// Имитирует нажатие и отпускание правой кнопки мыши
 		//SendInput(4,input,sizeof(INPUT));
 		skip_mouse_hook=true;
-		SendInput(2,&input[0],sizeof(INPUT));
+		if(!gBKB_SLOW_MOUSE) // Медленная мышь (уверенный дрег)
+		{
+			SendInput(2,&input[0],sizeof(INPUT));
+		}
+		else
+		{
+			// 27.03.2019 По жалобам Богдана вводим задержки при выполнении дрега 
+			SendInput(1,&input[0],sizeof(INPUT));
+			//Sleep(200);
+			SendInput(1,&input[1],sizeof(INPUT));
+		}
 		skip_mouse_hook=false;
 
 
@@ -338,7 +374,17 @@ bool Fixation::Drag(POINT p)
 		// Имитирует нажатие и отпускание правой кнопки мыши
 		//SendInput(4,input,sizeof(INPUT));
 		skip_mouse_hook=true;
-		SendInput(2,&input[2],sizeof(INPUT));
+		if(!gBKB_SLOW_MOUSE) // Медленная мышь (уверенный дрег)
+		{
+			SendInput(2,&input[2],sizeof(INPUT));
+		}
+		else
+		{
+			// 27.03.2019 По жалобам Богдана вводим задержки при выполнении дрега
+			SendInput(1,&input[2],sizeof(INPUT));
+			if(2!=tracking_device) Sleep(200);
+			SendInput(1,&input[3],sizeof(INPUT));
+		}
 		skip_mouse_hook=false;
 	}
 

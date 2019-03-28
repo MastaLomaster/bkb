@@ -59,7 +59,10 @@ void BKBSerial::Halt()
 	Port=INVALID_HANDLE_VALUE;
 }
 
-void BKBSerial::SendByte(char c)
+//===================================================================
+// теперь возвращает 0 или 1 по результату передачи (для BKBCOM9Kbd)
+//===================================================================
+int BKBSerial::SendByte(char c, int _wait_counter)
 {
 	static char _c;
 	static unsigned long size=0;
@@ -68,13 +71,16 @@ void BKBSerial::SendByte(char c)
 
 	if(INVALID_HANDLE_VALUE==Port)
 	{
-		if(TryToOpen()) return; // реанимировать порт не удалось
+		if(TryToOpen()) return 1; // реанимировать порт не удалось
 	}
 
 	// Порт должен работать, шлём
 	if(!WriteFile(Port,&_c,1,&size,0))
 	{
 		Halt();
-		wait_counter=60;
+		wait_counter=_wait_counter;
+		return 1;
 	}
+
+	return 0;
 }

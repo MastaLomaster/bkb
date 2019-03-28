@@ -6,7 +6,7 @@
 class BKBSerial
 {
 public:
-	static void SendByte(char c);
+	static int SendByte(char c, int _wait_counter=60);
 	static void Halt();
 	static int TryToOpen();
 protected:

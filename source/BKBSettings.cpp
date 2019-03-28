@@ -40,6 +40,8 @@ BKBIntChar dlg_kbd_fullscreen[BKB_YESNO]={{L"Нет",0,IDC_RADIO_KBDFS1},{L"Да
 BKBIntChar dlg_kbd_2step[BKB_YESNO]={{L"Нет",0,IDC_RADIO_KBD_2STEPS_NO},{L"Да",1,IDC_RADIO_KBD_2STEPS_YES}}; 
 BKBIntChar dlg_show_clickmods[BKB_YESNO]={{L"Нет",0,IDC_RADIO_CLICKMOD_NO},{L"Да",1,IDC_RADIO_CLICKMOD_YES}}; 
 BKBIntChar dlg_show_metrics[BKB_YESNO]={{L"Нет",0,IDC_RADIO_METRICS_NO},{L"Да",1,IDC_RADIO_METRICS_YES}}; 
+BKBIntChar dlg_slow_mouse[BKB_YESNO]={{L"Нет",0,IDC_RADIO_SLOW_MOUSE_NO},{L"Да",1,IDC_RADIO_SLOW_MOUSE_YES}}; 
+BKBIntChar dlg_com9keyboard[BKB_YESNO]={{L"Нет",0,IDC_RADIO_COM9KEYBOARD_NO},{L"Да",1,IDC_RADIO_COM9KEYBOARD_YES}}; 
 
 // Режим работы: 0 - обычный, 1 - GRID, 2 - WheelChair
 BKBIntChar dlg_grid_wheelchair[3]={{L"regular",0,NULL},{L"GRID",1,NULL},{L"WheelChair",2,NULL}};
@@ -49,6 +51,8 @@ int dlg_current_kbd_fullscreen=1;
 int dlg_current_kbd_2step=0;
 int dlg_current_show_clickmods=0;
 int dlg_current_show_metrics=0;
+int dlg_current_slow_mouse=0;
+int dlg_current_com9keyboard=0;
 
 const int BKB_SET_MBUTTONFIX=3;
 BKBIntChar dlg_mbuttonfix[BKB_SET_MBUTTONFIX]={{L"только фиксация",0,IDC_RADIO_MBUTTONFIX1}, {L"и мышь, и фиксация",1,IDC_RADIO_MBUTTONFIX2}, {L"только мышь",2,IDC_RADIO_MBUTTONFIX3}};
@@ -71,6 +75,9 @@ int gBKB_MBUTTONFIX=1;
 int gBKB_SHOW_METRICS=0; // Показывать ли окно метрик
 int gBKB_DISP_PERCENT=10; // процент высоты экрана, который задаёт границы дисперсии
 int gBKB_GRID_WHEELCHAIR=0; // режим работы стандартный/GRID/WheelChair
+int gBKB_SLOW_MOUSE=0; // Медленная мышь (уверенный дрег)
+int gBKB_COM9KEYBOARD=0; // COM9-клавиатура
+
 //===================================================================
 // Диалог настроек
 //===================================================================
@@ -196,6 +203,8 @@ void BKBSettings::PrepareDialogue(HWND hdwnd)
 		SendDlgItemMessage(hdwnd,IDC_RADIO_KBD_2STEPS_NO, WM_SETTEXT, 0L, (LPARAM)Internat::Message(58,0));// Нет
 		SendDlgItemMessage(hdwnd,IDC_RADIO_CLICKMOD_NO, WM_SETTEXT, 0L, (LPARAM)Internat::Message(58,0));// Нет
 		SendDlgItemMessage(hdwnd,IDC_RADIO_METRICS_NO, WM_SETTEXT, 0L, (LPARAM)Internat::Message(58,0));// Нет
+		SendDlgItemMessage(hdwnd,IDC_RADIO_SLOW_MOUSE_NO, WM_SETTEXT, 0L, (LPARAM)Internat::Message(58,0));// Нет
+		SendDlgItemMessage(hdwnd,IDC_RADIO_COM9KEYBOARD_NO, WM_SETTEXT, 0L, (LPARAM)Internat::Message(58,0));// Нет
 	}
 	if(Internat::Message(59,0))
 	{
@@ -203,6 +212,8 @@ void BKBSettings::PrepareDialogue(HWND hdwnd)
 		SendDlgItemMessage(hdwnd,IDC_RADIO_KBD_2STEPS_YES, WM_SETTEXT, 0L, (LPARAM)Internat::Message(59,0));// Да
 		SendDlgItemMessage(hdwnd,IDC_RADIO_CLICKMOD_YES, WM_SETTEXT, 0L, (LPARAM)Internat::Message(59,0));// Да
 		SendDlgItemMessage(hdwnd,IDC_RADIO_METRICS_YES, WM_SETTEXT, 0L, (LPARAM)Internat::Message(59,0));// Да
+		SendDlgItemMessage(hdwnd,IDC_RADIO_SLOW_MOUSE_YES, WM_SETTEXT, 0L, (LPARAM)Internat::Message(59,0));// Да
+		SendDlgItemMessage(hdwnd,IDC_RADIO_COM9KEYBOARD_YES, WM_SETTEXT, 0L, (LPARAM)Internat::Message(59,0));// Да
 	}
 
 	if(Internat::Message(49,0)) SendDlgItemMessage(hdwnd,IDOK, WM_SETTEXT, 0L, (LPARAM)Internat::Message(49,0));// Сохранить
@@ -235,6 +246,8 @@ void BKBSettings::PrepareDialogue(HWND hdwnd)
 
 	if(Internat::Message(83,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_TIME_MULTIPLY, WM_SETTEXT, 0L, (LPARAM)Internat::Message(83,0));// * время увеличивается вдвое при работе без зума и втрое в режиме таблицы
 
+	if(Internat::Message(88,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_SLOW_MOUSE, WM_SETTEXT, 0L, (LPARAM)Internat::Message(88,0));// Медленная мышь (уверенный дрег)
+	if(Internat::Message(89,0)) SendDlgItemMessage(hdwnd,IDC_STATIC_COM9KEYBOARD, WM_SETTEXT, 0L, (LPARAM)Internat::Message(89,0));// COM9-клавиатура
 }
 
 //=======================================================================================
@@ -280,12 +293,16 @@ void BKBSettings::ShowLoad(HWND hdwnd)
 		SendDlgItemMessage(hdwnd, dlg_kbd_2step[i].button, BM_SETCHECK, BST_UNCHECKED, 0);
 		SendDlgItemMessage(hdwnd, dlg_show_clickmods[i].button, BM_SETCHECK, BST_UNCHECKED, 0);
 		SendDlgItemMessage(hdwnd, dlg_show_metrics[i].button, BM_SETCHECK, BST_UNCHECKED, 0);
+		SendDlgItemMessage(hdwnd, dlg_slow_mouse[i].button, BM_SETCHECK, BST_UNCHECKED, 0);
+		SendDlgItemMessage(hdwnd, dlg_com9keyboard[i].button, BM_SETCHECK, BST_UNCHECKED, 0);
 	}
 	SendDlgItemMessage(hdwnd, dlg_kbd_fullscreen[dlg_current_kbd_fullscreen].button, BM_SETCHECK, BST_CHECKED, 0);
 	SendDlgItemMessage(hdwnd, dlg_kbd_2step[dlg_current_kbd_2step].button, BM_SETCHECK, BST_CHECKED, 0);
 	SendDlgItemMessage(hdwnd, dlg_show_clickmods[dlg_current_show_clickmods].button, BM_SETCHECK, BST_CHECKED, 0);
 	SendDlgItemMessage(hdwnd, dlg_show_metrics[dlg_current_show_metrics].button, BM_SETCHECK, BST_CHECKED, 0);
-
+	SendDlgItemMessage(hdwnd, dlg_slow_mouse[dlg_current_slow_mouse].button, BM_SETCHECK, BST_CHECKED, 0);
+	SendDlgItemMessage(hdwnd, dlg_com9keyboard[dlg_current_com9keyboard].button, BM_SETCHECK, BST_CHECKED, 0);
+	
 	// 4. Количество кнопок на тулбаре
 	for(i=0;i<BKB_SET_TOOLBARCELLS;i++)
 	{
@@ -333,6 +350,9 @@ void BKBSettings::ActualizeLoad()
 	gBKB_SHOW_METRICS=dlg_show_metrics[dlg_current_show_metrics].value;
 	gBKB_DISP_PERCENT=dlg_dispersion[dlg_current_dispersion].value;
 	gBKB_GRID_WHEELCHAIR=dlg_grid_wheelchair[dlg_current_grid_wheelchair].value;
+	gBKB_SLOW_MOUSE=dlg_slow_mouse[dlg_current_slow_mouse].value;
+	gBKB_COM9KEYBOARD=dlg_com9keyboard[dlg_current_com9keyboard].value;
+
 }
 
 
@@ -388,6 +408,12 @@ void BKBSettings::Screen2Load(HWND hdwnd)
 
 		if(BST_CHECKED==SendDlgItemMessage(hdwnd, dlg_show_metrics[i].button, BM_GETCHECK, 0, 0))
 			dlg_current_show_metrics=i;
+
+		if(BST_CHECKED==SendDlgItemMessage(hdwnd, dlg_slow_mouse[i].button, BM_GETCHECK, 0, 0))
+			dlg_current_slow_mouse=i;
+
+		if(BST_CHECKED==SendDlgItemMessage(hdwnd, dlg_com9keyboard[i].button, BM_GETCHECK, 0, 0))
+			dlg_current_com9keyboard=i;
 	}
 
 	// 4. Количество кнопок на тулбаре
@@ -426,7 +452,7 @@ typedef struct
 	int max_index;
 } T_save_struct;
 
-#define NUM_SAVE_LINES 14
+#define NUM_SAVE_LINES 16
 
 static T_save_struct save_struct[NUM_SAVE_LINES]=
 {
@@ -443,7 +469,9 @@ static T_save_struct save_struct[NUM_SAVE_LINES]=
 	{"MButtonFix",&dlg_current_mbuttonfix,dlg_mbuttonfix, BKB_SET_MBUTTONFIX },
 	{"ShowMetrics",&dlg_current_show_metrics,dlg_show_metrics, BKB_YESNO },
 	{"Dispersion",&dlg_current_dispersion,dlg_dispersion, BKB_SET_DISPERSION },
-	{"GridOnly", &dlg_current_grid_wheelchair, dlg_grid_wheelchair, 3 }
+	{"GridOnly", &dlg_current_grid_wheelchair, dlg_grid_wheelchair, 3 },
+	{"SlowMouse",&dlg_current_slow_mouse,dlg_slow_mouse, BKB_YESNO },
+	{"COM9Keyboard",&dlg_current_com9keyboard,dlg_com9keyboard, BKB_YESNO }
 };
 
 
