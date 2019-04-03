@@ -34,7 +34,7 @@ LRESULT CALLBACK WndProc(HWND,UINT,WPARAM,LPARAM);
 int StartupDialog();
 
 // Глобальные переменные, которые могут потребоваться везде
-//TCHAR		BKBAppName=L"Клавиатура и мышь для управления глазами : сборка E / Keyboard & Mouse control with the eyes : Release E";
+//TCHAR		BKBAppName=L"Клавиатура и мышь для управления глазами : сборка F / Keyboard & Mouse control with the eyes : Release F";
 HINSTANCE	BKBInst;
 HWND		BKBhwnd;
 int tracking_device;

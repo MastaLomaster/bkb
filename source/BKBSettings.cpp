@@ -8,6 +8,7 @@
 #include "Internat.h"
 #include "KeybWnd.h"
 #include "BKBMetricsWnd.h"
+#include "Shlobj.h"
 
 extern HINSTANCE	BKBInst;
 
@@ -16,7 +17,8 @@ HWND BKBSettings::parent_hwnd=0;
 
 static char char_buf[4096];
 static TCHAR tchar_buf[4096]; // Для сообщений об ошибках
-static TCHAR *tfilename=L"config.bkb";
+static wchar_t *old_tfilename=L"config.bkb";
+static wchar_t AppDataConfigFilename[4096];
 
 const int BKB_MOUSE_MULTIPLIERS=7;
 BKBIntChar dlg_mouse_x_multiplier[BKB_MOUSE_MULTIPLIERS]={{L"не усиливать",10,IDC_RADIO_X_BUTTON1},{L"1.5",15,IDC_RADIO_X_BUTTON2},{L"2.0",20,IDC_RADIO_X_BUTTON3},{L"2.5",25,IDC_RADIO_X_BUTTON4},{L"3.0",30,IDC_RADIO_X_BUTTON5},{L"3.5",35,IDC_RADIO_X_BUTTON6},{L"4.0",40,IDC_RADIO_X_BUTTON7}}; 
@@ -474,7 +476,18 @@ static T_save_struct save_struct[NUM_SAVE_LINES]=
 	{"COM9Keyboard",&dlg_current_com9keyboard,dlg_com9keyboard, BKB_YESNO }
 };
 
+//============================================================================
+// Получить имя файла в AppData/Roaming
+//============================================================================
+static void GetAppDataFilename()
+{
+	wchar_t *temporary_string;
+	HRESULT result=SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0,NULL, &temporary_string);
+	
+	wsprintf(AppDataConfigFilename, L"%s\\%s", temporary_string, old_tfilename);
+	CoTaskMemFree(temporary_string);
 
+}
 
 //===============================================================================================
 // Сохраняет конфигурацию в файл
@@ -482,11 +495,15 @@ static T_save_struct save_struct[NUM_SAVE_LINES]=
 void BKBSettings::SaveBKBConfig()
 {
 	FILE *fout=NULL;
-	_wfopen_s(&fout,tfilename,L"w+");
+
+	// 3-4-2019 теперь будем писать в AppData
+	GetAppDataFilename();
+
+	_wfopen_s(&fout,AppDataConfigFilename,L"w+");
 	if(NULL==fout)
 	{
 		wcscpy_s(tchar_buf,Internat::Message(51,L"Не могу записать в файл настроек: '"));
-		wcsncat_s(tchar_buf,tfilename,1000);
+		wcsncat_s(tchar_buf,AppDataConfigFilename,1000);
 		wcsncat_s(tchar_buf,L"'",2);
 		BKBReportError(tchar_buf);
 		return;
@@ -514,7 +531,16 @@ void BKBSettings::SaveBKBConfig()
 int BKBSettings::OpenBKBConfig()
 {
 	FILE *fin=NULL;
-	_wfopen_s(&fin,tfilename,L"r");
+
+	// 3-4-2019 теперь будем писать в AppData
+	GetAppDataFilename();
+
+	// Сначала пытаемся открыть файл в AppData
+	_wfopen_s(&fin,AppDataConfigFilename,L"r");
+	
+	// если не выходит - читаем местный файл
+	if(NULL==fin) _wfopen_s(&fin,old_tfilename,L"r");
+
 	if(NULL==fin)
 	{
 #ifdef _DEBUG

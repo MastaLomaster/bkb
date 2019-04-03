@@ -1,4 +1,4 @@
-#ifndef __BKB_COM9KBD
+﻿#ifndef __BKB_COM9KBD
 #define __BKB_COM9KBD
 
 class BKBCOM9Kbd

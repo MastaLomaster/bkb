@@ -1,11 +1,11 @@
-#ifndef __BKB_GRID
+п»ї#ifndef __BKB_GRID
 #define __BKB_GRID
 
 class BKBGrid
 {
 public:
-	// с появлением новых режимов эту переменную заменила gBKB_GRID_WHEELCHAIR
-	//static bool f_grid_only; // Режим, при котором показывается только Grid
+	// СЃ РїРѕСЏРІР»РµРЅРёРµРј РЅРѕРІС‹С… СЂРµР¶РёРјРѕРІ СЌС‚Сѓ РїРµСЂРµРјРµРЅРЅСѓСЋ Р·Р°РјРµРЅРёР»Р° gBKB_GRID_WHEELCHAIR
+	//static bool f_grid_only; // Р РµР¶РёРј, РїСЂРё РєРѕС‚РѕСЂРѕРј РїРѕРєР°Р·С‹РІР°РµС‚СЃСЏ С‚РѕР»СЊРєРѕ Grid
 
 	static bool IsMinimized(){return f_minimized;}
 	static int NumCells();
@@ -19,7 +19,7 @@ public:
 	static void Load();
 	static void ShowCursor(POINT *p);
 	
-	// Пока для отладки
+	// РџРѕРєР° РґР»СЏ РѕС‚Р»Р°РґРєРё
 	static void TestData();
 	
 protected:
@@ -28,19 +28,19 @@ protected:
 	static void Activate(int cell);
 	static BKBGrid *FindOrCreate(int l0, int l1, int l2, int _num_levels);
 
-	static bool f_minimized; // В настоящий момент окно Grid минимизировано
+	static bool f_minimized; // Р’ РЅР°СЃС‚РѕСЏС‰РёР№ РјРѕРјРµРЅС‚ РѕРєРЅРѕ Grid РјРёРЅРёРјРёР·РёСЂРѕРІР°РЅРѕ
 	
 	static int selected_cell;
 
-	static BKBGrid mg; // Master Grid - корневая таблица
-	static BKBGrid *current_grid; // Указатель на текущий grid
+	static BKBGrid mg; // Master Grid - РєРѕСЂРЅРµРІР°СЏ С‚Р°Р±Р»РёС†Р°
+	static BKBGrid *current_grid; // РЈРєР°Р·Р°С‚РµР»СЊ РЅР° С‚РµРєСѓС‰РёР№ grid
 
-	// на уровне экземпляра
+	// РЅР° СѓСЂРѕРІРЅРµ СЌРєР·РµРјРїР»СЏСЂР°
 	BKBGrid *parent;
 	BKBGrid *child[16];
 	int num_active;
-	TCHAR soundfile[16]; // В реальности "grid\XXXX.WAV" - максимум 14 символов, включая завершающий ноль
-	TCHAR filename_template[4]; // Имя файла без расширения, например, "001". Для удобства добавления других действий, например, ".CMD" 
+	TCHAR soundfile[16]; // Р’ СЂРµР°Р»СЊРЅРѕСЃС‚Рё "grid\XXXX.WAV" - РјР°РєСЃРёРјСѓРј 14 СЃРёРјРІРѕР»РѕРІ, РІРєР»СЋС‡Р°СЏ Р·Р°РІРµСЂС€Р°СЋС‰РёР№ РЅРѕР»СЊ
+	TCHAR filename_template[4]; // РРјСЏ С„Р°Р№Р»Р° Р±РµР· СЂР°СЃС€РёСЂРµРЅРёСЏ, РЅР°РїСЂРёРјРµСЂ, "001". Р”Р»СЏ СѓРґРѕР±СЃС‚РІР° РґРѕР±Р°РІР»РµРЅРёСЏ РґСЂСѓРіРёС… РґРµР№СЃС‚РІРёР№, РЅР°РїСЂРёРјРµСЂ, ".CMD" 
 	HBITMAP hbm;
 	int hbm_width, hbm_height;
 

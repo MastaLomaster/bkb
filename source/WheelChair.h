@@ -1,15 +1,15 @@
-#ifndef __BKB_WHEELCHAIR
+п»ї#ifndef __BKB_WHEELCHAIR
 #define __BKB_WHEELCHAIR
 
-// управление моторизированным креслом-каталкой
-// основные методы повторят логику BKBGrid
+// СѓРїСЂР°РІР»РµРЅРёРµ РјРѕС‚РѕСЂРёР·РёСЂРѕРІР°РЅРЅС‹Рј РєСЂРµСЃР»РѕРј-РєР°С‚Р°Р»РєРѕР№
+// РѕСЃРЅРѕРІРЅС‹Рµ РјРµС‚РѕРґС‹ РїРѕРІС‚РѕСЂСЏС‚ Р»РѕРіРёРєСѓ BKBGrid
 
 class BKBWheelChair
 {
 public:
 	static int IsItYours(); 
 	static LPRECT PinkFrame(int _x, int _y, LONG width, LONG height);
-	static LPRECT PinkFrame2(int _x, int _y, LONG width, LONG height); // Старый вариант, без заднего хода
+	static LPRECT PinkFrame2(int _x, int _y, LONG width, LONG height); // РЎС‚Р°СЂС‹Р№ РІР°СЂРёР°РЅС‚, Р±РµР· Р·Р°РґРЅРµРіРѕ С…РѕРґР°
 	static void PinkFrameMissed();
 	static void OnPaint(HDC hdc, LONG width, LONG height);
 	static void OnPaint2(HDC hdc, LONG width, LONG height);

@@ -1,7 +1,7 @@
-#ifndef __BKB_SERIAL
+п»ї#ifndef __BKB_SERIAL
 #define __BKB_SERIAL
 
-// работа с портом COM9. Только запись, синхронно. Примитив.
+// СЂР°Р±РѕС‚Р° СЃ РїРѕСЂС‚РѕРј COM9. РўРѕР»СЊРєРѕ Р·Р°РїРёСЃСЊ, СЃРёРЅС…СЂРѕРЅРЅРѕ. РџСЂРёРјРёС‚РёРІ.
 
 class BKBSerial
 {
@@ -10,7 +10,7 @@ public:
 	static void Halt();
 	static int TryToOpen();
 protected:
-	static int wait_counter; // после ошибки пытаемся переоткрыть порт не сразу, а через 30 попыток записи в порт
+	static int wait_counter; // РїРѕСЃР»Рµ РѕС€РёР±РєРё РїС‹С‚Р°РµРјСЃСЏ РїРµСЂРµРѕС‚РєСЂС‹С‚СЊ РїРѕСЂС‚ РЅРµ СЃСЂР°Р·Сѓ, Р° С‡РµСЂРµР· 30 РїРѕРїС‹С‚РѕРє Р·Р°РїРёСЃРё РІ РїРѕСЂС‚
 	static HANDLE Port;
 	static DCB dcb;
 };

@@ -7,8 +7,12 @@
 class BKBTobiiREX
 {
 public:
-	static int Init(); // Инициализация работы с устройством
-	static int Halt(); // Завершение работы с устройством
+	static int Init(); // Инициализация работы с устройством (Tobii Gaze SDK)
+	static int Halt(); // Завершение работы с устройством (Tobii Gaze SDK)
+
+	static int Init2(); // Новая версия для работы с Tobii stream engine
+	static int Halt2(); // Новая версия для работы с Tobii stream engine
+
 	//static int GetCoordinates();
 protected:
 	static bool initialized;

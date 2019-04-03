@@ -1,18 +1,18 @@
-#include <Windows.h>
+п»ї#include <Windows.h>
 #include "BKBRepErr.h"
 #include "Grid.h"
 #include "ToolWnd.h"
 #include "TranspWnd.h"
 
 bool BKBGrid::f_minimized=false;
-// Теперь это один из возможных режимов gBKB_GRID_WHEELCHAIR;
+// РўРµРїРµСЂСЊ СЌС‚Рѕ РѕРґРёРЅ РёР· РІРѕР·РјРѕР¶РЅС‹С… СЂРµР¶РёРјРѕРІ gBKB_GRID_WHEELCHAIR;
 //bool BKBGrid::f_grid_only=false;
 extern int gBKB_GRID_WHEELCHAIR;
 
 int BKBGrid::selected_cell=-1;
 
-BKBGrid BKBGrid::mg; // Master Grid - корневая таблица
-BKBGrid *BKBGrid::current_grid=&mg; // Указатель на текущий grid
+BKBGrid BKBGrid::mg; // Master Grid - РєРѕСЂРЅРµРІР°СЏ С‚Р°Р±Р»РёС†Р°
+BKBGrid *BKBGrid::current_grid=&mg; // РЈРєР°Р·Р°С‚РµР»СЊ РЅР° С‚РµРєСѓС‰РёР№ grid
 
 extern HINSTANCE BKBInst;
 extern HBRUSH green_brush, red_brush;
@@ -20,7 +20,7 @@ extern int gBKB_TOOLBOX_WIDTH;
 extern HBITMAP hbm_bell;
 
 //===========================================================================
-// рисует стрелку влево (по аналогии с функциями из ToolWnd.cpp)
+// СЂРёСЃСѓРµС‚ СЃС‚СЂРµР»РєСѓ РІР»РµРІРѕ (РїРѕ Р°РЅР°Р»РѕРіРёРё СЃ С„СѓРЅРєС†РёСЏРјРё РёР· ToolWnd.cpp)
 //===========================================================================
 void DrawRightArrow(HDC hdc,int x, int y)
 {
@@ -47,82 +47,82 @@ void DrawLeftArrow(HDC hdc,int x, int y)
 }
 
 //==============================================================================================================
-// Фактически, попадание в ToolBar уже определено. Остаётся выяснить, какая именно ячейка затронута 
-// и остаёмся ли в режиме Grid. Если остаёмся, то возвращаем 0. Если не остаёмся, то 1.
-// При обработка IsItYours в Grid используется определенное ранее (В PinkFrame) значение selected_cell. 
-// Заново определять его не будем.
+// Р¤Р°РєС‚РёС‡РµСЃРєРё, РїРѕРїР°РґР°РЅРёРµ РІ ToolBar СѓР¶Рµ РѕРїСЂРµРґРµР»РµРЅРѕ. РћСЃС‚Р°С‘С‚СЃСЏ РІС‹СЏСЃРЅРёС‚СЊ, РєР°РєР°СЏ РёРјРµРЅРЅРѕ СЏС‡РµР№РєР° Р·Р°С‚СЂРѕРЅСѓС‚Р° 
+// Рё РѕСЃС‚Р°С‘РјСЃСЏ Р»Рё РІ СЂРµР¶РёРјРµ Grid. Р•СЃР»Рё РѕСЃС‚Р°С‘РјСЃСЏ, С‚Рѕ РІРѕР·РІСЂР°С‰Р°РµРј 0. Р•СЃР»Рё РЅРµ РѕСЃС‚Р°С‘РјСЃСЏ, С‚Рѕ 1.
+// РџСЂРё РѕР±СЂР°Р±РѕС‚РєР° IsItYours РІ Grid РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РѕРїСЂРµРґРµР»РµРЅРЅРѕРµ СЂР°РЅРµРµ (Р’ PinkFrame) Р·РЅР°С‡РµРЅРёРµ selected_cell. 
+// Р—Р°РЅРѕРІРѕ РѕРїСЂРµРґРµР»СЏС‚СЊ РµРіРѕ РЅРµ Р±СѓРґРµРј.
 //==============================================================================================================
 //int BKBGrid::IsItYours(LONG x, LONG y, LONG width, LONG height)
 int BKBGrid::IsItYours()
 {
 	if(f_minimized)
 	{
-		// Единственное, что при этом может делаться - возвращение к исходному размеру
+		// Р•РґРёРЅСЃС‚РІРµРЅРЅРѕРµ, С‡С‚Рѕ РїСЂРё СЌС‚РѕРј РјРѕР¶РµС‚ РґРµР»Р°С‚СЊСЃСЏ - РІРѕР·РІСЂР°С‰РµРЅРёРµ Рє РёСЃС…РѕРґРЅРѕРјСѓ СЂР°Р·РјРµСЂСѓ
 		f_minimized=false;
-		// Теперь вместо этого - BKBGrid::ShowCursor()
+		// РўРµРїРµСЂСЊ РІРјРµСЃС‚Рѕ СЌС‚РѕРіРѕ - BKBGrid::ShowCursor()
 		// BKBTranspWnd::Show();
 		BKBToolWnd::Place();
-		return 0; // Остаёмся в режиме Grid
+		return 0; // РћСЃС‚Р°С‘РјСЃСЏ РІ СЂРµР¶РёРјРµ Grid
 	}
 
-	//Обработка верхней строки
+	//РћР±СЂР°Р±РѕС‚РєР° РІРµСЂС…РЅРµР№ СЃС‚СЂРѕРєРё
 	if((selected_cell>=100)&&(selected_cell<=103))
 	{
 		switch(selected_cell-100)
 		{
 		case 0:
-			// Возврат или минимизация.
+			// Р’РѕР·РІСЂР°С‚ РёР»Рё РјРёРЅРёРјРёР·Р°С†РёСЏ.
 			if(IsTopLevel())
 			{
-				if(1==gBKB_GRID_WHEELCHAIR) // возвращаться некуда - минимизируем
+				if(1==gBKB_GRID_WHEELCHAIR) // РІРѕР·РІСЂР°С‰Р°С‚СЊСЃСЏ РЅРµРєСѓРґР° - РјРёРЅРёРјРёР·РёСЂСѓРµРј
 				{
 					f_minimized=true;
-					// Теперь вместо этого - BKBGrid::ShowCursor()
-					//BKBTranspWnd::Hide(); // Пока мы в ожидании - стрелку по экрану не гоняем
+					// РўРµРїРµСЂСЊ РІРјРµСЃС‚Рѕ СЌС‚РѕРіРѕ - BKBGrid::ShowCursor()
+					//BKBTranspWnd::Hide(); // РџРѕРєР° РјС‹ РІ РѕР¶РёРґР°РЅРёРё - СЃС‚СЂРµР»РєСѓ РїРѕ СЌРєСЂР°РЅСѓ РЅРµ РіРѕРЅСЏРµРј
 					BKBToolWnd::Place();
-					//InvalidateRect(BKBToolWnd::GetHwnd(),NULL,TRUE); // перерисовать
+					//InvalidateRect(BKBToolWnd::GetHwnd(),NULL,TRUE); // РїРµСЂРµСЂРёСЃРѕРІР°С‚СЊ
 				}
 				else
 				{
-					return 1; // единственное место, из которого мы покидаем режим Grid
+					return 1; // РµРґРёРЅСЃС‚РІРµРЅРЅРѕРµ РјРµСЃС‚Рѕ, РёР· РєРѕС‚РѕСЂРѕРіРѕ РјС‹ РїРѕРєРёРґР°РµРј СЂРµР¶РёРј Grid
 				}
 			}
 			else
 			{
 				LevelUp();
-				InvalidateRect(BKBToolWnd::GetHwnd(),NULL,TRUE); // перерисовать
+				InvalidateRect(BKBToolWnd::GetHwnd(),NULL,TRUE); // РїРµСЂРµСЂРёСЃРѕРІР°С‚СЊ
 			}
 			break;
 
 		case 1:
-			// Сказать "Да"
+			// РЎРєР°Р·Р°С‚СЊ "Р”Р°"
 			PlaySound(L"grid\\Y.wav", NULL, SND_FILENAME|SND_ASYNC);
 			break;
 
 		case 2:
-			// Сказать "Нет"
+			// РЎРєР°Р·Р°С‚СЊ "РќРµС‚"
 			PlaySound(L"grid\\N.wav", NULL, SND_FILENAME|SND_ASYNC);
 			break;
 
 		case 3:
-			// Запустить/выключить колокольчик (сигнал тревоги)
+			// Р—Р°РїСѓСЃС‚РёС‚СЊ/РІС‹РєР»СЋС‡РёС‚СЊ РєРѕР»РѕРєРѕР»СЊС‡РёРє (СЃРёРіРЅР°Р» С‚СЂРµРІРѕРіРё)
 			PlaySound(L"grid\\bell.wav", NULL, SND_FILENAME|SND_ASYNC);
 			break;
 		}
-	} // обработка верхней строки
-	else // обработка основной таблицы
+	} // РѕР±СЂР°Р±РѕС‚РєР° РІРµСЂС…РЅРµР№ СЃС‚СЂРѕРєРё
+	else // РѕР±СЂР°Р±РѕС‚РєР° РѕСЃРЅРѕРІРЅРѕР№ С‚Р°Р±Р»РёС†С‹
 	{
 		if((selected_cell>=0)&&(selected_cell<NumActiveCells())) Activate(selected_cell);
-		// перерисовать окно
+		// РїРµСЂРµСЂРёСЃРѕРІР°С‚СЊ РѕРєРЅРѕ
 		InvalidateRect(BKBToolWnd::GetHwnd(),NULL,TRUE);
 	}
 
-	return 0; // Остаёмся в режиме Grid
+	return 0; // РћСЃС‚Р°С‘РјСЃСЏ РІ СЂРµР¶РёРјРµ Grid
 }
 
 
 //==============================================================================================================
-// Фактически, попадание в ToolBar уже определено. Остаётся выяснить, какая именно ячейка затронута 
+// Р¤Р°РєС‚РёС‡РµСЃРєРё, РїРѕРїР°РґР°РЅРёРµ РІ ToolBar СѓР¶Рµ РѕРїСЂРµРґРµР»РµРЅРѕ. РћСЃС‚Р°С‘С‚СЃСЏ РІС‹СЏСЃРЅРёС‚СЊ, РєР°РєР°СЏ РёРјРµРЅРЅРѕ СЏС‡РµР№РєР° Р·Р°С‚СЂРѕРЅСѓС‚Р° 
 //==============================================================================================================
 LPRECT BKBGrid::PinkFrame(int _x, int _y, LONG width, LONG height)
 {
@@ -130,7 +130,7 @@ LPRECT BKBGrid::PinkFrame(int _x, int _y, LONG width, LONG height)
 	int row,column;
 	int cols,cwidth,rheight;
 
-	// 0. Спец. случай - минимизированное окно
+	// 0. РЎРїРµС†. СЃР»СѓС‡Р°Р№ - РјРёРЅРёРјРёР·РёСЂРѕРІР°РЅРЅРѕРµ РѕРєРЅРѕ
 	if(f_minimized)
 	{
 		r.top=1; r.bottom=height-1;
@@ -138,7 +138,7 @@ LPRECT BKBGrid::PinkFrame(int _x, int _y, LONG width, LONG height)
 		return &r;
 	}
 
-	// 1. Сначала проверим, не попали ли в верхнюю строку
+	// 1. РЎРЅР°С‡Р°Р»Р° РїСЂРѕРІРµСЂРёРј, РЅРµ РїРѕРїР°Р»Рё Р»Рё РІ РІРµСЂС…РЅСЋСЋ СЃС‚СЂРѕРєСѓ
 	if(_y<height/5)
 	{
 		column=_x/(width/4);
@@ -146,7 +146,7 @@ LPRECT BKBGrid::PinkFrame(int _x, int _y, LONG width, LONG height)
 		r.left=column*(width/4);
 		r.right=(column+1)*(width/4);
 
-		selected_cell=100+column; // Спец. значения для selected_cell
+		selected_cell=100+column; // РЎРїРµС†. Р·РЅР°С‡РµРЅРёСЏ РґР»СЏ selected_cell
 	}
 	else
 	{
@@ -176,9 +176,9 @@ LPRECT BKBGrid::PinkFrame(int _x, int _y, LONG width, LONG height)
 		column=_x/cwidth;
 		row=(_y-height/5)/rheight;
 
-		selected_cell=row*cols+column; // кандидат на выбор
+		selected_cell=row*cols+column; // РєР°РЅРґРёРґР°С‚ РЅР° РІС‹Р±РѕСЂ
 		if((NumActiveCells()<=selected_cell)||(selected_cell<0)) 
-			return NULL; // обводить неактивную ячейку не будем
+			return NULL; // РѕР±РІРѕРґРёС‚СЊ РЅРµР°РєС‚РёРІРЅСѓСЋ СЏС‡РµР№РєСѓ РЅРµ Р±СѓРґРµРј
 
 		r.top=height/5+row*rheight;
 		r.bottom=height/5+(row+1)*rheight;
@@ -192,7 +192,7 @@ LPRECT BKBGrid::PinkFrame(int _x, int _y, LONG width, LONG height)
 
 
 //=============================================================================================
-// Рисуем все ячейки и их содержимое
+// Р РёСЃСѓРµРј РІСЃРµ СЏС‡РµР№РєРё Рё РёС… СЃРѕРґРµСЂР¶РёРјРѕРµ
 //=============================================================================================
 void BKBGrid::OnPaint(HDC hdc, LONG width, LONG height)
 {
@@ -200,14 +200,14 @@ void BKBGrid::OnPaint(HDC hdc, LONG width, LONG height)
 	int gap=2, count=0;
 	HDC memDC;
 
-	if(f_minimized) // рисуем только значок больше/меньше
+	if(f_minimized) // СЂРёСЃСѓРµРј С‚РѕР»СЊРєРѕ Р·РЅР°С‡РѕРє Р±РѕР»СЊС€Рµ/РјРµРЅСЊС€Рµ
 	{
 		DrawRightArrow(hdc,gBKB_TOOLBOX_WIDTH, gBKB_TOOLBOX_WIDTH);
 	}
 	else
 	{
-		// 1. всегда обводим 4 ячейки в верхней строке
-		// !!! Здесь возможно нужна подсветка да/нет !!!
+		// 1. РІСЃРµРіРґР° РѕР±РІРѕРґРёРј 4 СЏС‡РµР№РєРё РІ РІРµСЂС…РЅРµР№ СЃС‚СЂРѕРєРµ
+		// !!! Р—РґРµСЃСЊ РІРѕР·РјРѕР¶РЅРѕ РЅСѓР¶РЅР° РїРѕРґСЃРІРµС‚РєР° РґР°/РЅРµС‚ !!!
 		for(i=0;i<4;i++)
 		{
 			MoveToEx(hdc,i*width/4+gap,gap,NULL);
@@ -217,10 +217,10 @@ void BKBGrid::OnPaint(HDC hdc, LONG width, LONG height)
 			LineTo(hdc,i*width/4+gap,gap);
 		}
 
-		// 1.2. рисуем стрелку влево. Начало - середина первой ячейки
+		// 1.2. СЂРёСЃСѓРµРј СЃС‚СЂРµР»РєСѓ РІР»РµРІРѕ. РќР°С‡Р°Р»Рѕ - СЃРµСЂРµРґРёРЅР° РїРµСЂРІРѕР№ СЏС‡РµР№РєРё
 		DrawLeftArrow(hdc,width/8, height/10);
 
-		// 1.3. Кружки "Да" и "Нет"
+		// 1.3. РљСЂСѓР¶РєРё "Р”Р°" Рё "РќРµС‚"
 		HBRUSH hOld = (HBRUSH) SelectObject (hdc, green_brush);
         
 		Ellipse(hdc,3*width/8-height/20,height/20,3*width/8+height/20,height*3/20);
@@ -229,13 +229,13 @@ void BKBGrid::OnPaint(HDC hdc, LONG width, LONG height)
 		
 		SelectObject (hdc,hOld) ;
 
-		// 1.4. Колокол
+		// 1.4. РљРѕР»РѕРєРѕР»
 		memDC=CreateCompatibleDC(hdc);
 
 		SelectObject(memDC, (HGDIOBJ) hbm_bell);
 		BitBlt(hdc,width*7/8+gap*2-80,gap*2, 160,155, memDC, 0,0, SRCCOPY); 
 
-		// 2. обводим все картинки
+		// 2. РѕР±РІРѕРґРёРј РІСЃРµ РєР°СЂС‚РёРЅРєРё
 		switch (NumCells())
 		{
 		case 2:
@@ -265,18 +265,18 @@ void BKBGrid::OnPaint(HDC hdc, LONG width, LONG height)
 		{
 			for(j=0;j<cols;j++)
 			{
-				// Обводим только активные ячейки!
+				// РћР±РІРѕРґРёРј С‚РѕР»СЊРєРѕ Р°РєС‚РёРІРЅС‹Рµ СЏС‡РµР№РєРё!
 				if(count>=NumActiveCells()) { DeleteDC(memDC); return;}
 
-				// здесь же будет отрисовка битмапа и подсветка выбранного
-				if(current_grid->child[count]) // У этой ячейки прописан объект grid и может быть изображение
+				// Р·РґРµСЃСЊ Р¶Рµ Р±СѓРґРµС‚ РѕС‚СЂРёСЃРѕРІРєР° Р±РёС‚РјР°РїР° Рё РїРѕРґСЃРІРµС‚РєР° РІС‹Р±СЂР°РЅРЅРѕРіРѕ
+				if(current_grid->child[count]) // РЈ СЌС‚РѕР№ СЏС‡РµР№РєРё РїСЂРѕРїРёСЃР°РЅ РѕР±СЉРµРєС‚ grid Рё РјРѕР¶РµС‚ Р±С‹С‚СЊ РёР·РѕР±СЂР°Р¶РµРЅРёРµ
 				{
-					BKBGrid *g=current_grid->child[count]; // для укорачивания записи
-					if(g->hbm) // да, изображение есть
+					BKBGrid *g=current_grid->child[count]; // РґР»СЏ СѓРєРѕСЂР°С‡РёРІР°РЅРёСЏ Р·Р°РїРёСЃРё
+					if(g->hbm) // РґР°, РёР·РѕР±СЂР°Р¶РµРЅРёРµ РµСЃС‚СЊ
 					{
 						int Xdest,Ydest,Bwidth,Bheight,Xsrc,Ysrc;
 
-						// Если ширина ячейки (с учетом отступов) больше битмапа
+						// Р•СЃР»Рё С€РёСЂРёРЅР° СЏС‡РµР№РєРё (СЃ СѓС‡РµС‚РѕРј РѕС‚СЃС‚СѓРїРѕРІ) Р±РѕР»СЊС€Рµ Р±РёС‚РјР°РїР°
 						if(cwidth-gap*4>g->hbm_width)
 						{
 							Xdest=j*cwidth+(cwidth-g->hbm_width)/2;
@@ -290,7 +290,7 @@ void BKBGrid::OnPaint(HDC hdc, LONG width, LONG height)
 							Xsrc=(g->hbm_width-(cwidth-gap*4))/2;
 						}
 
-						// Если высота ячейки (с учетом отступов) больше битмапа
+						// Р•СЃР»Рё РІС‹СЃРѕС‚Р° СЏС‡РµР№РєРё (СЃ СѓС‡РµС‚РѕРј РѕС‚СЃС‚СѓРїРѕРІ) Р±РѕР»СЊС€Рµ Р±РёС‚РјР°РїР°
 						if(rheight-gap*4>g->hbm_height)
 						{
 							Ydest=i*rheight+(rheight-g->hbm_height)/2+height/5;
@@ -307,20 +307,20 @@ void BKBGrid::OnPaint(HDC hdc, LONG width, LONG height)
 						SelectObject(memDC, (HGDIOBJ) current_grid->child[count]->hbm);
 						//BitBlt(hdc,j*cwidth+gap*2,i*rheight+gap*2+height/5, cwidth-gap*4, rheight-gap*4, memDC, 0,0, SRCCOPY); 
 						BitBlt(hdc,Xdest,Ydest, Bwidth, Bheight, memDC, Xsrc,Ysrc, SRCCOPY); 
-					} // да, изображение есть
-					else // Объект есть, а изображения нет. Рисуем вопросительный знак
+					} // РґР°, РёР·РѕР±СЂР°Р¶РµРЅРёРµ РµСЃС‚СЊ
+					else // РћР±СЉРµРєС‚ РµСЃС‚СЊ, Р° РёР·РѕР±СЂР°Р¶РµРЅРёСЏ РЅРµС‚. Р РёСЃСѓРµРј РІРѕРїСЂРѕСЃРёС‚РµР»СЊРЅС‹Р№ Р·РЅР°Рє
 					{
 						TextOut(hdc,j*cwidth+gap*2+20,i*rheight+gap*2+height/5+20,L"?",1);
 					}
-				} // У этой ячейки прописан объект grid и может быть изображение
-				else // Объекта нет вообще
+				} // РЈ СЌС‚РѕР№ СЏС‡РµР№РєРё РїСЂРѕРїРёСЃР°РЅ РѕР±СЉРµРєС‚ grid Рё РјРѕР¶РµС‚ Р±С‹С‚СЊ РёР·РѕР±СЂР°Р¶РµРЅРёРµ
+				else // РћР±СЉРµРєС‚Р° РЅРµС‚ РІРѕРѕР±С‰Рµ
 				{
 					TextOut(hdc,j*cwidth+gap*2+20,i*rheight+gap*2+height/5+20,L"?",1);
 				}
 				
 				count++;
 
-				// обводка
+				// РѕР±РІРѕРґРєР°
 				MoveToEx(hdc,j*cwidth+gap,i*rheight+gap+height/5,NULL);
 				LineTo(hdc,(j+1)*cwidth-gap,i*rheight+gap+height/5);
 				LineTo(hdc,(j+1)*cwidth-gap,(i+1)*rheight-gap+height/5);
@@ -335,22 +335,22 @@ void BKBGrid::OnPaint(HDC hdc, LONG width, LONG height)
 }
 
 //================================================================================================
-// Сработала фиксация на активной ячейке
+// РЎСЂР°Р±РѕС‚Р°Р»Р° С„РёРєСЃР°С†РёСЏ РЅР° Р°РєС‚РёРІРЅРѕР№ СЏС‡РµР№РєРµ
 //================================================================================================
 void BKBGrid::Activate(int cell)
 {
 	TCHAR cmd_filename[16];
 
-	if(current_grid->child[cell]) // может быть вариант, когда объекта нет (с вопросительным знаком)
+	if(current_grid->child[cell]) // РјРѕР¶РµС‚ Р±С‹С‚СЊ РІР°СЂРёР°РЅС‚, РєРѕРіРґР° РѕР±СЉРµРєС‚Р° РЅРµС‚ (СЃ РІРѕРїСЂРѕСЃРёС‚РµР»СЊРЅС‹Рј Р·РЅР°РєРѕРј)
 	{
-		// Есть ли звук для проигрывания?
+		// Р•СЃС‚СЊ Р»Рё Р·РІСѓРє РґР»СЏ РїСЂРѕРёРіСЂС‹РІР°РЅРёСЏ?
 		if(current_grid->child[cell]->soundfile[0])
 			PlaySound(current_grid->child[cell]->soundfile, NULL, SND_FILENAME|SND_ASYNC);
 
 		// 11.10.2018
-		// Выполняет внешнюю программу
-		// Формируем реальное имя файла
-		wcscpy_s(cmd_filename,L"grid\\"); // Имя файла всегда начинается с каталога grid
+		// Р’С‹РїРѕР»РЅСЏРµС‚ РІРЅРµС€РЅСЋСЋ РїСЂРѕРіСЂР°РјРјСѓ
+		// Р¤РѕСЂРјРёСЂСѓРµРј СЂРµР°Р»СЊРЅРѕРµ РёРјСЏ С„Р°Р№Р»Р°
+		wcscpy_s(cmd_filename,L"grid\\"); // РРјСЏ С„Р°Р№Р»Р° РІСЃРµРіРґР° РЅР°С‡РёРЅР°РµС‚СЃСЏ СЃ РєР°С‚Р°Р»РѕРіР° grid
 		wcscat_s(cmd_filename,current_grid->child[cell]->filename_template);
 		wcscat_s(cmd_filename,L".cmd");
 
@@ -362,12 +362,12 @@ void BKBGrid::Activate(int cell)
 		result=CreateProcess(cmd_filename,NULL,NULL,NULL,FALSE,NULL,NULL,NULL,&cif,&pi);
 		if(result)
 		{
-			f_minimized=true; // Теперь может минимизироваться не только на верхнем уровне, если запускает программу
+			f_minimized=true; // РўРµРїРµСЂСЊ РјРѕР¶РµС‚ РјРёРЅРёРјРёР·РёСЂРѕРІР°С‚СЊСЃСЏ РЅРµ С‚РѕР»СЊРєРѕ РЅР° РІРµСЂС…РЅРµРј СѓСЂРѕРІРЅРµ, РµСЃР»Рё Р·Р°РїСѓСЃРєР°РµС‚ РїСЂРѕРіСЂР°РјРјСѓ
 			BKBToolWnd::Place();
 		}
-		// [ конец изменений 11.10.2018 ]
+		// [ РєРѕРЅРµС† РёР·РјРµРЅРµРЅРёР№ 11.10.2018 ]
 
-		// Нужно ли делать переход на следующий уровень?
+		// РќСѓР¶РЅРѕ Р»Рё РґРµР»Р°С‚СЊ РїРµСЂРµС…РѕРґ РЅР° СЃР»РµРґСѓСЋС‰РёР№ СѓСЂРѕРІРµРЅСЊ?
 		if(current_grid->child[cell]->num_active>0)
 			current_grid=current_grid->child[cell];
 
@@ -377,14 +377,14 @@ void BKBGrid::Activate(int cell)
 }
 
 //================================================================================================
-// Разное.
-// Конструктор с загрузкой битмапа и имени файла в нужную ячейку 
-// Если она уже занята - выгрузить и выдать сообщение об ошибке
+// Р Р°Р·РЅРѕРµ.
+// РљРѕРЅСЃС‚СЂСѓРєС‚РѕСЂ СЃ Р·Р°РіСЂСѓР·РєРѕР№ Р±РёС‚РјР°РїР° Рё РёРјРµРЅРё С„Р°Р№Р»Р° РІ РЅСѓР¶РЅСѓСЋ СЏС‡РµР№РєСѓ 
+// Р•СЃР»Рё РѕРЅР° СѓР¶Рµ Р·Р°РЅСЏС‚Р° - РІС‹РіСЂСѓР·РёС‚СЊ Рё РІС‹РґР°С‚СЊ СЃРѕРѕР±С‰РµРЅРёРµ РѕР± РѕС€РёР±РєРµ
 //================================================================================================
 BKBGrid::BKBGrid(BKBGrid *_parent, int cell, TCHAR *_soundfile, HBITMAP _hbm):parent(_parent),child(),num_active(0),soundfile(), hbm(_hbm)
 {
-	// пропускаем проверку аргументов на адекватность. Жаль, но на это нет времени.
-	if(parent->child[cell]) // ячейка занята!
+	// РїСЂРѕРїСѓСЃРєР°РµРј РїСЂРѕРІРµСЂРєСѓ Р°СЂРіСѓРјРµРЅС‚РѕРІ РЅР° Р°РґРµРєРІР°С‚РЅРѕСЃС‚СЊ. Р–Р°Р»СЊ, РЅРѕ РЅР° СЌС‚Рѕ РЅРµС‚ РІСЂРµРјРµРЅРё.
+	if(parent->child[cell]) // СЏС‡РµР№РєР° Р·Р°РЅСЏС‚Р°!
 	{
 #ifdef _DEBUG
 		BKBReportError(__WIDEFILE__,L"Parent cell is occupied",__LINE__);
@@ -396,7 +396,7 @@ BKBGrid::BKBGrid(BKBGrid *_parent, int cell, TCHAR *_soundfile, HBITMAP _hbm):pa
 
 	if(cell>=parent->num_active) parent->num_active=cell+1;
 
-	// определение размеров битмапа
+	// РѕРїСЂРµРґРµР»РµРЅРёРµ СЂР°Р·РјРµСЂРѕРІ Р±РёС‚РјР°РїР°
 	if(_hbm)
 	{
 		BITMAP bm;
@@ -417,13 +417,13 @@ BKBGrid::~BKBGrid()
 {
 	int i;
 	
-	// сначала стереть все дочерние
+	// СЃРЅР°С‡Р°Р»Р° СЃС‚РµСЂРµС‚СЊ РІСЃРµ РґРѕС‡РµСЂРЅРёРµ
 	for(i=0;i<15;i++)
 	{
 		if(child[i]) delete child[i];
 	}
 
-   // soundfile теперь стирать не надо, ибо статика
+   // soundfile С‚РµРїРµСЂСЊ СЃС‚РёСЂР°С‚СЊ РЅРµ РЅР°РґРѕ, РёР±Рѕ СЃС‚Р°С‚РёРєР°
 	
 	if(hbm) DeleteObject(hbm);
 }
@@ -439,7 +439,7 @@ int BKBGrid::NumCells()
 }
 
 //===================================================================
-// Загрузка тестовых данных для отладки
+// Р—Р°РіСЂСѓР·РєР° С‚РµСЃС‚РѕРІС‹С… РґР°РЅРЅС‹С… РґР»СЏ РѕС‚Р»Р°РґРєРё
 //===================================================================
 void BKBGrid::TestData()
 {
@@ -448,15 +448,15 @@ void BKBGrid::TestData()
 	BKBGrid *grid2;
 	
 /*	h=(HBITMAP)LoadImage(BKBInst,L".\\grid\\0.bmp",IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
-	new BKBGrid(current_grid, 0,L"grid\\0.wav",h); // Картинку на первой позиции
+	new BKBGrid(current_grid, 0,L"grid\\0.wav",h); // РљР°СЂС‚РёРЅРєСѓ РЅР° РїРµСЂРІРѕР№ РїРѕР·РёС†РёРё
 
 	h=(HBITMAP)LoadImage(BKBInst,L"grid\\1.bmp",IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
-	new BKBGrid(current_grid, 1,L".\\grid\\1.wav",h); // Картинку на второй позиции
+	new BKBGrid(current_grid, 1,L".\\grid\\1.wav",h); // РљР°СЂС‚РёРЅРєСѓ РЅР° РІС‚РѕСЂРѕР№ РїРѕР·РёС†РёРё
 
 	h=(HBITMAP)LoadImage(BKBInst,L"grid\\3.bmp",IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
-	grid2=new BKBGrid(current_grid, 3,L".\\grid\\3.wav",h); // Картинку на ЧЕТВЁРТОЙ позиции
+	grid2=new BKBGrid(current_grid, 3,L".\\grid\\3.wav",h); // РљР°СЂС‚РёРЅРєСѓ РЅР° Р§Р•РўР’РЃР РўРћР™ РїРѕР·РёС†РёРё
 
-	// Проверка 2-го уровня
+	// РџСЂРѕРІРµСЂРєР° 2-РіРѕ СѓСЂРѕРІРЅСЏ
 	h=(HBITMAP)LoadImage(BKBInst,L"grid\\30.bmp",IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
 	new BKBGrid(grid2,0,L".\\grid\\30.wav",h); 
 
@@ -467,13 +467,13 @@ void BKBGrid::TestData()
 }
 
 //===============================================================================================================================================
-// При переборе файлов типа bmp или wav:
-// Как определить, подходит ли нам имя файла?
-// 1. длина имени файла не более 3 символов + расширение, то есть 8 
-// 2. Отбросить расширение (поставить ноль туда, где была точка)
-// 3. Перебирать символы один за другим, проверить, что символ в диапазоне 0..f или A..F, получить его значение для всех (максимум 3) символа.
-// И получить общее число символов.
-// Затем вызвать функцию создания (или поиска) GRID с индексом i1,i2,i3. Получить на него указатель, добавить туда битмап или звук.
+// РџСЂРё РїРµСЂРµР±РѕСЂРµ С„Р°Р№Р»РѕРІ С‚РёРїР° bmp РёР»Рё wav:
+// РљР°Рє РѕРїСЂРµРґРµР»РёС‚СЊ, РїРѕРґС…РѕРґРёС‚ Р»Рё РЅР°Рј РёРјСЏ С„Р°Р№Р»Р°?
+// 1. РґР»РёРЅР° РёРјРµРЅРё С„Р°Р№Р»Р° РЅРµ Р±РѕР»РµРµ 3 СЃРёРјРІРѕР»РѕРІ + СЂР°СЃС€РёСЂРµРЅРёРµ, С‚Рѕ РµСЃС‚СЊ 8 
+// 2. РћС‚Р±СЂРѕСЃРёС‚СЊ СЂР°СЃС€РёСЂРµРЅРёРµ (РїРѕСЃС‚Р°РІРёС‚СЊ РЅРѕР»СЊ С‚СѓРґР°, РіРґРµ Р±С‹Р»Р° С‚РѕС‡РєР°)
+// 3. РџРµСЂРµР±РёСЂР°С‚СЊ СЃРёРјРІРѕР»С‹ РѕРґРёРЅ Р·Р° РґСЂСѓРіРёРј, РїСЂРѕРІРµСЂРёС‚СЊ, С‡С‚Рѕ СЃРёРјРІРѕР» РІ РґРёР°РїР°Р·РѕРЅРµ 0..f РёР»Рё A..F, РїРѕР»СѓС‡РёС‚СЊ РµРіРѕ Р·РЅР°С‡РµРЅРёРµ РґР»СЏ РІСЃРµС… (РјР°РєСЃРёРјСѓРј 3) СЃРёРјРІРѕР»Р°.
+// Р РїРѕР»СѓС‡РёС‚СЊ РѕР±С‰РµРµ С‡РёСЃР»Рѕ СЃРёРјРІРѕР»РѕРІ.
+// Р—Р°С‚РµРј РІС‹Р·РІР°С‚СЊ С„СѓРЅРєС†РёСЋ СЃРѕР·РґР°РЅРёСЏ (РёР»Рё РїРѕРёСЃРєР°) GRID СЃ РёРЅРґРµРєСЃРѕРј i1,i2,i3. РџРѕР»СѓС‡РёС‚СЊ РЅР° РЅРµРіРѕ СѓРєР°Р·Р°С‚РµР»СЊ, РґРѕР±Р°РІРёС‚СЊ С‚СѓРґР° Р±РёС‚РјР°Рї РёР»Рё Р·РІСѓРє.
 //===============================================================================================================================================
 void BKBGrid::Load()
 {
@@ -485,7 +485,7 @@ void BKBGrid::Load()
 	TCHAR filename[16];
 	HBITMAP _hbm;
 
-	for(step=0;step<2;step++) // в первом шаге перебираем bmp, во втором - wav
+	for(step=0;step<2;step++) // РІ РїРµСЂРІРѕРј С€Р°РіРµ РїРµСЂРµР±РёСЂР°РµРј bmp, РІРѕ РІС‚РѕСЂРѕРј - wav
 	{
 		hFind = FindFirstFile(ext[step], &FindFileData);
 
@@ -497,13 +497,13 @@ void BKBGrid::Load()
 			return;
 		}
 
-		// просматриваем все файлы
+		// РїСЂРѕСЃРјР°С‚СЂРёРІР°РµРј РІСЃРµ С„Р°Р№Р»С‹
 		do 
 		{
 			len=wcslen(FindFileData.cFileName);
 			if((len<5)||(len>7)) continue;
 
-			// перебираем символы до точки
+			// РїРµСЂРµР±РёСЂР°РµРј СЃРёРјРІРѕР»С‹ РґРѕ С‚РѕС‡РєРё
 			for(i=0;i<len-4;i++)
 			{
 				if((FindFileData.cFileName[i]>=L'0')&&(FindFileData.cFileName[i]<=L'9'))
@@ -513,21 +513,21 @@ void BKBGrid::Load()
 				else if((FindFileData.cFileName[i]>=L'A')&&(FindFileData.cFileName[i]<=L'F'))
 					c[i]=10+FindFileData.cFileName[i]-L'A';
 				else
-					goto next_file; // Меня зовут Михаил и я зависим от операторов goto...
+					goto next_file; // РњРµРЅСЏ Р·РѕРІСѓС‚ РњРёС…Р°РёР» Рё СЏ Р·Р°РІРёСЃРёРј РѕС‚ РѕРїРµСЂР°С‚РѕСЂРѕРІ goto...
 			}
 
 			g=FindOrCreate(c[0],c[1],c[2],len-4);
 
 			if(NULL!=g)
 			{
-				// 11.10.2018 Добавили сохранение имени файла без расширения
+				// 11.10.2018 Р”РѕР±Р°РІРёР»Рё СЃРѕС…СЂР°РЅРµРЅРёРµ РёРјРµРЅРё С„Р°Р№Р»Р° Р±РµР· СЂР°СЃС€РёСЂРµРЅРёСЏ
 				wcsncpy_s(g->filename_template, FindFileData.cFileName, len-4);
 
-				// Формируем реальное имя файла
-				wcscpy_s(filename,L"grid\\"); // Имя файла всегда начинается с каталога grid
+				// Р¤РѕСЂРјРёСЂСѓРµРј СЂРµР°Р»СЊРЅРѕРµ РёРјСЏ С„Р°Р№Р»Р°
+				wcscpy_s(filename,L"grid\\"); // РРјСЏ С„Р°Р№Р»Р° РІСЃРµРіРґР° РЅР°С‡РёРЅР°РµС‚СЃСЏ СЃ РєР°С‚Р°Р»РѕРіР° grid
 				wcscat_s(filename,FindFileData.cFileName);
 
-				if(0==step) // Это файл .bmp, скармливаем битмап, как в конструкторе
+				if(0==step) // Р­С‚Рѕ С„Р°Р№Р» .bmp, СЃРєР°СЂРјР»РёРІР°РµРј Р±РёС‚РјР°Рї, РєР°Рє РІ РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂРµ
 				{
 					_hbm=(HBITMAP)LoadImage(BKBInst,filename,IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
 					if(_hbm)
@@ -540,20 +540,20 @@ void BKBGrid::Load()
 						g->hbm_height=bm.bmHeight;
 					}
 				}
-				else // просто копируем имя файла
+				else // РїСЂРѕСЃС‚Рѕ РєРѕРїРёСЂСѓРµРј РёРјСЏ С„Р°Р№Р»Р°
 				{
 					wcscpy_s(g->soundfile, filename);
 				}
 			}
 
 next_file: ;
-		} while (FindNextFile(hFind, &FindFileData)); // просматриваем все файлы этого типа
+		} while (FindNextFile(hFind, &FindFileData)); // РїСЂРѕСЃРјР°С‚СЂРёРІР°РµРј РІСЃРµ С„Р°Р№Р»С‹ СЌС‚РѕРіРѕ С‚РёРїР°
 		FindClose(hFind);
 	}
 }
 
 //========================================================================================================
-// Находит среди существующих или создаёт grid c путём l1->l2->l3
+// РќР°С…РѕРґРёС‚ СЃСЂРµРґРё СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёС… РёР»Рё СЃРѕР·РґР°С‘С‚ grid c РїСѓС‚С‘Рј l1->l2->l3
 //========================================================================================================
 BKBGrid *BKBGrid::FindOrCreate(int l0, int l1, int l2, int _num_levels)
 {
@@ -561,7 +561,7 @@ BKBGrid *BKBGrid::FindOrCreate(int l0, int l1, int l2, int _num_levels)
 	int l[3]={l0,l1,l2};
 	int i;
 
-	// проверим аргументы на ошибки
+	// РїСЂРѕРІРµСЂРёРј Р°СЂРіСѓРјРµРЅС‚С‹ РЅР° РѕС€РёР±РєРё
 	if((_num_levels<1)||(_num_levels>3)||(l0<0)||(l0>15)||
 		(_num_levels>1)&&((l1<0)||(l1>15)) ||
 		(_num_levels>2)&&((l2<0)||(l2>15)))
@@ -572,48 +572,48 @@ BKBGrid *BKBGrid::FindOrCreate(int l0, int l1, int l2, int _num_levels)
 		return 0;
 	}
 
-	// 1. Находим grid или создаём
+	// 1. РќР°С…РѕРґРёРј grid РёР»Рё СЃРѕР·РґР°С‘Рј
 	g=&mg;
 	for(i=0;i<_num_levels;i++)
 	{
 		if(NULL==g->child[l[i]])
 		{
-			// Нет такого, создаём...
-			// конструктор правильно обновляет num_active у родительского grid
+			// РќРµС‚ С‚Р°РєРѕРіРѕ, СЃРѕР·РґР°С‘Рј...
+			// РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂ РїСЂР°РІРёР»СЊРЅРѕ РѕР±РЅРѕРІР»СЏРµС‚ num_active Сѓ СЂРѕРґРёС‚РµР»СЊСЃРєРѕРіРѕ grid
 			new BKBGrid(g,l[i],0,0);
 		}
-		g=g->child[l[i]]; // продвигаемся дальше по ветке
+		g=g->child[l[i]]; // РїСЂРѕРґРІРёРіР°РµРјСЃСЏ РґР°Р»СЊС€Рµ РїРѕ РІРµС‚РєРµ
 	}
 	
 	return g;
 }
 
 //================================================================================================
-// В режиме минимизиро ванного окна показывает курсор, только когда он внутри окна
-// В режиме, когда видно всё, двигает курсор
-// Слизано с BKBToolWnd::ScrollCursor(POINT *p)
+// Р’ СЂРµР¶РёРјРµ РјРёРЅРёРјРёР·РёСЂРѕ РІР°РЅРЅРѕРіРѕ РѕРєРЅР° РїРѕРєР°Р·С‹РІР°РµС‚ РєСѓСЂСЃРѕСЂ, С‚РѕР»СЊРєРѕ РєРѕРіРґР° РѕРЅ РІРЅСѓС‚СЂРё РѕРєРЅР°
+// Р’ СЂРµР¶РёРјРµ, РєРѕРіРґР° РІРёРґРЅРѕ РІСЃС‘, РґРІРёРіР°РµС‚ РєСѓСЂСЃРѕСЂ
+// РЎР»РёР·Р°РЅРѕ СЃ BKBToolWnd::ScrollCursor(POINT *p)
 //================================================================================================
 void BKBGrid::ShowCursor(POINT *_pnt)
 {
-	static bool mouse_inside_toolbar=true, last_mouse_inside_toolbar=true; // Для скрытия второго курсора при перемещении за область тулбара
+	static bool mouse_inside_toolbar=true, last_mouse_inside_toolbar=true; // Р”Р»СЏ СЃРєСЂС‹С‚РёСЏ РІС‚РѕСЂРѕРіРѕ РєСѓСЂСЃРѕСЂР° РїСЂРё РїРµСЂРµРјРµС‰РµРЅРёРё Р·Р° РѕР±Р»Р°СЃС‚СЊ С‚СѓР»Р±Р°СЂР°
 	
-	// Попала ли точка фиксации в границы окна?
+	// РџРѕРїР°Р»Р° Р»Рё С‚РѕС‡РєР° С„РёРєСЃР°С†РёРё РІ РіСЂР°РЅРёС†С‹ РѕРєРЅР°?
 	POINT pnt=*_pnt;
 	RECT crect;
 	GetClientRect(BKBToolWnd::GetHwnd(),&crect);
 	ScreenToClient(BKBToolWnd::GetHwnd(),&pnt);
 	if(((pnt.x>=0)&&(pnt.x<crect.right)&&(pnt.y>0)&&(pnt.y<crect.bottom))||(!f_minimized))
 	{
-		// Попали в тулбокс, покажите курсор
+		// РџРѕРїР°Р»Рё РІ С‚СѓР»Р±РѕРєСЃ, РїРѕРєР°Р¶РёС‚Рµ РєСѓСЂСЃРѕСЂ
 		mouse_inside_toolbar=true;
-		if(false==last_mouse_inside_toolbar) BKBTranspWnd::Show(); // Показать стрелку
+		if(false==last_mouse_inside_toolbar) BKBTranspWnd::Show(); // РџРѕРєР°Р·Р°С‚СЊ СЃС‚СЂРµР»РєСѓ
 		BKBTranspWnd::Move(_pnt->x,_pnt->y);
 	}
 	else
 	{
-		// мимо тулбара
+		// РјРёРјРѕ С‚СѓР»Р±Р°СЂР°
 		mouse_inside_toolbar=false;
-		if(true==last_mouse_inside_toolbar) BKBTranspWnd::Hide(); // Убрать стрелку
+		if(true==last_mouse_inside_toolbar) BKBTranspWnd::Hide(); // РЈР±СЂР°С‚СЊ СЃС‚СЂРµР»РєСѓ
 	}
 	last_mouse_inside_toolbar=mouse_inside_toolbar;
 }
