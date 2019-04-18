@@ -209,7 +209,7 @@ void Fixation::LeftClick(POINT p, bool skip_modifier_press, bool skip_modifier_u
 	{
 		// 27.03.2019 По жалобам Богдана вводим задержки при выполнении клика 
 		SendInput(1,&input[0],sizeof(INPUT));
-		//if(2!=tracking_device) Sleep(80);
+		if(2!=tracking_device) Sleep(80);
 		// паузы между нажатием и отпусканием опасна, может превратиться в дрег
 		SendInput(2,&input[1],sizeof(INPUT));
 	}
@@ -268,9 +268,9 @@ void Fixation::RightClick(POINT p)
 	}
 	else
 	{
-		// 27.03.2019 По жалобам Богдана вводим задержки при выполнении клика - ОТМЕНЕНО
+		// 27.03.2019 По жалобам Богдана вводим задержки при выполнении клика
 		SendInput(1,&input[0],sizeof(INPUT));
-		//if(2!=tracking_device) Sleep(80);
+		if(2!=tracking_device) Sleep(80);
 		// паузы между нажатием и отпусканием опасна, может превратиться в дрег
 		SendInput(2,&input[1],sizeof(INPUT));
 	}
