@@ -1,4 +1,4 @@
-#include <Windows.h>
+п»ї#include <Windows.h>
 #include "BKBHookProc.h"
 
 bool volatile BKB_MBUTTON_PRESSED=false;
@@ -7,33 +7,33 @@ extern int gBKB_MBUTTONFIX;
 DWORD last_mouse_time=0;
 
 //====================================================================================
-// Собственно, хук (уже второй)
+// РЎРѕР±СЃС‚РІРµРЅРЅРѕ, С…СѓРє (СѓР¶Рµ РІС‚РѕСЂРѕР№)
 //====================================================================================
 LRESULT  CALLBACK HookProc2(int disabled,WPARAM wParam,LPARAM lParam) 
 {
 	if (!disabled&&!my_own_click)
 	{
-		last_mouse_time=timeGetTime();
-
 		MOUSEHOOKSTRUCT * pMouseStruct = (MOUSEHOOKSTRUCT *)lParam;
 		if (pMouseStruct != NULL)
 		{
+			if(WM_MOUSEWHEEL!=wParam) last_mouse_time=timeGetTime(); // СЃРєСЂРѕР»Р» РїСЂРёРІРѕРґРёР» Рє РёР»Р»СЋС‰РёРё СЂР°Р±РѕС‚С‹ Р°СЃСЃРёСЃС‚РµРЅС‚Р°
+
 			switch(wParam)
 			{
 			case WM_MBUTTONDOWN:
-				if(0!=gBKB_MBUTTONFIX) // В режиме 0 - только настоящие фиксации, мышь игнорируем
+				if(0!=gBKB_MBUTTONFIX) // Р’ СЂРµР¶РёРјРµ 0 - С‚РѕР»СЊРєРѕ РЅР°СЃС‚РѕСЏС‰РёРµ С„РёРєСЃР°С†РёРё, РјС‹С€СЊ РёРіРЅРѕСЂРёСЂСѓРµРј
 				{
 					BKB_MBUTTON_PRESSED=true;
-					return 1; // Перехватываем, не даём превратиться в реальное нажатие
+					return 1; // РџРµСЂРµС…РІР°С‚С‹РІР°РµРј, РЅРµ РґР°С‘Рј РїСЂРµРІСЂР°С‚РёС‚СЊСЃСЏ РІ СЂРµР°Р»СЊРЅРѕРµ РЅР°Р¶Р°С‚РёРµ
 				}
 				
 				break;
 
 			case WM_MBUTTONUP:
-				if(0!=gBKB_MBUTTONFIX) // В режиме 0 - только настоящие фиксации, мышь игнорируем
+				if(0!=gBKB_MBUTTONFIX) // Р’ СЂРµР¶РёРјРµ 0 - С‚РѕР»СЊРєРѕ РЅР°СЃС‚РѕСЏС‰РёРµ С„РёРєСЃР°С†РёРё, РјС‹С€СЊ РёРіРЅРѕСЂРёСЂСѓРµРј
 				{
-					BKB_MBUTTON_PRESSED=false; // сбрасывается в ongazedata, но подстрахуемся
-					return 1; // Перехватываем, не даём превратиться в реальное отпускание
+					BKB_MBUTTON_PRESSED=false; // СЃР±СЂР°СЃС‹РІР°РµС‚СЃСЏ РІ ongazedata, РЅРѕ РїРѕРґСЃС‚СЂР°С…СѓРµРјСЃСЏ
+					return 1; // РџРµСЂРµС…РІР°С‚С‹РІР°РµРј, РЅРµ РґР°С‘Рј РїСЂРµРІСЂР°С‚РёС‚СЊСЃСЏ РІ СЂРµР°Р»СЊРЅРѕРµ РѕС‚РїСѓСЃРєР°РЅРёРµ
 				}
 				break;
 			}

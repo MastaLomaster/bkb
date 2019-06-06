@@ -1,20 +1,23 @@
 // Внешняя клавиатура для программы bkb
 // Работает только на Arduino Leonardo!!!
-// Используйте, если какая-нибудь программа отказывается работать с программно-эмулируемой клавиатурой
+// Используйте, если какая-нибудь программа отказывается работать с программно-эмулируемой клавиатурой или скроллом
 // External keyboard emulator
 // Works with Arduino Leonardo only!!!
-// Use it when software keyboard emulation does not work with some applications
+// Use it when software keyboard emulation / scroll emulation does not work with some applications
 
 #include <Keyboard.h>
+#include <Mouse.h>
 
 void setup() {
   // put your setup code here, to run once:
     Serial.begin(9600);
     while (!Serial); // wait for Leonardo enumeration, others continue immediately
     Keyboard.begin();
+    Mouse.begin();
 }
 
 unsigned char c,byte2,byte3,CRC;
+char dir;
 int mstep=0;
 
 void loop() {
@@ -48,25 +51,37 @@ void loop() {
         case 4: // Здесь отловим CRC, проверим его, и вышлем символ
           if(CRC==c) 
           {
-            if(byte2&1) // Нажать Shift
+            if(byte2&8) // 01.05.2019 - режим Scroll
             {
-              Keyboard.press(KEY_LEFT_SHIFT);
+              dir=byte3;
+              if(byte3>127)
+              {
+                dir=127-byte3;
+              }
+              Mouse.move(0,0,dir); 
             }
+            else
+            {
+              if(byte2&1) // Нажать Shift
+              {
+               Keyboard.press(KEY_LEFT_SHIFT);
+              }
             
-            if(byte2&2) // Нажать Ctrl
-            {
-              Keyboard.press(KEY_LEFT_CTRL);
-            }
+              if(byte2&2) // Нажать Ctrl
+              {
+               Keyboard.press(KEY_LEFT_CTRL);
+              }
 
-            if(byte2&4) // Нажать Alt
-            {
-              Keyboard.press(KEY_LEFT_ALT);
-            }
+              if(byte2&4) // Нажать Alt
+              {
+               Keyboard.press(KEY_LEFT_ALT);
+              }
             
-            Keyboard.press(byte3);
-            delay(80);
+              Keyboard.press(byte3);
+              delay(80);
 
-            Keyboard.releaseAll();
+              Keyboard.releaseAll();
+            }
           }
           break;
 

@@ -6,6 +6,7 @@
 #include "KeybWnd.h"
 #include "WM_USER_messages.h"
 #include "BKBTurtle.h"
+#include "BKBCOM9Kbd.h"
 
 //static char debug_buf[4096]; 
 
@@ -18,6 +19,7 @@ BKB_MODE Fixation::BKB_Mode=BKB_MODE_NONE;
 bool Fixation::drag_in_progress=false;
 
 extern int gBKB_SLOW_MOUSE; // Медленная мышь (уверенный дрег)
+extern int gBKB_COM9KEYBOARD; // COM9-клавиатура, она же мышь теперь
 
 //==============================================================================================
 // Взгляд зафиксировался
@@ -473,12 +475,33 @@ bool Fixation::Drag2(POINT p)
 //==============================================================================================
 void Fixation::Scroll(uint64_t timelag, int direction)
 {
+	static uint64_t skip_time=0UL;
+	static uint64_t remain_time=0UL;
+
 	// Для отладки и понимания пределов timelag
 			//char msgbuf[1024];
 			//sprintf(msgbuf,"%llu\n",timelag);
 			//OutputDebugString(msgbuf); 
 
 	if(timelag>100000UL) timelag=100000UL;
+
+	// 01.05.2019 управление внешней клавиатурой-мышью Arduino
+	if(gBKB_COM9KEYBOARD)
+	{
+		skip_time+=timelag+remain_time;
+		if(skip_time>300000UL)
+		{
+			remain_time=skip_time-300000UL;
+			skip_time=0UL;
+		}
+		else remain_time=0UL;
+
+		if(0UL==skip_time) // Двигаем колесо лишь изредка, иначе слишком шустро работает железка
+		{
+			if(!BKBCOM9Kbd::Scroll(direction))
+			return; // Удалось послать через железную клавиатуру-мышь!
+		}
+	}
 
 	INPUT input={0};
 

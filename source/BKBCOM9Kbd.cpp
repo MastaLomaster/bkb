@@ -198,3 +198,39 @@ int BKBCOM9Kbd::ArduinoButton(unsigned char c, bool _shift_pressed, bool _ctrl_p
 	
 	return 0; // Удалось задействовать внешнюю управляемую клавиатуру!
 }
+
+//=======================================================================================================
+// Возвращает 0, если удалось передать пакет на клавиатуру
+// Возвращает 1, если не удалось
+//=======================================================================================================
+int BKBCOM9Kbd::Scroll(int scroll_value)
+{
+	unsigned char CRC=0xFF;
+	unsigned char byte2=0, byte3;
+
+	// Заголовок пакета
+	if(BKBSerial::SendByte(CRC, 1)) return 1;
+
+	// Здесь всместо шифтов-альтов-контролов выставляем бит скролла
+	byte2=8;
+	CRC+=byte2; // пересчитываем CRC
+
+	// шлём второй байт
+	if(BKBSerial::SendByte(byte2, 1)) return 1;
+
+	// Шлём величину скролла
+	if(scroll_value>127) scroll_value=127;
+	if(scroll_value<-128) scroll_value=-128;
+
+	// Упаковываем в беззнаковый char 
+	if(scroll_value<0) byte3=127-scroll_value;
+	else byte3=scroll_value;
+
+	if(BKBSerial::SendByte(byte3, 1)) return 1;
+	CRC+=byte3;
+	
+	// Пришла очередь CRC
+	if(BKBSerial::SendByte(CRC, 1)) return 1;
+	
+	return 0; // Удалось задействовать внешнюю управляемую клавиатуру!
+}
