@@ -213,7 +213,10 @@ void Fixation::LeftClick(POINT p, bool skip_modifier_press, bool skip_modifier_u
 		SendInput(1,&input[0],sizeof(INPUT));
 		if(2!=tracking_device) Sleep(80);
 		// паузы между нажатием и отпусканием опасна, может превратиться в дрег
-		SendInput(2,&input[1],sizeof(INPUT));
+		// 07.08.2019 всё же вводим задержку между нажатием и отпусканием
+		SendInput(1,&input[1],sizeof(INPUT));
+		if(2!=tracking_device) Sleep(80);
+		SendInput(1,&input[2],sizeof(INPUT));
 	}
 	skip_mouse_hook=false;
 
@@ -274,7 +277,10 @@ void Fixation::RightClick(POINT p)
 		SendInput(1,&input[0],sizeof(INPUT));
 		if(2!=tracking_device) Sleep(80);
 		// паузы между нажатием и отпусканием опасна, может превратиться в дрег
-		SendInput(2,&input[1],sizeof(INPUT));
+		// 07.08.2019 всё же вводим задержку между нажатием и отпусканием
+		SendInput(1,&input[1],sizeof(INPUT));
+		if(2!=tracking_device) Sleep(80);
+		SendInput(1,&input[2],sizeof(INPUT));
 	}
 	skip_mouse_hook=false;
 

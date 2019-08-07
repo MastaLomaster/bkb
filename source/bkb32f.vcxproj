@@ -130,6 +130,10 @@
     <ClCompile Include="TranspWnd.cpp" />
     <ClCompile Include="WheelChair.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="bell.bmp" />
+    <Image Include="icon1.ico" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
