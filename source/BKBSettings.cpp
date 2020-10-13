@@ -545,7 +545,7 @@ int BKBSettings::OpenBKBConfig()
 	{
 #ifdef _DEBUG
 		wcscpy_s(tchar_buf,Internat::Message(52,L"Не могу прочитать файл настроек: '"));
-		wcsncat_s(tchar_buf,tfilename,1000);
+		wcsncat_s(tchar_buf,old_tfilename,1000);
 		wcsncat_s(tchar_buf,L"'",2);
 		BKBReportError(tchar_buf);
 #endif

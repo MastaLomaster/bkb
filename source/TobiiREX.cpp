@@ -387,12 +387,12 @@ typedef void ( *type_tobii_gaze_point_callback )( type_tobii_gaze_point const* g
 
 typedef __declspec(dllimport) int (__cdecl *type_tobii_api_create)(to_api **api, void*, void* );
 typedef __declspec(dllimport) int (__cdecl *type_tobii_enumerate_local_device_urls)(to_api* api, type_tobii_device_url_receiver receiver, void* user_data);
-typedef __declspec(dllimport) int (__cdecl *type_tobii_device_create)(to_api* api, char const* url, to_device** device );
+typedef __declspec(dllimport) int (__cdecl *type_tobii_device_create)(to_api* api, char const* url, int hrenvam, to_device** device );
 typedef __declspec(dllimport) int (__cdecl *type_tobii_gaze_point_subscribe)(to_device* device,  type_tobii_gaze_point_callback callback, void* user_data);
 typedef __declspec(dllimport) int (__cdecl *type_tobii_gaze_point_unsubscribe)(to_device *device);
 typedef __declspec(dllimport) int (__cdecl *type_tobii_device_destroy)(to_device* device);
 typedef __declspec(dllimport) int (__cdecl *type_tobii_api_destroy)(to_api* api );
-typedef __declspec(dllimport) int (__cdecl *type_tobii_wait_for_callbacks)(to_engine* engine, int device_count, to_device* const* devices );
+typedef __declspec(dllimport) int (__cdecl *type_tobii_wait_for_callbacks)(int device_count, to_device* const* devices );
 typedef __declspec(dllimport) int (__cdecl *type_tobii_device_process_callbacks)(to_device* device);
 
 // указатели на фунуции из DLL
@@ -453,7 +453,7 @@ unsigned __stdcall TobiiStreamThread(void *p)
 
 	while(!flag_stop_thread)
 	{
-		err = (*fp_tobii_wait_for_callbacks)( NULL, 1, &device );
+		err = (*fp_tobii_wait_for_callbacks)( 1, &device );
 		if(err!=0 && err !=6) //TOBII_ERROR_TIMED_OUT разрешается
 		{
 			BKBReportError(err, __WIDEFILE__,L"tobii_wait_for_callbacks",__LINE__);
@@ -535,7 +535,7 @@ int BKBTobiiREX::Init2()
 		return 1;
 	}
 
-    err = (*fp_tobii_device_create)( api, URL, &device );
+    err = (*fp_tobii_device_create)( api, URL, 1, &device );
     if(err)
 	{
 		BKBReportError(err, __WIDEFILE__,L"tobii_device_create",__LINE__);

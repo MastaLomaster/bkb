@@ -79,7 +79,7 @@ void BKBKeybWnd::Load()
 	if(NULL==fgetws(buf,4095,fin)) goto cleanup;
 	if(TCHAR(0xFEFF)==buf[0]) offset=1; else offset=0; // Ищем BOM
 // !!! Сюда добавить поиск комментариев !!!?? Или запретить их в первой строке??
-	if(3!=swscanf_s(buf+offset,L"%D %D %D",&tmp_panes,&tmp_rows,&tmp_columns))  
+	if(3!=swscanf_s(buf+offset,L"%d %d %d",&tmp_panes,&tmp_rows,&tmp_columns))  
 	{
 		KBDLoadError(line);
 		goto cleanup; // Пропускаем BOM, считываем параметры
